@@ -198,7 +198,7 @@ main{padding:12px;max-width:760px;margin:0 auto;}
   <div class="card">
     <div class="card-title">🔗 スプレッドシートから自動読み込み</div>
     <p class="section-note">スプシのデータを直接取得します。PCでもスマホでも同じデータが見られます。</p>
-    <button class="btn" onclick="loadFromGAS()" id="gasLoadBtn" style="width:100%;margin-bottom:8px;font-size:15px;padding:12px">📡 スプシからデータを取得</button>
+    <button class="btn" onclick="loadFromJSON()" id="gasLoadBtn" style="width:100%;margin-bottom:8px;font-size:15px;padding:12px">📡 データを読み込む</button>
     <div id="gasStatus" style="font-size:11px;color:var(--muted);text-align:center;min-height:16px"></div>
   </div>
   <div class="card">
@@ -2359,6 +2359,47 @@ function resetGasUrl() {
   const status = document.getElementById('gasStatus');
   if(status) { status.textContent = '✅ URLをリセットしました'; status.style.color = 'var(--plus)'; }
   setTimeout(() => { if(status) status.textContent = ''; }, 2000);
+}
+
+function loadFromJSON() {
+  const btn = document.getElementById('gasLoadBtn');
+  const status = document.getElementById('gasStatus');
+  btn.disabled = true;
+  btn.textContent = '⏳ 読み込み中...';
+  status.textContent = 'data.jsonを読み込んでいます...';
+  status.style.color = 'var(--accent3)';
+
+  fetch('./data.json', { cache: 'no-store' })
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then(json => {
+      const cols = json.columns || [];
+      const rawRows = json.rows || [];
+      // 配列→オブジェクトに変換
+      const objRows = rawRows.map(arr => {
+        const obj = {};
+        cols.forEach((col, i) => { obj[col] = arr[i] || ''; });
+        return obj;
+      });
+      const rows = normalizeGasRows(objRows);
+      if (!rows.length) throw new Error('データが空です');
+      G.raw = rows;
+      if (!finishLoad()) throw new Error('データの処理に失敗しました');
+      const dates = G.raw.map(r => r.dateStr).sort();
+      const dateRange = dates.length ? `${dates[0]}〜${dates[dates.length-1]}` : '';
+      status.textContent = `✅ ${G.raw.length.toLocaleString()}件読み込み完了 (${dateRange})`;
+      status.style.color = 'var(--plus)';
+      btn.textContent = '📡 データを読み込む';
+      btn.disabled = false;
+    })
+    .catch(err => {
+      status.textContent = `❌ エラー：${err.message}`;
+      status.style.color = 'var(--minus)';
+      btn.textContent = '📡 データを読み込む';
+      btn.disabled = false;
+    });
 }
 
 function loadFromGAS() {
