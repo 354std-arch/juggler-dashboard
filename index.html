@@ -2445,7 +2445,9 @@ function setStoreData(store) {
     G.nextStats = mergeAllNextStats(allStores, json);
     G.heatmap = (json.byStore[allStores[0]] || {}).heatmap || {};
     G.weekMatrix = (json.byStore[allStores[0]] || {}).weekMatrix || {};
+    G.dayWdayMatrix = (json.byStore[allStores[0]] || {}).dayWdayMatrix || {};
     G.dateSummary = mergeAllDateSummary(allStores, json);
+    G.todayAnalysis = (json.byStore[allStores[0]] || {}).todayAnalysis || null;
   } else {
     const storeData = json.byStore[store] || {};
     G.dayStats = storeData.dayStats || [];
@@ -2454,7 +2456,9 @@ function setStoreData(store) {
     G.nextStats = storeData.nextStats || {};
     G.heatmap = storeData.heatmap || {};
     G.weekMatrix = storeData.weekMatrix || {};
+    G.dayWdayMatrix = storeData.dayWdayMatrix || {};
     G.dateSummary = storeData.dateSummary || [];
+    G.todayAnalysis = storeData.todayAnalysis || null;
   }
   G.raw = [];
 }
@@ -4242,6 +4246,54 @@ function renderLayer1() {
     document.getElementById('layer1Result').innerHTML='<div class="empty-msg">先にデータを読み込んでください</div>';
     return;
   }
+
+  // 集計済みモード：todayAnalysisを使う
+  if(G._precomputed && G.todayAnalysis) {
+    const ta = G.todayAnalysis;
+    const wdays = ['日','月','火','水','木','金','土'];
+    const wday = wdays[ta.weekday];
+    const dayColor = ta.dayScore >= 3 ? 'var(--plus)' : ta.dayScore >= 2 ? 'var(--accent)' : ta.dayScore >= 1 ? 'var(--muted)' : 'var(--minus)';
+    const verdictColor = ta.verdict.startsWith('✅') ? 'var(--plus)' : ta.verdict.startsWith('🟡') ? 'var(--accent)' : ta.verdict.startsWith('⬜') ? 'var(--muted)' : 'var(--minus)';
+    targetDate = new Date(ta.date);
+    selectedModel = null;
+    document.getElementById('layer1Result').innerHTML = `
+      <div style="margin-bottom:12px">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:22px;font-weight:700;color:var(--accent)">${ta.date}（${wday}）</div>
+        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+          <span class="badge ${ta.isSpecial?'badge-special':'badge-normal'}">${ta.isSpecial?'⭐ 特定日':'通常日'}</span>
+          <span class="badge badge-normal" style="color:${dayColor}">${ta.dayJudge}</span>
+        </div>
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${ta.day}日の過去成績</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+          <div style="text-align:center">
+            <div style="font-size:10px;color:var(--muted)">平均差枚</div>
+            <div style="font-size:18px;font-weight:700;color:${ta.dayInfo&&ta.dayInfo.avg>=0?'var(--plus)':'var(--minus)'}">${ta.dayInfo?`${ta.dayInfo.avg>=0?'+':''}${ta.dayInfo.avg}`:'—'}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:10px;color:var(--muted)">プラス台率</div>
+            <div style="font-size:18px;font-weight:700;color:var(--accent)">${ta.dayInfo?`${ta.dayInfo.plusRate}%`:'—'}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:10px;color:var(--muted)">サンプル数</div>
+            <div style="font-size:18px;font-weight:700;color:var(--accent3)">${ta.dayInfo?`${ta.dayInfo.total}件`:'—'}</div>
+          </div>
+        </div>
+        ${ta.wdayAvg!==null?`<div style="font-size:11px;color:var(--muted)">${wday}曜日の平均差枚：<span style="color:${ta.wdayAvg>=0?'var(--plus)':'var(--minus)'};font-weight:700">${ta.wdayAvg>=0?'+':''}${ta.wdayAvg}枚</span></div>`:''}
+      </div>
+      <div style="background:var(--bg3);border-radius:8px;padding:14px;text-align:center">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">総合判定</div>
+        <div style="font-size:20px;font-weight:900;color:${verdictColor}">${ta.verdict}</div>
+      </div>
+      ${ta.dayScore>=1||ta.isSpecial?`<button class="btn" onclick="renderLayer2()" style="margin-top:12px">次へ → 機種・配分傾向を見る</button>`:''}
+    `;
+    updateSummaryBanner({ verdict:ta.verdict, verdictColor, isSpecial:ta.isSpecial, dayScore:ta.dayScore, day:ta.day, wday, dayInfo:ta.dayInfo, wdayAvg:ta.wdayAvg });
+    document.getElementById('layer2Card').style.display = 'none';
+    document.getElementById('layer3Card').style.display = 'none';
+    return;
+  }
+
   const val = document.getElementById('diagDate').value;
   if(!val) return;
   const [y,m,dd] = val.split('-').map(Number);
@@ -4344,6 +4396,40 @@ function renderLayer1() {
 }
 
 function renderLayer2() {
+  if(!targetDate && !G._precomputed) return;
+
+  // 集計済みモード：todayAnalysisのmodelStrengthを使う
+  if(G._precomputed && G.todayAnalysis) {
+    const ta = G.todayAnalysis;
+    const condLabel = ta.isSpecial ? '特定日' : '通常日';
+    const modelStrength = ta.modelStrength || [];
+    const goodModels = modelStrength.filter(m => m.label === '有力' || m.label === '対抗');
+    const topModel = modelStrength[0] || null;
+
+    document.getElementById('layer2Card').style.display = 'block';
+    document.getElementById('layer2Result').innerHTML = `
+      <div style="font-size:12px;font-weight:700;color:var(--accent3);margin-bottom:10px">${condLabel}の配分傾向まとめ</div>
+      ${modelStrength.length ? `
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">🎮 機種別強さ一覧（${condLabel}）</div>
+        ${modelStrength.map(m => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg3);border-radius:6px;margin-bottom:4px;cursor:pointer"
+               onclick="renderLayer3('${m.model}')">
+            <div>
+              <span style="font-size:13px;font-weight:700;color:var(--text)">${m.model}</span>
+              <span style="font-size:10px;color:var(--muted);margin-left:8px">${m.count}件</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:700;color:${m.avg>=0?'var(--plus)':'var(--minus)'}">${m.avg>=0?'+':''}${m.avg}枚</span>
+              <span style="font-size:11px;font-weight:700;color:${m.label==='有力'?'var(--plus)':m.label==='対抗'?'var(--accent)':'var(--muted)'}">${m.label}</span>
+            </div>
+          </div>`).join('')}
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">👆 機種をタップすると候補台を表示します</div>
+      </div>` : '<div class="empty-msg">データ不足</div>'}
+    `;
+    return;
+  }
+
   if(!targetDate) return;
   const day = targetDate.getDate();
   const SP = getSpecial();
@@ -4562,6 +4648,69 @@ function selectModel(model) {
 }
 
 function renderLayer3(model) {
+  if(!model) return;
+
+  // 集計済みモード：todayAnalysisのtopTargetsを使う
+  if(G._precomputed && G.todayAnalysis) {
+    const ta = G.todayAnalysis;
+    const targets = ta.topTargets.filter(t => t.model === model);
+    const condLabel = ta.isSpecial ? '特定日' : '通常日';
+
+    document.getElementById('layer3Card').style.display = 'block';
+    document.getElementById('layer3Filter').innerHTML = '';
+
+    if(!targets.length) {
+      document.getElementById('layer3Result').innerHTML = '<div class="empty-msg">この機種のデータがありません</div>';
+      return;
+    }
+
+    const rankColor = r => r.rank==='本命'?'var(--plus)':r.rank==='対抗'?'var(--accent)':r.rank==='保留'?'var(--muted)':'var(--minus)';
+    const rankIcon  = r => r.rank==='本命'?'🎯':r.rank==='対抗'?'★':r.rank==='保留'?'△':'⚠️';
+
+    const html = targets.map((t, idx) => {
+      const rc = rankColor(t);
+      const ri = rankIcon(t);
+      const ref = ta.isSpecial ? t.spAvg : t.nmAvg;
+      return `
+      <div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:12px;border-left:4px solid ${rc}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div>
+            <span style="font-size:18px;font-weight:900;color:var(--text)">${t.tai}番</span>
+            <span style="font-size:10px;color:var(--muted);margin-left:6px">${t.count}件 / 平均${t.avgG}G/日</span>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:14px;font-weight:900;color:${rc}">${ri} ${t.rank}</div>
+            <div style="font-size:10px;color:var(--muted)">スコア ${t.totalScore}pt</div>
+            <button class="btn" onclick="selectLayer3CandidatePrecomputed(${idx},'${model}')" style="margin-top:6px;padding:4px 8px;font-size:10px">この台で設定推測</button>
+          </div>
+        </div>
+        <div style="background:var(--bg4);border-radius:6px;padding:8px;margin-bottom:6px">
+          <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:5px">📊 スコア根拠</div>
+          ${(t.reasons||[]).map(r=>`
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+              <span style="font-size:11px;color:var(--muted)">${r.label}</span>
+              <span style="font-size:12px;font-weight:700;color:${r.pts>0?'var(--plus)':r.pts<0?'var(--minus)':'var(--muted)'}">${r.pts>0?'+':''}${r.pts}pt ${r.val}</span>
+            </div>`).join('')}
+        </div>
+        ${t.prevRow?`
+        <div style="font-size:11px;color:var(--muted);padding:5px 8px;background:var(--bg4);border-radius:6px;margin-bottom:6px">
+          前日：<span style="color:${t.prevRow.diff>=0?'var(--plus)':'var(--minus)'};font-weight:700">${t.prevRow.diff>=0?'+':''}${t.prevRow.diff}枚</span>
+          　BB${t.prevRow.bb} RB${t.prevRow.rb}
+          ${t.prevRow.isRBLead?'<span style="color:var(--accent3);margin-left:4px">RB先行</span>':''}
+        </div>`:''}
+        <div style="display:flex;gap:10px;font-size:11px;color:var(--muted);padding:5px 8px;background:var(--bg4);border-radius:6px;flex-wrap:wrap">
+          <span>${condLabel}平均 <b style="color:${ref!==null&&ref>=0?'var(--plus)':'var(--minus)'}">${ref!==null?(ref>=0?'+':'')+ref+'枚':'—'}</b></span>
+          <span>全体平均 <b style="color:${t.avg>=0?'var(--plus)':'var(--minus)'}">${t.avg>=0?'+':''}${t.avg}枚</b></span>
+          ${t.bayesProbSp!==null?`<span>P(設定4+) <b style="color:var(--accent3)">${ta.isSpecial?t.bayesProbSp:t.bayesProbNm}%</b></span>`:''}
+        </div>
+      </div>`;
+    }).join('');
+
+    document.getElementById('layer3Result').innerHTML = html || '<div class="empty-msg">候補台がありません</div>';
+    document.getElementById('layer3Card').scrollIntoView({behavior:'smooth', block:'start'});
+    return;
+  }
+
   if(!targetDate || !model) return;
   const day = targetDate.getDate();
   const SP  = getSpecial();
@@ -4721,6 +4870,27 @@ function renderLayer3(model) {
   document.getElementById('layer3Result').innerHTML = coverageBanner + (html || '<div class="empty-msg">候補台がありません</div>');
   document.getElementById('layer3Card').style.display = 'block';
   document.getElementById('layer3Card').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function selectLayer3CandidatePrecomputed(idx, model) {
+  if(!G.todayAnalysis) return;
+  const targets = G.todayAnalysis.topTargets.filter(t => t.model === model);
+  const t = targets[idx];
+  if(!t) return;
+  G.currentTargetContext = {
+    store: currentStore,
+    model: t.model,
+    tai: t.tai,
+    targetDate: G.todayAnalysis.date,
+    isSpecial: G.todayAnalysis.isSpecial,
+    historicalRbRate: t.rbRate,
+    historicalSynRate: t.synRate,
+    totalScore: t.totalScore,
+    configScore: 0,
+    valueScore: t.totalScore,
+  };
+  document.getElementById('stModel').value = t.model;
+  showTab('tab-setsuteii', document.querySelector('[onclick*="tab-setsuteii"]'));
 }
 
 function selectLayer3Candidate(idx) {
@@ -5755,22 +5925,15 @@ function renderPeriod() {
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
       scales:{x:{ticks:{color:'#666680',font:{size:9},maxRotation:45},grid:{color:'rgba(255,255,255,0.04)'}},
               y:{ticks:{color:'#666680',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
-  const rows=filteredRows().filter(r=>{
-    if(currentPeriod===0) return true;
-    const cutoff=new Date(G.dateSummary[G.dateSummary.length-1].date);
-    cutoff.setDate(cutoff.getDate()-currentPeriod);
-    return r.date>=cutoff;
-  });
-  const byDay2={};
-  rows.forEach(r=>{if(!byDay2[r.day]) byDay2[r.day]=[];byDay2[r.day].push(r.diff);});
-  document.getElementById('periodTopDays').innerHTML=Object.entries(byDay2).map(([d,diffs])=>({day:parseInt(d),avg:round1(avg(diffs))})).sort((a,b)=>b.avg-a.avg).slice(0,5).map((d,i)=>`
+  // 強い日・強い台：集計済みデータを使う
+  const topDays = [...G.dayStats].sort((a,b)=>b.avg-a.avg).slice(0,5);
+  document.getElementById('periodTopDays').innerHTML = topDays.map((d,i)=>`
     <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
       <span style="color:var(--muted)">${i+1}. ${d.day}日</span>
       <span style="color:${d.avg>=0?'var(--plus)':'var(--minus)'};font-family:'Share Tech Mono',monospace">${d.avg>=0?'+':''}${d.avg}</span>
     </div>`).join('');
-  const byTai2={};
-  rows.forEach(r=>{if(!byTai2[r.tai]) byTai2[r.tai]=[];byTai2[r.tai].push(r.diff);});
-  document.getElementById('periodTopTai').innerHTML=Object.entries(byTai2).map(([t,diffs])=>({tai:t,avg:round1(avg(diffs)),count:diffs.length})).filter(t=>t.count>=3).sort((a,b)=>b.avg-a.avg).slice(0,5).map((t,i)=>`
+  const topTai = [...G.taiDetail].sort((a,b)=>b.avg-a.avg).filter(t=>t.count>=3).slice(0,5);
+  document.getElementById('periodTopTai').innerHTML = topTai.map((t,i)=>`
     <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
       <span style="color:var(--muted)">${i+1}. ${t.tai}番</span>
       <span style="color:${t.avg>=0?'var(--plus)':'var(--minus)'};font-family:'Share Tech Mono',monospace">${t.avg>=0?'+':''}${t.avg}</span>
