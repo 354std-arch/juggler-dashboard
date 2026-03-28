@@ -2174,6 +2174,9 @@ function isHighSetRBLead(model, g, bb, rb) {
 }
 
 function getSpecial() {
+  if (G._precomputed && currentStore !== 'all') {
+    return G._precomputed.byStore[currentStore]?.special || DEFAULT_SPECIAL;
+  }
   return SPECIAL_BY_STORE[currentStore] || SPECIAL_BY_STORE['all'] || DEFAULT_SPECIAL;
 }
 
@@ -2375,9 +2378,17 @@ function loadFromJSON() {
       return r.json();
     })
     .then(json => {
+      if (json.byStore) {
+        loadFromPrecomputed(json);
+        status.textContent = `✅ 読み込み完了（${json.updated_at}）`;
+        status.style.color = 'var(--plus)';
+        btn.textContent = '📡 データを読み込む';
+        btn.disabled = false;
+        return;
+      }
+      // 旧形式フォールバック
       const cols = json.columns || [];
       const rawRows = json.rows || [];
-      // 配列→オブジェクトに変換
       const objRows = rawRows.map(arr => {
         const obj = {};
         cols.forEach((col, i) => { obj[col] = arr[i] || ''; });
@@ -2400,6 +2411,124 @@ function loadFromJSON() {
       btn.textContent = '📡 データを読み込む';
       btn.disabled = false;
     });
+}
+
+function loadFromPrecomputed(json) {
+  G._precomputed = json;
+  G.stores = ['all', ...(json.stores || [])];
+  const specialByStore = json.specialByStore || {};
+  Object.entries(specialByStore).forEach(([store, days]) => {
+    SPECIAL_BY_STORE[store] = days;
+  });
+  currentStore = 'all';
+  currentTaiFilter = 'all';
+  currentTaiPeriod = 0;
+  document.querySelectorAll('#taiPeriodBtns .filter-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('#taiPeriodBtns .filter-btn')?.classList.add('active');
+  setStoreData('all');
+  document.getElementById('saveBtn').disabled = false;
+  setTimeout(() => {
+    renderStoreBar();
+    renderAll();
+    showStatusPrecomputed(json);
+  }, 0);
+}
+
+function setStoreData(store) {
+  const json = G._precomputed;
+  if (!json) return;
+  if (store === 'all') {
+    const allStores = json.stores || [];
+    G.dayStats = mergeAllDayStats(allStores, json);
+    G.taiDetail = mergeAllTaiDetail(allStores, json);
+    G.modelStats = mergeAllModelStats(allStores, json);
+    G.nextStats = mergeAllNextStats(allStores, json);
+    G.heatmap = (json.byStore[allStores[0]] || {}).heatmap || {};
+    G.weekMatrix = (json.byStore[allStores[0]] || {}).weekMatrix || {};
+    G.dateSummary = mergeAllDateSummary(allStores, json);
+  } else {
+    const storeData = json.byStore[store] || {};
+    G.dayStats = storeData.dayStats || [];
+    G.taiDetail = storeData.taiDetail || [];
+    G.modelStats = storeData.modelStats || [];
+    G.nextStats = storeData.nextStats || {};
+    G.heatmap = storeData.heatmap || {};
+    G.weekMatrix = storeData.weekMatrix || {};
+    G.dateSummary = storeData.dateSummary || [];
+  }
+  G.raw = [];
+}
+
+function mergeAllDayStats(stores, json) {
+  const merged = {};
+  stores.forEach(s => {
+    (json.byStore[s]?.dayStats || []).forEach(d => {
+      if (!merged[d.day]) merged[d.day] = { day: d.day, plus: 0, total: 0, special: d.special, sumAvg: 0 };
+      merged[d.day].sumAvg += d.avg * d.total;
+      merged[d.day].plus += d.plus;
+      merged[d.day].total += d.total;
+    });
+  });
+  return Object.values(merged).map(d => ({
+    day: d.day,
+    avg: round1(d.sumAvg / d.total),
+    total: d.total,
+    plus: d.plus,
+    plusRate: round1(d.plus/d.total*100),
+    special: d.special,
+    reliable: d.total >= 10,
+  })).sort((a,b)=>a.day-b.day);
+}
+
+function mergeAllTaiDetail(stores, json) {
+  const all = [];
+  stores.forEach(s => {
+    (json.byStore[s]?.taiDetail || []).forEach(t => all.push({...t, store: s}));
+  });
+  return all;
+}
+
+function mergeAllModelStats(stores, json) {
+  const merged = {};
+  stores.forEach(s => {
+    (json.byStore[s]?.modelStats || []).forEach(m => {
+      if (!merged[m.model]) merged[m.model] = { ...m };
+      else {
+        merged[m.model].count += m.count;
+        merged[m.model].spCount = (merged[m.model].spCount||0) + (m.spCount||0);
+        merged[m.model].nmCount = (merged[m.model].nmCount||0) + (m.nmCount||0);
+      }
+    });
+  });
+  return Object.values(merged);
+}
+
+function mergeAllNextStats(stores, json) {
+  if (stores.length === 0) return {};
+  return json.byStore[stores[0]]?.nextStats || {};
+}
+
+function mergeAllDateSummary(stores, json) {
+  const merged = {};
+  stores.forEach(s => {
+    (json.byStore[s]?.dateSummary || []).forEach(d => {
+      if (!merged[d.dateStr]) merged[d.dateStr] = { ...d };
+    });
+  });
+  return Object.values(merged).sort((a,b)=>a.dateStr.localeCompare(b.dateStr));
+}
+
+function showStatusPrecomputed(json) {
+  const stores = json.stores || [];
+  const el = document.getElementById('dataStatus');
+  el.textContent = `${json.updated_at}更新`;
+  el.classList.add('loaded');
+  document.getElementById('loadedInfo').style.display = 'block';
+  document.getElementById('loadedSummary').innerHTML = `
+    <div style="font-size:12px;line-height:2;">
+      📅 更新日: ${json.updated_at}<br>
+      🏪 ${stores.map(s=>`<span class="badge badge-normal">${s}</span>`).join('')}
+    </div>`;
 }
 
 function loadFromGAS() {
@@ -2540,6 +2669,11 @@ function finishLoad() {
 
 // ====== フィルター ======
 function filteredRows() {
+  // 集計済みモードではG.rawは空なので、taiDetailから生成
+  if (G._precomputed) {
+    if (currentStore === 'all') return G.taiDetail;
+    return G.taiDetail.filter(r => r.store === currentStore);
+  }
   return currentStore==='all' ? G.raw : G.raw.filter(r=>r.store===currentStore);
 }
 
@@ -5666,9 +5800,12 @@ function switchStore(store,btn) {
   document.querySelectorAll('.store-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   _bayesCache.clear();
-  // computeを非同期化してUIをブロックしない
   setTimeout(() => {
-    compute();
+    if (G._precomputed) {
+      setStoreData(store);
+    } else {
+      compute();
+    }
     renderAll();
   }, 0);
 }
