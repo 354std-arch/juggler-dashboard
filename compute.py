@@ -75,7 +75,7 @@ def load_raw():
                         "store": row["店名"].strip(), "model": model,
                         "tai": tai, "taiNum": tai_num,
                         "g": g, "diff": diff, "bb": bb, "rb": rb,
-                        "day": dt.day, "weekday": dt.weekday(),
+                        "day": dt.day, "weekday": (dt.weekday() + 1) % 7,  # JavaScriptのgetDay()に合わせる（0=日曜）
                         "suef": tai_num % 10,
                         "isZoro": len(s)>=2 and s[-1]==s[-2],
                         "isRBLead": rb > bb,
@@ -157,12 +157,31 @@ def compute_tai_detail(rows, special):
         else:
             t["nm"].append(r["diff"])
             t["nmG"].append(r["g"]); t["nmBB"].append(r["bb"]); t["nmRB"].append(r["rb"])
+    # 前日データのマップを作成（dateStr_tai_store → 前日row）
+    by_tai_date = defaultdict(list)
+    for r in rows:
+        k = f"{r['tai']}_{r['store']}"
+        by_tai_date[k].append(r)
+    latest_date = max(r["date"] for r in rows)
+    prev_lookup = {}
+    for k, tai_rows in by_tai_date.items():
+        sorted_rows = sorted(tai_rows, key=lambda r: r["date"])
+        for i in range(1, len(sorted_rows)):
+            curr = sorted_rows[i]
+            prev = sorted_rows[i-1]
+            if (curr["date"] - prev["date"]).days == 1:
+                prev_lookup[f"{curr['dateStr']}_{curr['tai']}_{curr['store']}"] = prev
+
     result = []
     for t in by_tai.values():
         tg=sum(t["g"]); tb=sum(t["bb"]); tr=sum(t["rb"])
         sg=sum(t["spG"]); sb=sum(t["spBB"]); sr=sum(t["spRB"])
         ng=sum(t["nmG"]); nb=sum(t["nmBB"]); nr=sum(t["nmRB"])
         n = len(t["all"])
+        # 最新日の前日データを取得
+        latest_key = f"{latest_date.strftime('%Y-%m-%d')}_{t['tai']}_{t['store']}"
+        prev = prev_lookup.get(latest_key)
+        prev_row = {"dateStr":prev["dateStr"],"diff":prev["diff"],"bb":prev["bb"],"rb":prev["rb"],"g":prev["g"],"isRBLead":prev["isRBLead"],"isHighSetRBLead":prev["isHighSetRBLead"]} if prev else None
         result.append({
             "tai":t["tai"],"taiNum":t["taiNum"],
             "model":t["model"],"store":t["store"],
@@ -182,6 +201,7 @@ def compute_tai_detail(rows, special):
             "bayesProbSp":calc_bayes_prob(t["model"],sg,sb,sr),
             "bayesProbNm":calc_bayes_prob(t["model"],ng,nb,nr),
             "confidence":"高" if n>=30 else "中" if n>=15 else "低",
+            "prevRow": prev_row,
         })
     result.sort(key=lambda x: x["taiNum"])
     return result
@@ -285,19 +305,133 @@ def compute_week_matrix(rows):
         result[k]={"avg":r1(avg(v["diffs"])),"ritu":r1(to/ti*100) if ti>0 else None,"win":r1(len([d for d in v["diffs"] if d>0])/v["count"]*100),"set456":r1(v["highSet"]/v["count"]*100),"count":v["count"]}
     return result
 
+def compute_date_summary(rows, special):
+    by_date = {}
+    for r in rows:
+        k = r["dateStr"]
+        if k not in by_date:
+            by_date[k] = {"dateStr":k,"day":r["day"],"diffs":[],"plus":0}
+        by_date[k]["diffs"].append(r["diff"])
+        if r["diff"] > 0: by_date[k]["plus"] += 1
+    result = []
+    for v in sorted(by_date.values(), key=lambda x: x["dateStr"]):
+        n = len(v["diffs"])
+        result.append({
+            "dateStr": v["dateStr"],
+            "total": r1(sum(v["diffs"])),
+            "count": n,
+            "plus": v["plus"],
+            "plusRate": r1(v["plus"]/n*100),
+            "day": v["day"],
+            "special": v["day"] in special,
+        })
+    return result
+
+def compute_weekday_stats(rows):
+    by_wday = defaultdict(lambda: {"diffs":[]})
+    for r in rows:
+        by_wday[r["weekday"]]["diffs"].append(r["diff"])
+    result = {}
+    for wday, v in by_wday.items():
+        result[str(wday)] = {"avg": r1(avg(v["diffs"])), "count": len(v["diffs"])}
+    return result
+
+
+def compute_day_wday_matrix(rows):
+    dwm = defaultdict(lambda: {"diffs":[],"g":[],"count":0,"highSet":0})
+    def add_dw(row_key, wday, r):
+        key = f"{row_key}_{wday}"
+        dwm[key]["diffs"].append(r["diff"])
+        dwm[key]["g"].append(r["g"])
+        dwm[key]["count"] += 1
+        if r["isHighSetRBLead"]: dwm[key]["highSet"] += 1
+    for r in rows:
+        wday = r["weekday"]
+        suef = r["day"] % 10
+        add_dw(str(suef), wday, r)
+        if r["isZoro"]: add_dw("zoro", wday, r)
+        if r["day"] == r["date"].month: add_dw("tsuki", wday, r)
+        last_day = (date(r["date"].year, r["date"].month % 12 + 1, 1) - timedelta(days=1)).day
+        if r["day"] == last_day: add_dw("end", wday, r)
+    result = {}
+    for k, v in dwm.items():
+        if v["count"] < 3: continue
+        ti = sum(v["g"])*3; to = ti+sum(v["diffs"])
+        result[k] = {"avg":r1(avg(v["diffs"])),"ritu":r1(to/ti*100) if ti>0 else None,"win":r1(len([d for d in v["diffs"] if d>0])/v["count"]*100),"set456":r1(v["highSet"]/v["count"]*100),"count":v["count"]}
+    return result
+
+def compute_today_analysis(rows, special, today=None):
+    if today is None: today = date.today()
+    day = today.day; weekday = today.weekday()
+    is_special = day in special
+    day_stats = compute_day_stats(rows, special)
+    day_info = next((d for d in day_stats if d["day"] == day), None)
+    wday_rows = [r for r in rows if r["weekday"] == weekday]
+    wday_avg = r1(avg([r["diff"] for r in wday_rows])) if wday_rows else None
+    all_diffs = [r["diff"] for r in rows]
+    baseline = r1(avg(all_diffs)) if all_diffs else 0
+    if day_info:
+        if day_info["avg"] > 100: day_judge = "🔥 かなり強い日"; day_score = 3
+        elif day_info["avg"] > 0: day_judge = "🟡 やや強い日"; day_score = 2
+        elif day_info["avg"] > -100: day_judge = "⬜ 普通の日"; day_score = 1
+        else: day_judge = "❄️ 弱い日"; day_score = 0
+    else:
+        day_judge = "データなし"; day_score = 0
+    verdict = ("✅ 狙う価値あり" if is_special and day_score >= 2 else "🟡 条件次第" if is_special and day_score >= 1 else "🟡 非特定日だが強い傾向" if not is_special and day_score >= 2 else "⬜ 普通・慎重に" if not is_special and day_score >= 1 else "❌ 見送りを推奨")
+    tai_detail = compute_tai_detail(rows, special)
+    by_model = defaultdict(lambda: {"sp":[],"nm":[]})
+    for r in rows:
+        if r["day"] in special: by_model[r["model"]]["sp"].append(r["diff"])
+        else: by_model[r["model"]]["nm"].append(r["diff"])
+    model_strength = []
+    for model, m in by_model.items():
+        target = m["sp"] if is_special else m["nm"]
+        if not target: continue
+        model_avg = r1(avg(target)); lift = r1(model_avg - baseline)
+        model_strength.append({"model":model,"avg":model_avg,"lift":lift,"count":len(target),"label":"有力" if lift>80 else "対抗" if lift>30 else "標準" if lift>-30 else "弱め"})
+    model_strength.sort(key=lambda x: -x["lift"])
+    next_stats = compute_next_day(rows, special)
+    bl_avg = (next_stats.get("__baseline") or {}).get("avg") or 0
+    scored_tais = []
+    for t in tai_detail:
+        score = 0; reasons = []
+        ref = t["spAvg"] if is_special else t["nmAvg"]
+        if ref is not None and t["count"] >= 5:
+            lift = r1(ref - bl_avg)
+            pts = 3 if lift>=150 else 2 if lift>=80 else 1 if lift>=30 else 0 if lift>=-30 else -1
+            score += pts; reasons.append({"label":f"過去成績","val":f"{ref:+}枚","pts":pts})
+        bayes = t["bayesProbSp"] if is_special else t["bayesProbNm"]
+        if bayes is not None:
+            pts = 2 if bayes>=60 else 1 if bayes>=45 else 0 if bayes>=30 else -1
+            score += pts; reasons.append({"label":"P(設定4以上)","val":f"{bayes}%","pts":pts})
+        prev = t.get("prevRow")
+        if prev:
+            diff = prev["diff"]
+            ckey = "凹み_2000以上" if diff<=-2000 else "凹み_1000_2000" if diff<=-1000 else "凹み_500_1000" if diff<=-500 else "凹み_0_500" if diff<0 else "プラス500以上" if diff>=500 else "プラス"
+            ns = next_stats.get(ckey,{})
+            if ns.get("count",0)>=10 and ns.get("avg") is not None:
+                lift = r1(ns["avg"]-bl_avg)
+                pts = 2 if lift>=150 else 1 if lift>=80 else 0 if lift>=-30 else -1
+                score += pts; reasons.append({"label":f"前日({ckey})","val":f"前日{diff:+}枚","pts":pts})
+        rank = "本命" if score>=4 else "対抗" if score>=2 else "保留" if score>=1 else "注意"
+        scored_tais.append({**t,"totalScore":score,"rank":rank,"reasons":reasons})
+    scored_tais.sort(key=lambda x: -x["totalScore"])
+    return {"date":today.strftime("%Y-%m-%d"),"day":day,"weekday":weekday,"isSpecial":is_special,"dayJudge":day_judge,"dayScore":day_score,"verdict":verdict,"dayInfo":day_info,"wdayAvg":wday_avg,"baseline":baseline,"modelStrength":model_strength,"topTargets":scored_tais[:20]}
+
 if __name__ == "__main__":
     print("=== compute.py 開始 ===")
     rows = load_raw()
-    stores = list(set(r["store"] for r in rows))
+    main_stores = [s for s in set(r["store"] for r in rows) if s != "中山ZoRoN"]
+    all_stores = list(set(r["store"] for r in rows))
 
     output = {
         "updated_at": date.today().strftime("%Y-%m-%d"),
-        "stores": stores,
+        "stores": main_stores,
         "specialByStore": STORE_SPECIAL,
         "byStore": {}
     }
 
-    for store in stores:
+    for store in all_stores:
         special = STORE_SPECIAL.get(store, [1,11,21,31])
         store_rows = [r for r in rows if r["store"]==store]
         print(f"集計中: {store} ({len(store_rows)}行) 特定日:{special}")
@@ -308,7 +442,11 @@ if __name__ == "__main__":
             "nextStats": compute_next_day(store_rows, special),
             "heatmap": compute_heatmap(store_rows),
             "weekMatrix": compute_week_matrix(store_rows),
+            "dayWdayMatrix": compute_day_wday_matrix(store_rows),
             "taiDetail": compute_tai_detail(store_rows, special),
+            "dateSummary": compute_date_summary(store_rows, special),
+            "weekdayStats": compute_weekday_stats(store_rows),
+            "todayAnalysis": compute_today_analysis(store_rows, special),
         }
 
     with open(f"{REPO_DIR}/data.json","w",encoding="utf-8") as f:
