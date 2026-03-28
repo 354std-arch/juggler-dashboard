@@ -2669,11 +2669,6 @@ function finishLoad() {
 
 // ====== フィルター ======
 function filteredRows() {
-  // 集計済みモードではG.rawは空なので、taiDetailから生成
-  if (G._precomputed) {
-    if (currentStore === 'all') return G.taiDetail;
-    return G.taiDetail.filter(r => r.store === currentStore);
-  }
   return currentStore==='all' ? G.raw : G.raw.filter(r=>r.store===currentStore);
 }
 
@@ -4243,7 +4238,7 @@ function updateSummaryBanner({ verdict, verdictColor, isSpecial, dayScore, day, 
 }
 
 function renderLayer1() {
-  if(!G.raw.length){
+  if(!G.raw.length && !G._precomputed){
     document.getElementById('layer1Result').innerHTML='<div class="empty-msg">先にデータを読み込んでください</div>';
     return;
   }
@@ -5486,6 +5481,54 @@ function filterTaiFromSummary(model) {
 function renderTaiModelSummary(sourceRows) {
   const el = document.getElementById('taiModelSummary');
   if(!el) return;
+
+  // 集計済みモード：G.modelStatsを使う
+  if (G._precomputed && G.modelStats && G.modelStats.length) {
+    const stats = G.modelStats.map(m => {
+      const rbGoodRate = 0;
+      const treatment = getModelTreatmentLabel({ avg: m.allAvg, plusRate: 0, rbGoodRate, count: m.count });
+      return { model:m.model, count:m.count, avg:m.allAvg, plusRate:0, rbGoodRate, ...treatment };
+    }).sort((a,b) => {
+      const order = x => x.label==='良扱い' ? 2 : x.label==='標準' ? 1 : 0;
+      if(order(b) !== order(a)) return order(b) - order(a);
+      return b.avg - a.avg;
+    });
+    const periodLabel = '全期間';
+    const visible = stats.slice(0, 8);
+    const hiddenCount = Math.max(0, stats.length - visible.length);
+    const maxAbsAvg = Math.max(...stats.map(s => Math.abs(s.avg)), 1);
+    el.innerHTML = `
+    <div style="font-size:10px;color:var(--muted);margin-bottom:8px">${periodLabel} ・ タップで機種フィルタ</div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      ${visible.map((s, i) => {
+        const barW = Math.min(Math.abs(s.avg) / maxAbsAvg * 100, 100);
+        const isPlus = s.avg >= 0;
+        const rank = i === 0 ? '👑' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+        return `
+        <button data-model="${s.model}" onclick="filterTaiFromSummary(this.dataset.model)"
+          style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:left;cursor:pointer;width:100%">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:11px;color:var(--muted);min-width:18px">${rank}</span>
+              <span style="font-size:12px;font-weight:700;color:var(--text)">${s.model}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;font-weight:700;color:${isPlus?'var(--plus)':'var(--minus)'}">${s.avg>=0?'+':''}${s.avg}枚</span>
+              <span style="font-size:11px;font-weight:900;color:${s.color};min-width:36px;text-align:right">${s.label}</span>
+            </div>
+          </div>
+          <div style="position:relative;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden">
+            <div style="position:absolute;top:0;${isPlus?'left:0':'right:0'};width:${barW}%;height:100%;background:${s.color};border-radius:3px"></div>
+          </div>
+          <div style="font-size:9px;color:var(--muted);margin-top:3px">${s.note} ・ ${s.count}件</div>
+        </button>`;
+      }).join('')}
+      ${hiddenCount>0 ? `<div style="font-size:10px;color:var(--muted);padding:2px 4px">他 ${hiddenCount} 機種</div>` : ''}
+    </div>
+  `;
+    return;
+  }
+
   const rows = sourceRows || getTaiRowsForCurrentPeriod();
   if(!rows.length) {
     el.innerHTML = '<div class="empty-msg">該当データなし</div>';
@@ -5571,6 +5614,38 @@ function filterTai(model,btn) {
 }
 
 function renderTaiList() {
+  // 集計済みモード：G.taiDetailを直接使う
+  if (G._precomputed) {
+    renderTaiModelSummary(null);
+    let taiData = G.taiDetail.filter(t => currentStore === 'all' || t.store === currentStore);
+    if (currentTaiFilter !== 'all') taiData = taiData.filter(t => t.model === currentTaiFilter);
+    if (!taiData.length) { document.getElementById('taiList').innerHTML='<div class="empty-msg">該当データなし</div>'; return; }
+
+    const SP = getSpecial();
+    const html = taiData.map(t => {
+      const isPlus = t.avg >= 0;
+      const ref = t.spAvg !== null ? t.spAvg : t.avg;
+      const bayesProb = t.bayesProbSp !== null ? t.bayesProbSp : t.bayesProbAll;
+      return `
+      <div class="tai-row" style="border-color:${isPlus?'rgba(57,255,20,.2)':'rgba(255,77,109,.1)'}">
+        <div>
+          <div class="tai-num">${t.tai}</div>
+          <div class="tai-info">${t.model.slice(0,6)} / ${t.count}件</div>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted)">特定日平均</div>
+          <div style="font-size:12px;font-weight:700;color:${t.spAvg!==null&&t.spAvg>=0?'var(--plus)':'var(--minus)'}">${t.spAvg!==null?(t.spAvg>=0?'+':'')+t.spAvg+'枚':'—'}</div>
+          <div style="font-size:10px;color:var(--muted)">全体平均 ${t.avg>=0?'+':''}${t.avg}枚</div>
+          ${bayesProb!==null?`<div style="font-size:10px;color:var(--accent3)">P(設定4+) ${bayesProb}%</div>`:''}
+          ${t.prevRow?`<div style="font-size:10px;color:var(--muted)">前日:${t.prevRow.diff>=0?'+':''}${t.prevRow.diff}枚 BB${t.prevRow.bb} RB${t.prevRow.rb}</div>`:''}
+        </div>
+        <div class="tai-diff" style="color:${isPlus?'var(--plus)':'var(--minus)'}">${t.avg>=0?'+':''}${t.avg}</div>
+      </div>`;
+    }).join('');
+    document.getElementById('taiList').innerHTML = html;
+    return;
+  }
+
   const SP = getSpecial();
   let rows = getTaiRowsForCurrentPeriod();
   renderTaiModelSummary(rows);
