@@ -5902,9 +5902,12 @@ function renderPeriod() {
   if(!allDates.length) return;
   let filtered=allDates;
   if(currentPeriod>0){
-    const cutoff=new Date(allDates[allDates.length-1].date);
+    // dateStrが文字列なので文字列比較で絞り込む
+    const lastDateStr = allDates[allDates.length-1].dateStr;
+    const cutoff = new Date(lastDateStr);
     cutoff.setDate(cutoff.getDate()-currentPeriod);
-    filtered=allDates.filter(d=>d.date>=cutoff);
+    const cutoffStr = cutoff.toISOString().slice(0,10);
+    filtered=allDates.filter(d=>d.dateStr>=cutoffStr);
   }
   if(!filtered.length) return;
   const totalDiff=filtered.reduce((a,b)=>a+b.total,0);
@@ -5919,9 +5922,10 @@ function renderPeriod() {
     <div class="win-box"><div class="win-label">最強日</div><div class="win-value" style="color:var(--accent3);font-size:15px">${maxDay.dateStr.slice(5)}</div></div>`;
   const ctx=document.getElementById('timelineChart').getContext('2d');
   if(chartInst) chartInst.destroy();
+  const chartFiltered = filtered.slice(-60); // 最大60日分を表示
   chartInst=new Chart(ctx,{type:'bar',
-    data:{labels:filtered.map(d=>d.dateStr.slice(5)),
-      datasets:[{data:filtered.map(d=>d.total),backgroundColor:filtered.map(d=>d.total>=0?'rgba(57,255,20,0.6)':'rgba(255,77,109,0.6)'),borderWidth:0}]},
+    data:{labels:chartFiltered.map(d=>d.dateStr.slice(5)),
+      datasets:[{data:chartFiltered.map(d=>d.total),backgroundColor:chartFiltered.map(d=>d.total>=0?'rgba(57,255,20,0.6)':'rgba(255,77,109,0.6)'),borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
       scales:{x:{ticks:{color:'#666680',font:{size:9},maxRotation:45},grid:{color:'rgba(255,255,255,0.04)'}},
               y:{ticks:{color:'#666680',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
@@ -5938,7 +5942,7 @@ function renderPeriod() {
       <span style="color:var(--muted)">${i+1}. ${t.tai}番</span>
       <span style="color:${t.avg>=0?'var(--plus)':'var(--minus)'};font-family:'Share Tech Mono',monospace">${t.avg>=0?'+':''}${t.avg}</span>
     </div>`).join('');
-  document.getElementById('timelineList').innerHTML=[...filtered].reverse().map(d=>{
+  document.getElementById('timelineList').innerHTML=[...filtered].reverse().slice(0,100).map(d=>{
     const cls=d.total>10000?'hot':d.total>0?'warm':'cold';
     const j=d.total>10000?'🔥':d.total>0?'🟡':'❄️';
     return`<div class="tl-row ${cls}">
@@ -6089,7 +6093,7 @@ const CAL_MIN_SAMPLE = 3;
 const WDAY_LABELS = ['日','月','火','水','木','金','土'];
 
 function renderCalendar() {
-  if(!G.raw || !G.raw.length) {
+  if(!G.raw.length && !G._precomputed) {
     document.getElementById('calMonthWrap').innerHTML = '<div class="empty-msg">データを読み込んでください</div>';
     document.getElementById('calUpcomingWrap').innerHTML = '<div class="empty-msg">データを読み込んでください</div>';
     return;
