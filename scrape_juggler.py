@@ -10,7 +10,7 @@ RAW_CSV  = os.path.join(REPO_DIR, "raw_data.csv")
 
 STORES = [
     ('鶴見UNO',               '%e9%b6%b4%e8%a6%8buno-data'),
-    ('マルハン都築',           '%e3%83%9e%e3%83%ab%e3%83%8f%e3%83%b3%e9%83%bd%e7%ad%91%e5%ba%97-data'),
+    ('マルハン都築',           '%e3%83%9e%e3%83%ab%e3%83%8f%e3%83%b3%e9%83%bd%e7%ad%9c%e5%ba%97-data'),
     ('中山UNO',               '%e4%b8%ad%e5%b1%b1uno-data'),
     ('エスパス日拓新宿歌舞伎町', '%e3%82%a8%e3%82%b9%e3%83%91%e3%82%b9%e6%97%a5%e6%8b%93%e6%96%b0%e5%ae%bf%e6%ad%8c%e8%88%9e%e4%bc%8e%e7%94%ba%e5%ba%97-data'),
 ]
