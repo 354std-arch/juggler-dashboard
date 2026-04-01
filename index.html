@@ -10,7 +10,7 @@
 :root{
   --bg:#0a0a0f;--bg2:#111118;--bg3:#1a1a24;--bg4:#222230;
   --accent:#e8ff00;--accent2:#ff4d6d;--accent3:#00e5ff;--accent4:#ff9f00;
-  --text:#e8e8f0;--muted:#666680;
+  --text:#e8e8f0;--muted:#8a8aaa; /* #666680→#8a8aaa: コントラスト比 ~6:1 (WCAG AA適合) */
   --plus:#39ff14;--minus:#ff4d6d;
   --border:rgba(232,255,0,0.13);
 }
@@ -19,7 +19,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Zen Kaku Gothic Ne
 header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;gap:8px;}
 .logo{font-size:15px;font-weight:900;white-space:nowrap;} .logo span{color:var(--accent);}
 .header-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
-.data-status{font-size:10px;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+.data-status{font-size:12px;color:var(--muted);font-family:'Share Tech Mono',monospace;}
 .data-status.loaded{color:var(--plus);}
 .save-btn{background:var(--accent);color:#000;border:none;border-radius:5px;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;font-family:'Zen Kaku Gothic New',sans-serif;}
 .save-btn:disabled{background:var(--bg4);color:var(--muted);cursor:not-allowed;}
@@ -45,7 +45,7 @@ nav button.active{color:var(--accent);border-bottom-color:var(--accent);}
 main{padding:12px;max-width:760px;margin:0 auto;}
 .tab-content{display:none;} .tab-content.active{display:block;}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:13px;margin-bottom:11px;}
-.card-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.1em;margin-bottom:10px;}
+.card-title{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.1em;margin-bottom:10px;}
 .cal-nav-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 16px;cursor:pointer;font-size:15px;font-weight:700;}
 .cal-nav-btn:active{background:var(--bg4);}
 .drop-zone{border:2px dashed var(--border);border-radius:8px;padding:18px;text-align:center;cursor:pointer;background:var(--bg3);margin-bottom:10px;}
@@ -61,14 +61,14 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .diag-box{background:var(--bg3);border-radius:8px;padding:13px;margin-bottom:10px;}
 .diag-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:11px;}
 .stat-box{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:9px;text-align:center;}
-.stat-label{font-size:10px;color:var(--muted);margin-bottom:3px;}
+.stat-label{font-size:12px;color:var(--muted);margin-bottom:3px;}
 .stat-value{font-size:17px;font-weight:900;font-family:'Share Tech Mono',monospace;}
 .diag-explain{background:rgba(232,255,0,0.05);border:1px solid rgba(232,255,0,0.18);border-radius:6px;padding:11px;margin-bottom:11px;font-size:12px;line-height:1.8;}
 .rec-list{display:flex;flex-direction:column;gap:5px;}
 .rec-item{display:flex;align-items:center;background:var(--bg2);border-radius:6px;padding:8px 11px;gap:9px;}
 .rec-rank{font-size:11px;color:var(--muted);width:16px;flex-shrink:0;}
 .rec-tai{font-family:'Share Tech Mono',monospace;font-size:15px;color:var(--accent);font-weight:700;}
-.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;margin-right:3px;}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:12px;font-weight:700;margin-right:3px;}
 .badge-hot{background:rgba(57,255,20,.15);color:var(--plus);border:1px solid rgba(57,255,20,.3);}
 .badge-warm{background:rgba(232,255,0,.1);color:var(--accent);border:1px solid rgba(232,255,0,.3);}
 .badge-cold{background:rgba(255,77,109,.1);color:var(--minus);border:1px solid rgba(255,77,109,.3);}
@@ -84,7 +84,7 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .bar-fill.neg{background:linear-gradient(90deg,rgba(255,77,109,.75),rgba(255,77,109,.25));}
 .bar-val{font-family:'Share Tech Mono',monospace;font-size:11px;text-align:right;}
 .data-table{width:100%;border-collapse:collapse;font-size:12px;}
-.data-table th{background:var(--bg3);color:var(--muted);padding:7px 5px;text-align:center;font-size:10px;border-bottom:1px solid var(--border);}
+.data-table th{background:var(--bg3);color:var(--muted);padding:7px 5px;text-align:center;font-size:12px;border-bottom:1px solid var(--border);}
 .data-table td{padding:7px 5px;text-align:center;border-bottom:1px solid rgba(255,255,255,.03);}
 .data-table td:first-child{text-align:left;}
 .tai-list{display:flex;flex-direction:column;gap:4px;}
@@ -473,24 +473,24 @@ main{padding:12px;max-width:760px;margin:0 auto;}
     <!-- 総ゲーム数・BB・RB -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
       <div style="background:#1a1a1a;border:2px solid #444;border-radius:8px;padding:10px;text-align:center;cursor:pointer;position:relative" onclick="stTapEditG()" title="タップして直接入力">
-        <div style="font-size:10px;color:#4fc3f7;margin-bottom:4px">総ゲーム <span style="font-size:9px;color:#555">✏️</span></div>
+        <div style="font-size:12px;color:#4fc3f7;margin-bottom:4px">総ゲーム <span style="font-size:11px;color:#888">✏️</span></div>
         <div id="stDispG" style="font-size:22px;font-weight:700;font-family:monospace;color:#fff;letter-spacing:2px">0</div>
         <input id="stDirectTotalG" type="number" inputmode="numeric" min="0" step="1"
           style="display:none;width:100%;background:#111;color:#fff;border:2px solid var(--accent3);border-radius:6px;padding:4px;font-size:20px;font-weight:700;text-align:center;box-sizing:border-box"
           onfocus="this.select()"
           onkeydown="if(event.key==='Enter'||event.key==='Done'){stSetTotalGFromInput();this.blur()}"
           onblur="stSetTotalGFromInput()">
-        <div style="font-size:9px;color:var(--muted);margin-top:2px">打ち始め: <span id="stDispStartG">0</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">打ち始め: <span id="stDispStartG">0</span></div>
       </div>
       <div style="background:#1a1a1a;border:2px solid var(--accent);border-radius:8px;padding:10px;text-align:center">
-        <div style="font-size:10px;color:var(--accent);margin-bottom:4px">BB</div>
+        <div style="font-size:12px;color:var(--accent);margin-bottom:4px">BB</div>
         <div id="stDispBIG" style="font-size:22px;font-weight:700;font-family:monospace;color:var(--accent);letter-spacing:2px">0</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:2px">打ち始め: <span id="stDispStartBIG">0</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">打ち始め: <span id="stDispStartBIG">0</span></div>
       </div>
       <div style="background:#1a1a1a;border:2px solid #f0a500;border-radius:8px;padding:10px;text-align:center">
-        <div style="font-size:10px;color:#f0a500;margin-bottom:4px">RB</div>
+        <div style="font-size:12px;color:#f0a500;margin-bottom:4px">RB</div>
         <div id="stDispREG" style="font-size:22px;font-weight:700;font-family:monospace;color:#f0a500;letter-spacing:2px">0</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:2px">打ち始め: <span id="stDispStartREG">0</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">打ち始め: <span id="stDispStartREG">0</span></div>
       </div>
     </div>
 
@@ -532,8 +532,8 @@ main{padding:12px;max-width:760px;margin:0 auto;}
           </div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-          <div style="font-size:9px;color:var(--muted)">確率</div>
-          <div id="stDispBudoRate" style="font-size:12px;color:#aaa">—</div>
+          <div style="font-size:12px;color:var(--muted)">確率</div>
+          <div id="stDispBudoRate" style="font-size:13px;color:#aaa">—</div>
           <button onclick="stSubBudo()" style="background:#333;color:#aaa;border:none;border-radius:6px;padding:2px 10px;font-size:14px;cursor:pointer;line-height:1.4">－</button>
         </div>
       </div>
@@ -541,13 +541,13 @@ main{padding:12px;max-width:760px;margin:0 auto;}
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:20px">🍒</span>
           <div>
-            <div style="font-size:10px;color:var(--muted)">チェリー</div>
+            <div style="font-size:12px;color:var(--muted)">チェリー</div>
             <div id="stDispCherry" style="font-size:18px;font-weight:700;color:#e74c3c;font-family:monospace">0</div>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-          <div style="font-size:9px;color:var(--muted)">確率</div>
-          <div id="stDispCherryRate" style="font-size:12px;color:#aaa">—</div>
+          <div style="font-size:12px;color:var(--muted)">確率</div>
+          <div id="stDispCherryRate" style="font-size:13px;color:#aaa">—</div>
           <button onclick="stSubCherry()" style="background:#333;color:#aaa;border:none;border-radius:6px;padding:2px 10px;font-size:14px;cursor:pointer;line-height:1.4">－</button>
         </div>
       </div>
