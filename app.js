@@ -15,6 +15,10 @@ let currentWeekMetric = 'avg';
 let currentDayWdayMetric = 'avg';
 let SPECIAL_BY_STORE = {};
 const DEFAULT_SPECIAL = [1,6,7,11,16,17,22,26,27];
+const GITHUB_TOKEN_STORAGE_KEY = 'github_pat';
+const GITHUB_SESSIONS_REPO = '354std-arch/juggler-dashboard';
+const GITHUB_SESSIONS_BRANCH = 'main';
+const GITHUB_SESSIONS_PATH = 'sessions.json';
 
 // ====== 機種別設定値（合成・BB・RB確率の分母） ======
 const MODEL_SETTINGS = {
@@ -1339,6 +1343,289 @@ function stRestoreInputs() {
   if(startREG) document.getElementById('stStartREG').value = startREG;
   stUpdateDisplay();
   renderModelHint(document.getElementById('stModel').value);
+}
+
+// ====== セッション保存 ======
+function getTodayDateStr() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function setSessionStatus(msg, type = '') {
+  const el = document.getElementById('sessionStatus');
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'session-status';
+  if(type) el.classList.add(type);
+}
+
+function getGitHubToken() {
+  return localStorage.getItem(GITHUB_TOKEN_STORAGE_KEY) || '';
+}
+
+function setGitHubToken(token) {
+  localStorage.setItem(GITHUB_TOKEN_STORAGE_KEY, token);
+}
+
+function clearGitHubTokenStorage() {
+  localStorage.removeItem(GITHUB_TOKEN_STORAGE_KEY);
+}
+
+function setGitHubTokenStatus(msg, type = '') {
+  const el = document.getElementById('githubTokenStatus');
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'session-status';
+  if(type) el.classList.add(type);
+}
+
+function renderGitHubTokenUI() {
+  const input = document.getElementById('githubTokenInput');
+  const token = getGitHubToken();
+  if(input && !input.value) input.value = token;
+  if(token) {
+    setGitHubTokenStatus('設定済み（保存ボタンで更新可能）', 'ok');
+  } else {
+    setGitHubTokenStatus('未設定', 'warn');
+  }
+}
+
+function saveGitHubToken() {
+  const input = document.getElementById('githubTokenInput');
+  const token = (input?.value || '').trim();
+  if(!token) {
+    setGitHubTokenStatus('トークンを入力してください', 'warn');
+    return;
+  }
+  setGitHubToken(token);
+  setGitHubTokenStatus('トークンを保存しました', 'ok');
+  setSessionStatus('トークン設定後に保存できます', 'warn');
+}
+
+function clearGitHubToken() {
+  clearGitHubTokenStorage();
+  const input = document.getElementById('githubTokenInput');
+  if(input) input.value = '';
+  setGitHubTokenStatus('トークンを削除しました', 'warn');
+  setSessionStatus('GitHubトークン未設定です。設定タブで入力してください', 'warn');
+}
+
+function encodeBase64Utf8(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  bytes.forEach(b => { binary += String.fromCharCode(b); });
+  return btoa(binary);
+}
+
+function decodeBase64Utf8(base64Text) {
+  const normalized = (base64Text || '').replace(/\n/g, '');
+  const binary = atob(normalized);
+  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+async function fetchSessionsFromGitHub(token) {
+  const url = `https://api.github.com/repos/${GITHUB_SESSIONS_REPO}/contents/${GITHUB_SESSIONS_PATH}?ref=${GITHUB_SESSIONS_BRANCH}`;
+  const res = await fetch(url, {
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'Authorization': `Bearer ${token}`,
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  });
+
+  const body = await res.json();
+  if(res.status === 404) {
+    return { sessions: [], sha: null };
+  }
+  if(!res.ok) {
+    const msg = body?.message || `HTTP ${res.status}`;
+    throw new Error(`sessions.json取得失敗: ${msg}`);
+  }
+  const decoded = decodeBase64Utf8(body.content || '');
+  const parsed = decoded ? JSON.parse(decoded) : [];
+  if(!Array.isArray(parsed)) {
+    throw new Error('sessions.json が配列形式ではありません');
+  }
+  return { sessions: parsed, sha: body.sha };
+}
+
+async function pushSessionsToGitHub(token, sessions, sha) {
+  const url = `https://api.github.com/repos/${GITHUB_SESSIONS_REPO}/contents/${GITHUB_SESSIONS_PATH}`;
+  const content = encodeBase64Utf8(JSON.stringify(sessions, null, 2) + '\n');
+  const message = `chore: append session ${getTodayDateStr()}`;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    },
+    body: JSON.stringify({
+      message,
+      content,
+      ...(sha ? { sha } : {}),
+      branch: GITHUB_SESSIONS_BRANCH
+    })
+  });
+  const body = await res.json();
+  if(!res.ok) {
+    const msg = body?.message || `HTTP ${res.status}`;
+    throw new Error(`sessions.json更新失敗: ${msg}`);
+  }
+  return body;
+}
+
+function setSessionInputIfNeeded(id, value, force = false) {
+  const el = document.getElementById(id);
+  if(!el || value === null || value === undefined) return;
+  if(force || !String(el.value || '').trim()) el.value = String(value);
+}
+
+function getCurrentSessionSnapshot() {
+  const model = document.getElementById('stModel')?.value || '';
+  const startG = parseInt(document.getElementById('stStartG')?.value, 10) || 0;
+  const startBIG = parseInt(document.getElementById('stStartBIG')?.value, 10) || 0;
+  const startREG = parseInt(document.getElementById('stStartREG')?.value, 10) || 0;
+  const g = startG + ST.g;
+  const big = startBIG + ST.big;
+  const reg = startREG + ST.reg;
+  const budo = ST.budo;
+  const cherry = model === 'マイジャグラーV' ? ST.nonCherry : ST.cherry;
+  const store = currentStore !== 'all' ? currentStore : (G.currentTargetContext?.store || '');
+  const tai = G.currentTargetContext?.tai || '';
+
+  let prob456 = null;
+  if(g >= 100 && model) {
+    const result = bayesEstimate(model, g, big, reg, ST.g, budo, cherry, ST.nonCherry, ST.soloBig, ST.soloReg, ST.kadoBig, ST.kadoReg);
+    if(result?.probs?.length === 6) {
+      prob456 = (result.probs[3] + result.probs[4] + result.probs[5]) * 100;
+    }
+  }
+  if(prob456 === null) {
+    const text = document.getElementById('stProb456')?.textContent || '';
+    const parsed = parseFloat(text.replace('%', '').trim());
+    if(Number.isFinite(parsed)) prob456 = parsed;
+  }
+
+  return {
+    date: getTodayDateStr(),
+    store,
+    tai,
+    model,
+    g,
+    big,
+    reg,
+    budo,
+    cherry,
+    soloBig: ST.soloBig,
+    soloReg: ST.soloReg,
+    kadoBig: ST.kadoBig,
+    kadoReg: ST.kadoReg,
+    prob456
+  };
+}
+
+function syncSessionFormFromCurrent(force = false) {
+  const snap = getCurrentSessionSnapshot();
+  setSessionInputIfNeeded('sessionDate', snap.date, force);
+  setSessionInputIfNeeded('sessionStore', snap.store, force);
+  setSessionInputIfNeeded('sessionTai', snap.tai, force);
+  setSessionInputIfNeeded('sessionModel', snap.model, force);
+  setSessionInputIfNeeded('sessionG', snap.g, force);
+  setSessionInputIfNeeded('sessionBig', snap.big, force);
+  setSessionInputIfNeeded('sessionReg', snap.reg, force);
+  setSessionInputIfNeeded('sessionBudo', snap.budo, force);
+  setSessionInputIfNeeded('sessionCherry', snap.cherry, force);
+  if(snap.prob456 !== null && Number.isFinite(snap.prob456)) {
+    setSessionInputIfNeeded('sessionBayes', snap.prob456.toFixed(1), force);
+  }
+  const autoOther = `単独BIG:${snap.soloBig} / 単独REG:${snap.soloReg} / チェリー重複BIG:${snap.kadoBig} / チェリー重複REG:${snap.kadoReg}`;
+  setSessionInputIfNeeded('sessionOtherKoyaku', autoOther, force);
+}
+
+function renderSessionStoreCandidates() {
+  const list = document.getElementById('sessionStoreList');
+  if(!list) return;
+  const stores = Array.isArray(G.stores) ? G.stores.filter(s => s && s !== 'all') : [];
+  list.innerHTML = stores.map(s => `<option value="${s}"></option>`).join('');
+}
+
+function renderSessionUI() {
+  const dateEl = document.getElementById('sessionDate');
+  if(dateEl && !dateEl.value) dateEl.value = getTodayDateStr();
+  renderSessionStoreCandidates();
+  syncSessionFormFromCurrent(false);
+  const token = getGitHubToken();
+  if(token) {
+    setSessionStatus('GitHub保存の準備完了', 'ok');
+  } else {
+    setSessionStatus('先に設定タブでGitHubトークンを設定してください', 'warn');
+  }
+}
+
+async function saveSessionRecord() {
+  const token = getGitHubToken();
+  if(!token) {
+    setSessionStatus('GitHubトークン未設定です。設定タブで入力してください', 'error');
+    return;
+  }
+
+  const date = document.getElementById('sessionDate')?.value || getTodayDateStr();
+  const store = (document.getElementById('sessionStore')?.value || '').trim();
+  const tai = (document.getElementById('sessionTai')?.value || '').trim();
+  const model = (document.getElementById('sessionModel')?.value || '').trim();
+  const g = parseInt(document.getElementById('sessionG')?.value, 10) || 0;
+  const big = parseInt(document.getElementById('sessionBig')?.value, 10) || 0;
+  const reg = parseInt(document.getElementById('sessionReg')?.value, 10) || 0;
+  const diff = parseInt(document.getElementById('sessionDiff')?.value, 10) || 0;
+  const budo = parseInt(document.getElementById('sessionBudo')?.value, 10) || 0;
+  const cherry = parseInt(document.getElementById('sessionCherry')?.value, 10) || 0;
+  const otherKoyaku = (document.getElementById('sessionOtherKoyaku')?.value || '').trim();
+  const bayesRaw = parseFloat(document.getElementById('sessionBayes')?.value);
+  const bayesProbOver4 = Number.isFinite(bayesRaw) ? Math.max(0, Math.min(100, Number(bayesRaw.toFixed(1)))) : null;
+  const withdrawalReason = document.getElementById('sessionWithdrawReason')?.value || '';
+
+  if(!store || !tai || !model) {
+    setSessionStatus('店舗名・台番号・機種名は必須です', 'error');
+    return;
+  }
+  if(!withdrawalReason) {
+    setSessionStatus('撤退理由を選択してください', 'warn');
+    return;
+  }
+
+  const record = {
+    date,
+    store,
+    tai,
+    model,
+    g,
+    big,
+    reg,
+    diff,
+    koyaku: {
+      budo,
+      cherry,
+      other: otherKoyaku
+    },
+    bayesProbOver4,
+    withdrawalReason
+  };
+  setSessionStatus('GitHubへ保存中...', 'warn');
+
+  try {
+    const { sessions, sha } = await fetchSessionsFromGitHub(token);
+    sessions.push(record);
+    await pushSessionsToGitHub(token, sessions, sha);
+    setSessionStatus(`GitHubに保存しました（合計 ${sessions.length} 件）`, 'ok');
+  } catch (err) {
+    setSessionStatus(`保存失敗: ${err.message}`, 'error');
+  }
 }
 
 // RB確率から推定設定（設定4以上のRB確率に相当するか判定）
@@ -5237,10 +5524,11 @@ function saveDataHTML() {
 
 // ====== 全レンダリング（アクティブタブのみ描画） ======
 const TAB_RENDER_MAP = {
+  'tab-data':     () => { renderSessionUI(); },
   'tab-days':     () => { renderDayBar(); },
   'tab-model':    () => { renderModelComp(); },
   'tab-tai':      () => { renderTaiFilter(); renderTaiList(); },
-  'tab-settings': () => { renderStoreSettings(); },
+  'tab-settings': () => { renderStoreSettings(); renderGitHubTokenUI(); },
   'tab-target':   () => { renderTarget(); },
   'tab-heat':     () => { renderHeatmap(); renderWeekMatrix(); renderDayWdayMatrix(); },
   'tab-calendar': () => { renderCalendar(); },
@@ -5318,6 +5606,8 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
   loadSpecialDaysFromStorage();
   stRestoreInputs();
+  renderSessionUI();
+  renderGitHubTokenUI();
 });
 
 // ====== カレンダー予報 ======

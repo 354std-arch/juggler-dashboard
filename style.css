@@ -146,3 +146,29 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .heat-cell-neg{color:#fff;font-weight:700;}
 .heat-cell-none{color:var(--muted);}
 
+/* セッション保存 */
+.session-card{padding:14px;}
+.session-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;}
+.session-field{display:flex;flex-direction:column;gap:5px;}
+.session-field span{font-size:11px;color:var(--muted);}
+.session-field input,.session-field select{
+  width:100%;min-height:44px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);
+  padding:10px 12px;font-size:14px;outline:none;font-family:'Zen Kaku Gothic New',sans-serif;
+}
+.session-field input:focus,.session-field select:focus{border-color:var(--accent);}
+.session-field-wide{grid-column:1 / -1;}
+.session-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.session-actions .btn{min-height:46px;font-size:14px;}
+.session-btn-sub{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.session-status{margin-top:10px;font-size:12px;color:var(--muted);}
+.session-status.ok{color:var(--plus);}
+.session-status.warn{color:var(--accent);}
+.session-status.error{color:var(--minus);}
+.session-meta{margin-top:6px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted);}
+.session-meta a{color:var(--accent3);text-decoration:none;border-bottom:1px solid transparent;}
+.session-meta a:hover{border-bottom-color:var(--accent3);}
+
+@media (max-width:640px){
+  .session-form-grid{grid-template-columns:1fr;}
+  .session-actions{grid-template-columns:1fr;}
+}

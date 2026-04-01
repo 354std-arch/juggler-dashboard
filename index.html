@@ -70,6 +70,82 @@
     <div class="card-title">✅ 読込済みデータ</div>
     <div id="loadedSummary"></div>
   </div>
+  <div class="card session-card">
+    <div class="card-title">🗃️ セッション保存</div>
+    <p class="section-note">設定推測タブの値を反映して、GitHub API経由で `sessions.json` に追記保存します。</p>
+
+    <div class="session-form-grid">
+      <label class="session-field">
+        <span>日付</span>
+        <input type="date" id="sessionDate">
+      </label>
+      <label class="session-field">
+        <span>店舗名</span>
+        <input type="text" id="sessionStore" list="sessionStoreList" placeholder="例: ○○店">
+        <datalist id="sessionStoreList"></datalist>
+      </label>
+      <label class="session-field">
+        <span>台番号</span>
+        <input type="text" id="sessionTai" inputmode="numeric" placeholder="例: 312">
+      </label>
+      <label class="session-field">
+        <span>機種名</span>
+        <input type="text" id="sessionModel" placeholder="例: マイジャグラーV">
+      </label>
+      <label class="session-field">
+        <span>G数</span>
+        <input type="number" id="sessionG" inputmode="numeric" min="0" step="1">
+      </label>
+      <label class="session-field">
+        <span>BIG回数</span>
+        <input type="number" id="sessionBig" inputmode="numeric" min="0" step="1">
+      </label>
+      <label class="session-field">
+        <span>REG回数</span>
+        <input type="number" id="sessionReg" inputmode="numeric" min="0" step="1">
+      </label>
+      <label class="session-field">
+        <span>差枚数</span>
+        <input type="number" id="sessionDiff" inputmode="numeric" step="1" placeholder="例: -850">
+      </label>
+      <label class="session-field">
+        <span>ブドウ</span>
+        <input type="number" id="sessionBudo" inputmode="numeric" min="0" step="1">
+      </label>
+      <label class="session-field">
+        <span>チェリー</span>
+        <input type="number" id="sessionCherry" inputmode="numeric" min="0" step="1">
+      </label>
+      <label class="session-field session-field-wide">
+        <span>小役カウント（その他）</span>
+        <input type="text" id="sessionOtherKoyaku" placeholder="例: 単独BIG:2 / 単独REG:3">
+      </label>
+      <label class="session-field">
+        <span>ベイズスコア P(設定4以上)</span>
+        <input type="number" id="sessionBayes" inputmode="decimal" min="0" max="100" step="0.1" placeholder="例: 58.4">
+      </label>
+      <label class="session-field session-field-wide">
+        <span>撤退理由</span>
+        <select id="sessionWithdrawReason">
+          <option value="">選択してください</option>
+          <option value="損切りライン到達（-2万円）">損切りライン到達（-2万円）</option>
+          <option value="P(設定4以上)30%以下">P(設定4以上)30%以下</option>
+          <option value="閉店時間">閉店時間</option>
+          <option value="その他">その他</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="session-actions">
+      <button class="btn session-btn-sub" onclick="syncSessionFormFromCurrent(true)">↻ 現在値を反映</button>
+      <button class="btn" onclick="saveSessionRecord()">💾 セッションを保存</button>
+    </div>
+
+    <div id="sessionStatus" class="session-status">未保存</div>
+    <div class="session-meta">
+      <span>保存先: 354std-arch/juggler-dashboard / main / sessions.json</span>
+    </div>
+  </div>
 </div>
 
 <!-- ====== 今日の狙い台 ====== -->
@@ -613,6 +689,21 @@
 
 <!-- ====== 設定 ====== -->
 <div id="tab-settings" class="tab-content">
+  <div class="card">
+    <div class="card-title">🔐 GitHubトークン設定</div>
+    <p class="section-note">`repo` 権限を持つPersonal Access Tokenを入力してください。トークンはこのブラウザのLocalStorageに保存され、セッション保存時にGitHub APIで使用されます。</p>
+    <div class="session-form-grid">
+      <label class="session-field session-field-wide">
+        <span>GitHub PAT</span>
+        <input type="password" id="githubTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+      </label>
+    </div>
+    <div class="session-actions">
+      <button class="btn" onclick="saveGitHubToken()">✅ トークンを保存</button>
+      <button class="btn session-btn-sub" onclick="clearGitHubToken()">🗑 トークンを削除</button>
+    </div>
+    <div id="githubTokenStatus" class="session-status">未設定</div>
+  </div>
   <div class="card">
     <div class="card-title">⚙️ 店舗別 特定日設定</div>
     <p class="section-note">店舗ごとに特定日をカンマ区切りで入力。「日にち」タブで平均差枚がプラスの日を参考にしてください。設定はブラウザに保存されます。</p>
