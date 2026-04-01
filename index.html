@@ -2009,8 +2009,11 @@ function renderViz() {
     { key:'syn',    label:'合算確率',        actual: (big+reg)>0 ? g/(big+reg): null, theory: ms.syn,    smallIsHigh:true  },
     { key:'budo',   label:'ブドウ確率',      actual: budo>0   ? ST.g/budo      : null, theory: my.budo,   smallIsHigh:false },
     { key:'soloRb', label:'単独REG',         actual: soloReg>0? g/soloReg     : null, theory: my.soloRB, smallIsHigh:true  },
-    { key:'kadoRb', label:'チェリー重複REG', actual: kadoReg>0? g/kadoReg     : null, theory: my.kadoRB, smallIsHigh:true  },
-  ].filter(m => m.actual !== null && Object.values(m.theory).every(v=>v<9000));
+    // kadoRB キー名は機種によって kadoRB（ネオアイム）または cherryRB（他機種）に分かれるため両方を参照
+    { key:'kadoRb', label:'チェリー重複REG', actual: kadoReg>0? g/kadoReg     : null, theory: my.kadoRB ?? my.cherryRB, smallIsHigh:true  },
+  ].filter(m => m.actual !== null && m.theory != null && Object.values(m.theory).every(v=>v<9000));
+  // ※ m.theory != null チェックがないと、理論値未定義の機種で Object.values(undefined) が
+  //    TypeError を投げてテーブル更新が止まるバグがある（修正済み）
 
   if(!METRICS.length) return;
 
