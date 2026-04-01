@@ -2253,9 +2253,11 @@ function loadFromGAS() {
 
 // ====== ファイル読込 ======
 const dz = document.getElementById('dropZone');
-dz.addEventListener('dragover',e=>{e.preventDefault();dz.style.borderColor='var(--accent)';});
-dz.addEventListener('dragleave',()=>dz.style.borderColor='');
-dz.addEventListener('drop',e=>{e.preventDefault();dz.style.borderColor='';handleFile(e.dataTransfer.files[0]);});
+if (dz) {
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.style.borderColor='var(--accent)';});
+  dz.addEventListener('dragleave',()=>dz.style.borderColor='');
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.style.borderColor='';handleFile(e.dataTransfer.files[0]);});
+}
 function handleFile(file){if(!file)return;const r=new FileReader();r.onload=e=>parseCSV(e.target.result);r.readAsText(file,'UTF-8');}
 function parsePaste(){const t=document.getElementById('pasteArea').value.trim();if(!t){alert('データを貼り付けてください');return;}parseCSV(t);}
 
