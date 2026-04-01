@@ -32,6 +32,10 @@ MODEL_SETTINGS = {
 
 def r1(v): return round(v*10)/10
 def avg(arr): return sum(arr)/len(arr) if arr else 0
+def wavg(vals, weights):
+    if not vals: return 0
+    tw = sum(weights)
+    return sum(v*w for v,w in zip(vals,weights))/tw if tw else 0
 
 def parse_num(s):
     if not s: return 0
