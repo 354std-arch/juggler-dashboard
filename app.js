@@ -5778,13 +5778,25 @@ function renderStoreFreshnessBadge(storeName) {
 function renderStoreBar() {
   document.getElementById('storeBar').innerHTML=
     '<span class="store-label">店舗：</span>'+
-    G.stores.map(s=>`<button class="store-btn ${s===currentStore?'active':''}" onclick="switchStore(${JSON.stringify(s)},this)"><span>${s==='all'?'全店舗':s}</span>${s==='all'?'':renderStoreFreshnessBadge(s)}</button>`).join('');
+    G.stores.map(s=>`<button type="button" class="store-btn ${s===currentStore?'active':''}" data-store="${escapeHtml(s)}"><span>${s==='all'?'全店舗':s}</span>${s==='all'?'':renderStoreFreshnessBadge(s)}</button>`).join('');
+}
+
+function initStoreBarEvents() {
+  const bar = document.getElementById('storeBar');
+  if(!bar || bar.dataset.boundStoreClick === '1') return;
+  bar.dataset.boundStoreClick = '1';
+  bar.addEventListener('click', (e) => {
+    const btn = e.target.closest('.store-btn');
+    if(!btn || !bar.contains(btn)) return;
+    const store = btn.dataset.store || 'all';
+    switchStore(store, btn);
+  });
 }
 
 function switchStore(store,btn) {
   currentStore=store;
   document.querySelectorAll('.store-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  if(btn) btn.classList.add('active');
   _bayesCache.clear();
   setTimeout(() => {
     if (G._precomputed) {
@@ -5815,6 +5827,7 @@ function showStatus() {
 // ====== 初期化 ======
 window.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('diagDate').valueAsDate=new Date();
+  initStoreBarEvents();
   restoreGasUrlInput();
   if(window._PRELOAD&&window._PRELOAD.length){
     if(window._SPECIAL_STORE) SPECIAL_BY_STORE=window._SPECIAL_STORE;
