@@ -1,12 +1,15 @@
 import requests
 from bs4 import BeautifulSoup
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 import csv
 import os
 import time
+import json
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_CSV  = os.path.join(REPO_DIR, "raw_data.csv")
+STORE_FRESHNESS_JSON = os.path.join(REPO_DIR, "store_freshness.json")
+JST = timezone(timedelta(hours=9))
 
 STORES = [
     ('鶴見UNO',               '%e9%b6%b4%e8%a6%8buno-data'),
@@ -34,14 +37,21 @@ def get_target_date():
 def is_normal_type(machine_name):
     return any(kw in machine_name for kw in NORMAL_TYPE_KEYWORDS)
 
-def load_existing_keys():
-    keys = set()
-    if not os.path.exists(RAW_CSV):
-        return keys
-    with open(RAW_CSV, encoding='utf-8-sig') as f:
-        for row in csv.DictReader(f):
-            keys.add((row['日付'], row['店名'], row['台番号'], row['機種名']))
-    return keys
+def load_store_freshness():
+    if not os.path.exists(STORE_FRESHNESS_JSON):
+        return {}
+    try:
+        with open(STORE_FRESHNESS_JSON, encoding='utf-8') as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+def update_store_freshness(store_name):
+    freshness = load_store_freshness()
+    freshness[store_name] = datetime.now(JST).isoformat(timespec='seconds')
+    with open(STORE_FRESHNESS_JSON, 'w', encoding='utf-8') as f:
+        json.dump(freshness, f, ensure_ascii=False, indent=2)
 
 def scrape(target_date, store_name, slug):
     url = f'https://ana-slo.com/{target_date}-{slug}/'
@@ -49,16 +59,16 @@ def scrape(target_date, store_name, slug):
         res = requests.get(url, headers=HEADERS, timeout=15)
         if res.status_code != 200:
             print(f'  ❌ {store_name} {target_date}: HTTP {res.status_code}')
-            return []
+            return [], False
     except Exception as e:
         print(f'  ❌ {store_name} {target_date}: {e}')
-        return []
+        return [], False
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(res.text, 'html.parser')
     table = soup.find('table', id='all_data_table')
     if not table:
         print(f'  ⚠️  {store_name} {target_date}: テーブルなし')
-        return []
+        return [], False
     rows = []
     for tr in table.find_all('tr')[1:]:
         cols = [td.get_text(strip=True) for td in tr.find_all('td')]
@@ -74,39 +84,65 @@ def scrape(target_date, store_name, slug):
             '合成確率': cols[7],'BB確率': cols[8],'RB確率': cols[9],
         })
     print(f'  ✅ {store_name} {target_date}: {len(rows)}行取得')
-    return rows
+    return rows, True
 
-def save_to_csv(rows, existing_keys):
+def _dedup_key(row):
+    return (row.get('日付', ''), row.get('店名', ''), row.get('台番号', ''))
+
+def save_to_csv(rows):
     if not rows:
         return 0
-    new_rows = []
+
+    # 同一キー（日付,店名,台番号）の最新行で上書きする
+    updates = {}
     for row in rows:
-        key = (row['日付'], row['店名'], row['台番号'], row['機種名'])
-        if key not in existing_keys:
-            new_rows.append(row)
-            existing_keys.add(key)
-    if not new_rows:
-        print('  ℹ️  追記なし（全て重複）')
-        return 0
-    file_exists = os.path.exists(RAW_CSV)
-    with open(RAW_CSV, 'a', encoding='utf-8-sig', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_HEADER)
-        if not file_exists:
+        updates[_dedup_key(row)] = row
+
+    if not os.path.exists(RAW_CSV):
+        with open(RAW_CSV, 'w', encoding='utf-8-sig', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=CSV_HEADER)
             writer.writeheader()
-        writer.writerows(new_rows)
-    print(f'  📝 {len(new_rows)}行をCSVに追記')
-    return len(new_rows)
+            writer.writerows(updates.values())
+        print(f'  📝 新規作成: {len(updates)}行')
+        return len(updates)
+
+    tmp_csv = RAW_CSV + '.tmp'
+    replaced = 0
+    with open(RAW_CSV, encoding='utf-8-sig', newline='') as src, \
+         open(tmp_csv, 'w', encoding='utf-8-sig', newline='') as dst:
+        reader = csv.DictReader(src)
+        fieldnames = reader.fieldnames or CSV_HEADER
+        writer = csv.DictWriter(dst, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for row in reader:
+            key = _dedup_key(row)
+            if key in updates:
+                writer.writerow(updates.pop(key))
+                replaced += 1
+            else:
+                writer.writerow(row)
+
+        appended = len(updates)
+        for row in updates.values():
+            writer.writerow(row)
+
+    os.replace(tmp_csv, RAW_CSV)
+    print(f'  📝 {replaced}行を上書き / {appended}行を追加')
+    return replaced + appended
 
 if __name__ == '__main__':
     target_date = get_target_date()
     print(f'=== 取得日付: {target_date} ===')
-    existing_keys = load_existing_keys()
-    print(f'既存レコード数: {len(existing_keys)}件')
     all_rows = []
+    scraped_store_count = 0
     for store_name, slug in STORES:
-        rows = scrape(target_date, store_name, slug)
+        rows, ok = scrape(target_date, store_name, slug)
         all_rows.extend(rows)
+        if ok:
+            update_store_freshness(store_name)
+            scraped_store_count += 1
         time.sleep(1)
     print(f'\n合計 {len(all_rows)} 行取得')
-    saved = save_to_csv(all_rows, existing_keys)
-    print(f'✅ 完了（新規追記: {saved}行）')
+    saved = save_to_csv(all_rows)
+    print(f'✅ 完了（更新/追加: {saved}行, freshness更新: {scraped_store_count}店舗）')

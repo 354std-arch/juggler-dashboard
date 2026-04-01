@@ -4,6 +4,7 @@ from collections import defaultdict
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_CSV  = os.path.join(REPO_DIR, "raw_data.csv")
+STORE_FRESHNESS_JSON = os.path.join(REPO_DIR, "store_freshness.json")
 
 STORE_SPECIAL = {
     "鶴見UNO":                  [1, 11, 21, 31],
@@ -51,6 +52,16 @@ def parse_num(s):
     if not s: return 0
     try: return float(str(s).replace(",","").replace("+","").strip())
     except: return 0
+
+def load_store_freshness():
+    if not os.path.exists(STORE_FRESHNESS_JSON):
+        return {}
+    try:
+        with open(STORE_FRESHNESS_JSON, encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
 
 def load_raw():
     seen = set()
@@ -525,6 +536,7 @@ if __name__ == "__main__":
     main_stores = [s for s in all_stores if s != "中山ZoRoN"]
     output = {
         "updated_at": date.today().strftime("%Y-%m-%d"),
+        "store_freshness": load_store_freshness(),
         "stores": main_stores,
         "specialByStore": STORE_SPECIAL,
         "byStore": {}

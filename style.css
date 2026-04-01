@@ -20,6 +20,10 @@ header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 
 .store-label{font-size:11px;color:var(--muted);white-space:nowrap;flex-shrink:0;}
 .store-btn{background:var(--bg3);color:var(--muted);border:1px solid var(--border);border-radius:16px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;}
 .store-btn.active{background:var(--accent3);color:#000;border-color:var(--accent3);}
+.store-freshness-badge{display:inline-flex;align-items:center;justify-content:center;margin-left:6px;font-size:10px;line-height:1;border-radius:999px;padding:2px 4px;border:1px solid transparent;}
+.store-freshness-badge.green{background:rgba(57,255,20,.12);border-color:rgba(57,255,20,.28);}
+.store-freshness-badge.yellow{background:rgba(255,159,0,.14);border-color:rgba(255,159,0,.32);}
+.store-freshness-badge.red{background:rgba(255,77,109,.14);border-color:rgba(255,77,109,.32);}
 nav{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 nav::-webkit-scrollbar{display:none;}
 nav button{background:none;border:none;color:var(--muted);padding:10px 12px;font-family:'Zen Kaku Gothic New',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all .2s;flex-shrink:0;}
@@ -167,6 +171,20 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .session-meta{margin-top:6px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted);}
 .session-meta a{color:var(--accent3);text-decoration:none;border-bottom:1px solid transparent;}
 .session-meta a:hover{border-bottom-color:var(--accent3);}
+
+/* 答え合わせ */
+.answer-table-wrap{width:100%;overflow-x:auto;}
+.answer-table th,.answer-table td,.answer-rate-table th,.answer-rate-table td{white-space:nowrap;}
+.answer-diff-hit{color:var(--plus);font-family:'Share Tech Mono',monospace;font-weight:700;}
+.answer-diff-miss{color:var(--minus);font-family:'Share Tech Mono',monospace;font-weight:700;}
+.answer-judge{
+  display:inline-flex;align-items:center;justify-content:center;min-width:26px;padding:2px 8px;border-radius:999px;
+  font-weight:900;font-family:'Share Tech Mono',monospace;border:1px solid transparent;
+}
+.answer-judge.hit{color:var(--plus);background:rgba(57,255,20,.12);border-color:rgba(57,255,20,.25);}
+.answer-judge.miss{color:var(--minus);background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.25);}
+.answer-rate-value{font-family:'Share Tech Mono',monospace;font-weight:700;color:var(--accent3);}
+.answer-rate-sub{font-size:11px;color:var(--muted);margin-left:6px;}
 
 @media (max-width:640px){
   .session-form-grid{grid-template-columns:1fr;}

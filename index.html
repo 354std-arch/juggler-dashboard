@@ -24,6 +24,7 @@
 
 <nav id="mainNav">
   <button class="active" onclick="showTab('tab-data',this)">📂 読込</button>
+  <button onclick="showTab('tab-answer',this)">✅ 答え合わせ</button>
   <button onclick="showTab('tab-target',this)">🎯 狙い台</button>
   <button onclick="showTab('tab-days',this)">📊 日にち</button>
   <button onclick="showTab('tab-tai',this)">🎰 台別</button>
@@ -146,6 +147,11 @@
       <span>保存先: 354std-arch/juggler-dashboard / main / sessions.json</span>
     </div>
   </div>
+</div>
+
+<!-- ====== 答え合わせ ====== -->
+<div id="tab-answer" class="tab-content">
+  <div id="answerContent"><div class="empty-msg">まだ記録がありません</div></div>
 </div>
 
 <!-- ====== 今日の狙い台 ====== -->

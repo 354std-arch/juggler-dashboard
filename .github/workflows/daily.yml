@@ -2,7 +2,10 @@ name: Daily Scrape
 
 on:
   schedule:
-    - cron: '45 22 * * *'  # UTC 22:45 = JST 7:45
+    - cron: '0 21 * * *'   # UTC 21:00 = JST 6:00
+    - cron: '0 23 * * *'   # UTC 23:00 = JST 8:00
+    - cron: '30 0 * * *'   # UTC 00:30 = JST 9:30
+    - cron: '0 3 * * *'    # UTC 03:00 = JST 12:00
   workflow_dispatch:
 
 jobs:
@@ -29,6 +32,6 @@ jobs:
         run: |
           git config user.email "action@github.com"
           git config user.name "GitHub Actions"
-          git add data.json raw_data.csv
+          git add data.json raw_data.csv store_freshness.json
           git diff --cached --quiet || git commit -m "auto: update data.json $(date +'%Y-%m-%d')"
           git push
