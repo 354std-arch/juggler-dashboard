@@ -1485,8 +1485,8 @@ function stUpdateDisplay() {
     document.getElementById('stDispCherryRate').textContent = '—';
   }
   renderCurrentTargetContextComparison();
-  // 自動判別（G数100以上で）
-  if(g >= 100) stCalc();
+  // 自動判別（100G区切りのみ。それ以外は手動ボタン「🔍 設定を判別する」を使用）
+  if(g >= 100 && g % 100 === 0) stCalc();
 }
 
 // タップ操作
