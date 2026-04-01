@@ -5,18 +5,28 @@ import csv
 import os
 import time
 import json
+from urllib.parse import quote
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_CSV  = os.path.join(REPO_DIR, "raw_data.csv")
 STORE_FRESHNESS_JSON = os.path.join(REPO_DIR, "store_freshness.json")
+STORE_LIST_JSON = os.path.join(REPO_DIR, "store_list.json")
 JST = timezone(timedelta(hours=9))
 
-STORES = [
+HARDCODED_STORES = [
     ('鶴見UNO',               '%e9%b6%b4%e8%a6%8buno-data'),
-    ('マルハン都築',           '%e3%83%9e%e3%83%ab%e3%83%8f%e3%83%b3%e9%83%bd%e7%ad%9c%e5%ba%97-data'),
+    ('マルハン都筑',           '%e3%83%9e%e3%83%ab%e3%83%8f%e3%83%b3%e9%83%bd%e7%ad%9c%e5%ba%97-data'),
     ('中山UNO',               '%e4%b8%ad%e5%b1%b1uno-data'),
     ('エスパス日拓新宿歌舞伎町', '%e3%82%a8%e3%82%b9%e3%83%91%e3%82%b9%e6%97%a5%e6%8b%93%e6%96%b0%e5%ae%bf%e6%ad%8c%e8%88%9e%e4%bc%8e%e7%94%ba%e5%ba%97-data'),
 ]
+
+KNOWN_SLUG_BY_NAME = {
+    '鶴見UNO': '%e9%b6%b4%e8%a6%8buno-data',
+    'マルハン都筑': '%e3%83%9e%e3%83%ab%e3%83%8f%e3%83%b3%e9%83%bd%e7%ad%9c%e5%ba%97-data',
+    '中山UNO': '%e4%b8%ad%e5%b1%b1uno-data',
+    'エスパス新宿': '%e3%82%a8%e3%82%b9%e3%83%91%e3%82%b9%e6%97%a5%e6%8b%93%e6%96%b0%e5%ae%bf%e6%ad%8c%e8%88%9e%e4%bc%8e%e7%94%ba%e5%ba%97-data',
+    'エスパス日拓新宿歌舞伎町': '%e3%82%a8%e3%82%b9%e3%83%91%e3%82%b9%e6%97%a5%e6%8b%93%e6%96%b0%e5%ae%bf%e6%ad%8c%e8%88%9e%e4%bc%8e%e7%94%ba%e5%ba%97-data',
+}
 
 NORMAL_TYPE_KEYWORDS = [
     'ジャグラー','ハナビ','クランキー','ニューパルサー',
@@ -31,8 +41,49 @@ HEADERS = {
 
 CSV_HEADER = ['日付','店名','機種名','台番号','G数','差枚','BB','RB','合成確率','BB確率','RB確率']
 
+
+def slug_from_store_name(store_name):
+    if store_name in KNOWN_SLUG_BY_NAME:
+        return KNOWN_SLUG_BY_NAME[store_name]
+    # ana-slo 側スラッグが未知の店舗向けのフォールバック
+    return f'{quote(store_name, safe="").lower()}-data'
+
+
+def load_target_stores():
+    if not os.path.exists(STORE_LIST_JSON):
+        print('⚠️  store_list.json がないため、固定4店舗で実行します')
+        return HARDCODED_STORES
+    try:
+        with open(STORE_LIST_JSON, encoding='utf-8') as f:
+            payload = json.load(f)
+    except Exception as e:
+        print(f'⚠️  store_list.json 読み込み失敗({e})のため、固定4店舗で実行します')
+        return HARDCODED_STORES
+
+    stores = payload.get('stores', []) if isinstance(payload, dict) else []
+    if not isinstance(stores, list):
+        print('⚠️  store_list.json の形式不正のため、固定4店舗で実行します')
+        return HARDCODED_STORES
+
+    targets = []
+    seen = set()
+    for store in stores:
+        if not isinstance(store, dict):
+            continue
+        name = str(store.get('name', '')).strip()
+        if not name or name in seen:
+            continue
+        targets.append((name, slug_from_store_name(name)))
+        seen.add(name)
+
+    if not targets:
+        print('⚠️  store_list.json に有効な店舗がないため、固定4店舗で実行します')
+        return HARDCODED_STORES
+    return targets
+
 def get_target_date():
-    return (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
+    # Actions は UTC で動くため、JST 基準で前日を取る
+    return (datetime.now(JST).date() - timedelta(days=1)).strftime('%Y-%m-%d')
 
 def is_normal_type(machine_name):
     return any(kw in machine_name for kw in NORMAL_TYPE_KEYWORDS)
@@ -47,23 +98,36 @@ def load_store_freshness():
     except Exception:
         return {}
 
-def update_store_freshness(store_name):
+def get_latest_data_date(rows):
+    dates = sorted({row.get('日付', '') for row in rows if row.get('日付')})
+    return dates[-1] if dates else None
+
+def update_store_freshness(store_name, data_date):
     freshness = load_store_freshness()
-    freshness[store_name] = datetime.now(JST).isoformat(timespec='seconds')
+    freshness[store_name] = {
+        'scraped_at': datetime.now(JST).replace(tzinfo=None).isoformat(timespec='seconds'),
+        'data_date': data_date,
+    }
     with open(STORE_FRESHNESS_JSON, 'w', encoding='utf-8') as f:
         json.dump(freshness, f, ensure_ascii=False, indent=2)
 
 def scrape(target_date, store_name, slug):
     url = f'https://ana-slo.com/{target_date}-{slug}/'
-    try:
-        res = requests.get(url, headers=HEADERS, timeout=15)
-        if res.status_code != 200:
-            print(f'  ❌ {store_name} {target_date}: HTTP {res.status_code}')
-            return [], False
-    except Exception as e:
-        print(f'  ❌ {store_name} {target_date}: {e}')
+    res = None
+    last_err = ''
+    for attempt in range(1, 4):
+        try:
+            res = requests.get(url, headers=HEADERS, timeout=15)
+            if res.status_code == 200:
+                break
+            last_err = f'HTTP {res.status_code}'
+        except Exception as e:
+            last_err = str(e)
+        if attempt < 3:
+            time.sleep(2 * attempt)
+    if res is None or res.status_code != 200:
+        print(f'  ❌ {store_name} {target_date}: {last_err or "request failed"}')
         return [], False
-    from bs4 import BeautifulSoup
     soup = BeautifulSoup(res.text, 'html.parser')
     table = soup.find('table', id='all_data_table')
     if not table:
@@ -133,14 +197,16 @@ def save_to_csv(rows):
 
 if __name__ == '__main__':
     target_date = get_target_date()
+    stores = load_target_stores()
     print(f'=== 取得日付: {target_date} ===')
     all_rows = []
     scraped_store_count = 0
-    for store_name, slug in STORES:
+    for store_name, slug in stores:
         rows, ok = scrape(target_date, store_name, slug)
         all_rows.extend(rows)
         if ok:
-            update_store_freshness(store_name)
+            latest_data_date = get_latest_data_date(rows) or target_date
+            update_store_freshness(store_name, latest_data_date)
             scraped_store_count += 1
         time.sleep(1)
     print(f'\n合計 {len(all_rows)} 行取得')

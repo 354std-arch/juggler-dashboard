@@ -1,7 +1,7 @@
 // ====== グローバル ======
 let G = {
   raw:[], dayStats:[], taiDetail:[], dateSummary:[], modelStats:[], nextStats:{}, heatmap:{}, autoSpecial:[], weekMatrix:{}, dayWdayMatrix:{},
-  currentTargetContext: null, layer3Scored: [], layer3SelectionMeta: null, storeFreshness: {}
+  currentTargetContext: null, layer3Scored: [], layer3SelectionMeta: null, storeFreshness: {}, recommendations: []
 };
 let chartInst = null;
 let currentStore = 'all';
@@ -1978,9 +1978,9 @@ function loadFromJSON() {
       return r.json();
     })
     .then(json => {
-      if (json.byStore) {
+      if (json.byStore && typeof json.byStore === 'object') {
         loadFromPrecomputed(json);
-        status.textContent = `✅ 読み込み完了（${json.updated_at}）`;
+        status.textContent = `✅ 読み込み完了（${json.updated_at || '更新日不明'}）`;
         status.style.color = 'var(--plus)';
         btn.textContent = '📡 データを読み込む';
         btn.disabled = false;
@@ -2014,10 +2014,16 @@ function loadFromJSON() {
 }
 
 function loadFromPrecomputed(json) {
-  G._precomputed = json;
-  G.storeFreshness = (json.store_freshness && typeof json.store_freshness === 'object') ? json.store_freshness : {};
-  G.stores = ['all', ...(json.stores || [])];
-  const specialByStore = json.specialByStore || {};
+  const byStore = (json.byStore && typeof json.byStore === 'object') ? json.byStore : {};
+  const storesFromByStore = Object.keys(byStore);
+  G._precomputed = { ...json, byStore };
+  G.storeFreshness = (json.store_freshness && typeof json.store_freshness === 'object')
+    ? json.store_freshness
+    : ((json.storeFreshness && typeof json.storeFreshness === 'object') ? json.storeFreshness : {});
+  G.recommendations = Array.isArray(json.recommendations) ? json.recommendations : [];
+  const stores = Array.isArray(json.stores) ? json.stores : storesFromByStore;
+  G.stores = ['all', ...stores];
+  const specialByStore = (json.specialByStore && typeof json.specialByStore === 'object') ? json.specialByStore : {};
   Object.entries(specialByStore).forEach(([store, days]) => {
     SPECIAL_BY_STORE[store] = days;
   });
@@ -2038,19 +2044,33 @@ function loadFromPrecomputed(json) {
 function setStoreData(store) {
   const json = G._precomputed;
   if (!json) return;
+  const byStore = (json.byStore && typeof json.byStore === 'object') ? json.byStore : {};
   if (store === 'all') {
-    const allStores = json.stores || [];
+    const allStores = Array.isArray(json.stores) ? json.stores : Object.keys(byStore);
+    if (!allStores.length) {
+      G.dayStats = [];
+      G.taiDetail = [];
+      G.modelStats = [];
+      G.nextStats = {};
+      G.heatmap = {};
+      G.weekMatrix = {};
+      G.dayWdayMatrix = {};
+      G.dateSummary = [];
+      G.todayAnalysis = null;
+      G.raw = [];
+      return;
+    }
     G.dayStats = mergeAllDayStats(allStores, json);
     G.taiDetail = mergeAllTaiDetail(allStores, json);
     G.modelStats = mergeAllModelStats(allStores, json);
     G.nextStats = mergeAllNextStats(allStores, json);
-    G.heatmap = (json.byStore[allStores[0]] || {}).heatmap || {};
-    G.weekMatrix = (json.byStore[allStores[0]] || {}).weekMatrix || {};
-    G.dayWdayMatrix = (json.byStore[allStores[0]] || {}).dayWdayMatrix || {};
+    G.heatmap = (byStore[allStores[0]] || {}).heatmap || {};
+    G.weekMatrix = (byStore[allStores[0]] || {}).weekMatrix || {};
+    G.dayWdayMatrix = (byStore[allStores[0]] || {}).dayWdayMatrix || {};
     G.dateSummary = mergeAllDateSummary(allStores, json);
-    G.todayAnalysis = (json.byStore[allStores[0]] || {}).todayAnalysis || null;
+    G.todayAnalysis = (byStore[allStores[0]] || {}).todayAnalysis || null;
   } else {
-    const storeData = json.byStore[store] || {};
+    const storeData = byStore[store] || {};
     G.dayStats = storeData.dayStats || [];
     G.taiDetail = storeData.taiDetail || [];
     G.modelStats = storeData.modelStats || [];
@@ -2126,14 +2146,55 @@ function mergeAllDateSummary(stores, json) {
 function showStatusPrecomputed(json) {
   const stores = json.stores || [];
   const el = document.getElementById('dataStatus');
-  el.textContent = `${json.updated_at}更新`;
+  const updatedAt = json.updated_at || '更新日不明';
+  el.textContent = `${updatedAt}更新`;
   el.classList.add('loaded');
   document.getElementById('loadedInfo').style.display = 'block';
   document.getElementById('loadedSummary').innerHTML = `
     <div style="font-size:12px;line-height:2;">
-      📅 更新日: ${json.updated_at}<br>
+      📅 更新日: ${updatedAt}<br>
       🏪 ${stores.map(s=>`<span class="badge badge-normal">${s}</span>`).join('')}
     </div>`;
+}
+
+function renderRecommendations() {
+  const el = document.getElementById('recommendationsList');
+  if(!el) return;
+  const rows = Array.isArray(G.recommendations) ? G.recommendations : [];
+  if(!rows.length) {
+    el.innerHTML = '<div class="empty-msg">本日の推薦台はありません</div>';
+    return;
+  }
+  el.innerHTML = `
+    <div class="recommendation-grid">
+      ${rows.map(r => {
+        const reasons = Array.isArray(r.reasons)
+          ? r.reasons.filter(v => typeof v === 'string' && v.trim())
+          : [];
+        const reasonHtml = reasons.length
+          ? `<div class="recommendation-reasons">根拠: ${reasons.map(v => escapeHtml(v)).join(' / ')}</div>`
+          : '';
+        return `
+          <article class="recommendation-card">
+            <div class="recommendation-head">
+              <div>
+                <div class="recommendation-store">${escapeHtml(r.store || '店舗不明')}</div>
+                <div class="recommendation-model">${escapeHtml(r.model || '機種不明')}</div>
+              </div>
+              <span class="badge badge-special">${escapeHtml(r.confidence || '★')}</span>
+            </div>
+            <div class="recommendation-meta">
+              <span>台番号 <b>${r.tai || '-'}</b></span>
+              <span>ベイズスコア <b>${Number(r.bayes_score || 0).toFixed(1)}%</b></span>
+              <span>期待時給 <b>${Math.round(Number(r.expected_hourly || 0)).toLocaleString()}円</b></span>
+              <span>信頼度 <b>${r.confidence || '★'}</b></span>
+            </div>
+            ${reasonHtml}
+          </article>
+        `;
+      }).join('')}
+    </div>
+  `;
 }
 
 function loadFromGAS() {
@@ -2261,6 +2322,7 @@ function finishLoad() {
     }
   });
   G.autoSpecial = detectAutoSpecial(G.raw);
+  G.recommendations = [];
   document.getElementById('saveBtn').disabled = false;
   // 重い処理を非同期化してUIをブロックしない
   setTimeout(() => {
@@ -5673,6 +5735,7 @@ const TAB_RENDER_MAP = {
 };
 
 function renderAll() {
+  renderRecommendations();
   // アクティブタブのみ描画（タブ切り替え時に初めて描画）
   const activeTab = document.querySelector('.tab-content.active');
   if(!activeTab) return;
@@ -5687,22 +5750,21 @@ function renderAll() {
 
 // ====== 店舗バー ======
 function getStoreFreshnessMeta(storeName) {
-  const ts = G.storeFreshness ? G.storeFreshness[storeName] : null;
-  if(!ts) return null;
-  const dt = new Date(ts);
-  if(Number.isNaN(dt.getTime())) return null;
+  const freshness = G.storeFreshness ? G.storeFreshness[storeName] : null;
+  const record = (freshness && typeof freshness === 'object') ? freshness : {};
+  const dataDate = record.data_date || null;
+  const scrapedAt = record.scraped_at || '';
 
-  const now = new Date();
-  const isToday =
-    now.getFullYear() === dt.getFullYear() &&
-    now.getMonth() === dt.getMonth() &&
-    now.getDate() === dt.getDate();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
 
-  const sixHoursMs = 6 * 60 * 60 * 1000;
-  const diffMs = now.getTime() - dt.getTime();
-  if(isToday && diffMs < sixHoursMs) return { color: 'green', icon: '🟢', ts };
-  if(isToday) return { color: 'yellow', icon: '🟡', ts };
-  return { color: 'red', icon: '🔴', ts };
+  const title = `data_date: ${dataDate || 'N/A'}${scrapedAt ? ` / scraped_at: ${scrapedAt}` : ''}`;
+  if(dataDate === todayStr) return { color: 'green', icon: '🟢', ts: title };
+  if(dataDate === yesterdayStr) return { color: 'yellow', icon: '🟡', ts: title };
+  return { color: 'red', icon: '🔴', ts: title };
 }
 
 function renderStoreFreshnessBadge(storeName) {
@@ -5714,7 +5776,7 @@ function renderStoreFreshnessBadge(storeName) {
 function renderStoreBar() {
   document.getElementById('storeBar').innerHTML=
     '<span class="store-label">店舗：</span>'+
-    G.stores.map(s=>`<button class="store-btn ${s===currentStore?'active':''}" onclick="switchStore('${s}',this)"><span>${s==='all'?'全店舗':s}</span>${s==='all'?'':renderStoreFreshnessBadge(s)}</button>`).join('');
+    G.stores.map(s=>`<button class="store-btn ${s===currentStore?'active':''}" onclick="switchStore(${JSON.stringify(s)},this)"><span>${s==='all'?'全店舗':s}</span>${s==='all'?'':renderStoreFreshnessBadge(s)}</button>`).join('');
 }
 
 function switchStore(store,btn) {
@@ -6025,3 +6087,120 @@ function showCalendarDayDetail(year, month, day) {
     buildCalendarMonth();
   }
 }
+
+// ====== 撤退判断フローティングUI ======
+const WITHDRAW_PRIOR = [1/6, 1/6, 1/6, 1/6, 1/6, 1/6];
+const WITHDRAW_SETTINGS = [
+  { bb: 1 / 287, rb: 1 / 455, grape: 1 / 6.2,  cherry: 1 / 33.5 },
+  { bb: 1 / 282, rb: 1 / 420, grape: 1 / 6.15, cherry: 1 / 33.3 },
+  { bb: 1 / 273, rb: 1 / 390, grape: 1 / 6.05, cherry: 1 / 33.1 },
+  { bb: 1 / 252, rb: 1 / 320, grape: 1 / 5.95, cherry: 1 / 32.9 },
+  { bb: 1 / 240, rb: 1 / 280, grape: 1 / 5.85, cherry: 1 / 32.7 },
+  { bb: 1 / 220, rb: 1 / 210, grape: 1 / 5.75, cherry: 1 / 32.5 },
+];
+
+function wdSafeNum(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function wdLogBinomialLike(trials, success, p) {
+  const n = Math.max(0, Math.floor(trials));
+  const k = Math.max(0, Math.min(n, Math.floor(success)));
+  const pp = Math.min(Math.max(p, 1e-9), 1 - 1e-9);
+  return k * Math.log(pp) + (n - k) * Math.log(1 - pp);
+}
+
+function calcWithdrawPosterior(games, big, reg, grape, cherry) {
+  if(games <= 0) return null;
+
+  let logs = WITHDRAW_SETTINGS.map((s, i) => {
+    let logL = Math.log(WITHDRAW_PRIOR[i]);
+    logL += wdLogBinomialLike(games, big, s.bb);
+    logL += wdLogBinomialLike(games, reg, s.rb);
+    if(grape > 0) logL += wdLogBinomialLike(games, grape, s.grape);
+    if(cherry > 0) logL += wdLogBinomialLike(games, cherry, s.cherry);
+    return logL;
+  });
+
+  const maxLog = Math.max(...logs);
+  logs = logs.map(v => Math.exp(v - maxLog));
+  const sum = logs.reduce((a, b) => a + b, 0);
+  if(sum <= 0) return null;
+  const probs = logs.map(v => v / sum);
+  return probs[3] + probs[4] + probs[5];
+}
+
+function setWithdrawBanner(isWarn, message) {
+  const banner = document.getElementById('withdrawJudgeBanner');
+  const text = document.getElementById('withdrawJudgeBannerText');
+  if(!banner || !text) return;
+
+  banner.classList.remove('warn', 'ok', 'show');
+  banner.classList.add(isWarn ? 'warn' : 'ok', 'show');
+  text.textContent = message;
+
+  try {
+    if(typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate([500, 200, 500]);
+    }
+  } catch (e) {
+    // iOS等の非対応環境は無視
+  }
+}
+
+function closeWithdrawPopup() {
+  const overlay = document.getElementById('withdrawJudgeOverlay');
+  if(overlay) overlay.classList.remove('open');
+}
+
+function runWithdrawJudge() {
+  const games = wdSafeNum(document.getElementById('withdrawGames')?.value);
+  const big = wdSafeNum(document.getElementById('withdrawBig')?.value);
+  const reg = wdSafeNum(document.getElementById('withdrawReg')?.value);
+  const investment = wdSafeNum(document.getElementById('withdrawInvestment')?.value);
+  const grape = wdSafeNum(document.getElementById('withdrawGrape')?.value);
+  const cherry = wdSafeNum(document.getElementById('withdrawCherry')?.value);
+
+  const p4OrMore = calcWithdrawPosterior(games, big, reg, grape, cherry);
+  const pPercent = p4OrMore == null ? 0 : Math.round(p4OrMore * 100);
+
+  const warnByInvestment = investment >= 20000;
+  const warnByProb = p4OrMore !== null ? p4OrMore <= 0.30 : true;
+  const isWarn = warnByInvestment || warnByProb;
+
+  if(isWarn) {
+    setWithdrawBanner(true, '⚠️ 撤退を検討してください');
+  } else {
+    setWithdrawBanner(false, `✅ 続行推奨：P(設定4以上) ${pPercent}%`);
+  }
+
+  closeWithdrawPopup();
+}
+
+function initWithdrawJudgeUI() {
+  const fab = document.getElementById('withdrawJudgeFab');
+  const overlay = document.getElementById('withdrawJudgeOverlay');
+  const popup = overlay ? overlay.querySelector('.withdraw-judge-popup') : null;
+  const runBtn = document.getElementById('withdrawJudgeRunBtn');
+  const bannerClose = document.getElementById('withdrawJudgeBannerClose');
+  const banner = document.getElementById('withdrawJudgeBanner');
+
+  if(!fab || !overlay || !popup || !runBtn || !bannerClose || !banner) return;
+
+  fab.addEventListener('click', () => {
+    overlay.classList.add('open');
+  });
+  overlay.addEventListener('click', (ev) => {
+    if(ev.target === overlay) closeWithdrawPopup();
+  });
+  popup.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+  });
+  runBtn.addEventListener('click', runWithdrawJudge);
+  bannerClose.addEventListener('click', () => {
+    banner.classList.remove('show');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initWithdrawJudgeUI);

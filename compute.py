@@ -1,15 +1,26 @@
 import json, csv, math, os
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from collections import defaultdict
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_CSV  = os.path.join(REPO_DIR, "raw_data.csv")
 STORE_FRESHNESS_JSON = os.path.join(REPO_DIR, "store_freshness.json")
+JST = timezone(timedelta(hours=9))
+
+WEEKDAY_COEFF = {0:1.0, 1:1.0, 2:1.0, 3:1.0, 4:1.1, 5:1.2, 6:1.2}
+MONTHLY_TIMING_COEFF = {
+    "early": 1.05,
+    "mid": 1.0,
+    "late": 0.95,
+    "payday": 1.1,
+}
+# 店舗別係数の骨格。値が入れば推薦スコアに乗算される。
+STORE_COEFFICIENTS = {}
 
 STORE_SPECIAL = {
     "鶴見UNO":                  [1, 11, 21, 31],
     "中山UNO":                  [1, 11, 21, 31],
-    "マルハン都築":              [1, 7, 10, 11, 17, 21, 22, 25, 27, 31],
+    "マルハン都筑":              [1, 7, 10, 11, 17, 21, 22, 25, 27, 31],
     "エスパス日拓新宿歌舞伎町":  [1, 6, 7, 11, 16, 17, 22, 23, 24, 26, 27],
 }
 
@@ -63,6 +74,43 @@ def load_store_freshness():
     except Exception:
         return {}
 
+def get_monthly_timing_coeff(day: int) -> float:
+    if day in (24, 25, 26):
+        return MONTHLY_TIMING_COEFF["payday"]
+    if 1 <= day <= 10:
+        return MONTHLY_TIMING_COEFF["early"]
+    if 11 <= day <= 20:
+        return MONTHLY_TIMING_COEFF["mid"]
+    return MONTHLY_TIMING_COEFF["late"]
+
+def get_store_coeff(store: str, weekday: int, day: int) -> float:
+    coeff_cfg = STORE_COEFFICIENTS.get(store, {})
+    if not isinstance(coeff_cfg, dict):
+        return 1.0
+    coeff = 1.0
+    base = coeff_cfg.get("base")
+    if isinstance(base, (int, float)):
+        coeff *= float(base)
+    weekday_map = coeff_cfg.get("weekday")
+    if isinstance(weekday_map, dict):
+        wv = weekday_map.get(weekday)
+        if isinstance(wv, (int, float)):
+            coeff *= float(wv)
+    monthly_map = coeff_cfg.get("monthly_timing")
+    if isinstance(monthly_map, dict):
+        if day in (24, 25, 26):
+            bucket = "payday"
+        elif 1 <= day <= 10:
+            bucket = "early"
+        elif 11 <= day <= 20:
+            bucket = "mid"
+        else:
+            bucket = "late"
+        mv = monthly_map.get(bucket)
+        if isinstance(mv, (int, float)):
+            coeff *= float(mv)
+    return coeff
+
 def load_raw():
     seen = set()
     rows = []
@@ -73,27 +121,31 @@ def load_raw():
         return rows
     with open(RAW_CSV, encoding="utf-8-sig") as f:
         for row in csv.DictReader(f):
-            key = (row["日付"], row["店名"], row["台番号"], row["機種名"])
+            date_str = str(row.get("日付", "")).strip()
+            store = str(row.get("店名", "")).strip()
+            tai = str(row.get("台番号", "")).strip()
+            model_name = str(row.get("機種名", "")).strip()
+            if not date_str or not store or not tai or not model_name:
+                continue
+            key = (date_str, store, tai, model_name)
             if key in seen: continue
             seen.add(key)
-            model = MODEL_NAME_MAP.get(row["機種名"], row["機種名"])
+            model = MODEL_NAME_MAP.get(model_name, model_name)
             if model not in MODEL_SETTINGS: continue
             try:
-                dt = datetime.strptime(row["日付"], "%Y-%m-%d")
+                dt = datetime.strptime(date_str, "%Y-%m-%d")
             except: continue
-            g    = parse_num(row["G数"])
-            diff = parse_num(row["差枚"])
-            bb   = parse_num(row["BB"])
-            rb   = parse_num(row["RB"])
-            tai  = row["台番号"].strip()
-            if not tai: continue
+            g    = parse_num(row.get("G数"))
+            diff = parse_num(row.get("差枚"))
+            bb   = parse_num(row.get("BB"))
+            rb   = parse_num(row.get("RB"))
             tai_num = int(tai) if tai.isdigit() else 0
             s = str(tai_num)
             ms = MODEL_SETTINGS[model]
             is_high_set_rb = (rb > 0 and bb > 0 and g > 0 and (g/rb) <= ms["rb"][4] and (g/bb) > ms["bb"][4])
             rows.append({
-                "dateStr": row["日付"], "date": dt,
-                "store": row["店名"].strip(), "model": model,
+                "dateStr": date_str, "date": dt,
+                "store": store, "model": model,
                 "tai": tai, "taiNum": tai_num,
                 "g": g, "diff": diff, "bb": bb, "rb": rb,
                 "weight": 2 if dt.date() >= recent_cutoff else 1,
@@ -459,6 +511,81 @@ def compute_today_analysis(rows, special, today=None):
         "baseline":baseline,"modelStrength":model_strength,"topTargets":scored_tais[:20]
     }
 
+def build_store_recommendations(store, store_rows, special, tai_detail, today=None):
+    if today is None:
+        today = date.today()
+    yesterday = today - timedelta(days=1)
+    recommendation_day = today.day
+    recommendation_weekday = today.weekday()
+    recommendation_weekday_data = (recommendation_weekday + 1) % 7
+    weekday_coeff = WEEKDAY_COEFF.get(recommendation_weekday, 1.0)
+    monthly_timing_coeff = get_monthly_timing_coeff(recommendation_day)
+    store_coeff = get_store_coeff(store, recommendation_weekday, recommendation_day)
+    is_special = today.day in special
+    is_special_next_day = yesterday.day in special
+    if not (is_special or is_special_next_day):
+        return []
+
+    recent_cutoff = today - timedelta(days=90)
+    three_month_cutoff = today - timedelta(days=92)
+    recent_counts = defaultdict(int)
+    tail_rows_by_model = defaultdict(list)
+    recent_rows_by_tai_num = defaultdict(list)
+    recent_context_rows_by_tai = defaultdict(list)
+    for r in store_rows:
+        if r["date"].date() >= recent_cutoff:
+            recent_counts[(r["tai"], r["model"])] += 1
+            recent_rows_by_tai_num[r["taiNum"]].append(r)
+        tail_rows_by_model[(r["model"], r["suef"])].append(r)
+        if r["date"].date() >= three_month_cutoff and (r["day"] == recommendation_day or r["weekday"] == recommendation_weekday_data):
+            recent_context_rows_by_tai[(r["tai"], r["model"])].append(r)
+
+    recs = []
+    for t in tai_detail:
+        recent_count = recent_counts.get((t["tai"], t["model"]), 0)
+        if recent_count < 3:
+            continue
+        bayes = t.get("bayesProbSp") if is_special else t.get("bayesProbNm")
+        if bayes is None:
+            bayes = t.get("bayesProbAll")
+        if bayes is None or bayes < 60:
+            continue
+        weighted_score = bayes * weekday_coeff * monthly_timing_coeff * store_coeff
+        reasons = []
+        if is_special:
+            reasons.append("今日は特定日")
+        if is_special_next_day:
+            reasons.append("特定日翌日")
+        if t["taiNum"] > 0:
+            tail_digit = t["taiNum"] % 10
+            tail_rows = tail_rows_by_model.get((t["model"], tail_digit), [])
+            if weighted_total(tail_rows) >= 5 and weighted_avg_rows(tail_rows, "diff") > 0:
+                reasons.append(f"末尾{tail_digit}が好調")
+            neighbor_rows = recent_rows_by_tai_num.get(t["taiNum"] - 1, []) + recent_rows_by_tai_num.get(t["taiNum"] + 1, [])
+            if weighted_total(neighbor_rows) >= 3 and weighted_avg_rows(neighbor_rows, "diff") > 0:
+                reasons.append("隣台が直近好調")
+        context_rows = recent_context_rows_by_tai.get((t["tai"], t["model"]), [])
+        if weighted_total(context_rows) >= 3 and weighted_avg_rows(context_rows, "diff") > 0:
+            reasons.append("同日同曜が3ヶ月好調")
+        if weekday_coeff >= 1.1:
+            reasons.append("曜日係数1.1以上")
+        if monthly_timing_coeff >= 1.0:
+            reasons.append("月内係数1.0以上")
+        recs.append({
+            "store": store,
+            "tai": t["tai"],
+            "model": t["model"],
+            "bayes_score": bayes,
+            "expected_hourly": r1(bayes * 16.6),
+            "confidence": "★★★" if bayes >= 75 else "★★" if bayes >= 65 else "★",
+            "day_type": "特定日" if is_special else "特定日翌日",
+            "recent_count_3m": recent_count,
+            "reasons": reasons,
+            "score": weighted_score,
+        })
+    recs.sort(key=lambda x: (-x["score"], -x["recent_count_3m"], x["store"], x["tai"]))
+    return recs
+
 def build_answer_check(by_store, today=None, actual_settings=None):
     if today is None:
         today = date.today()
@@ -532,34 +659,60 @@ if __name__ == "__main__":
     if not rows:
         print("データがありません。終了します。")
         exit(1)
-    all_stores = list(set(r["store"] for r in rows))
+    all_stores = sorted(set(r["store"] for r in rows))
     main_stores = [s for s in all_stores if s != "中山ZoRoN"]
     output = {
-        "updated_at": date.today().strftime("%Y-%m-%d"),
+        "updated_at": datetime.now(JST).date().strftime("%Y-%m-%d"),
         "store_freshness": load_store_freshness(),
         "stores": main_stores,
         "specialByStore": STORE_SPECIAL,
-        "byStore": {}
+        "score_coefficients": {
+            "weekday": WEEKDAY_COEFF,
+            "monthly_timing": MONTHLY_TIMING_COEFF,
+            "note": "係数は暫定値です。店舗別の微調整は byStore[店名].store_coefficients と STORE_COEFFICIENTS による拡張を想定しています。",
+        },
+        "byStore": {},
+        "recommendations": [],
+        "predictionAccuracy": {"overall": None, "byStore": {}},
     }
+    recommendation_pool = []
     for store in all_stores:
         special = STORE_SPECIAL.get(store, [1,11,21,31])
         store_rows = [r for r in rows if r["store"]==store]
+        tai_detail = compute_tai_detail(store_rows, special)
         print(f"集計中: {store} ({len(store_rows)}行) 特定日:{special}")
         output["byStore"][store] = {
             "special": special,
+            "store_coefficients": STORE_COEFFICIENTS.get(store, {}),
             "dayStats": compute_day_stats(store_rows, special),
             "modelStats": compute_model_stats(store_rows, special),
             "nextStats": compute_next_day(store_rows, special),
             "heatmap": compute_heatmap(store_rows),
             "weekMatrix": compute_week_matrix(store_rows),
             "dayWdayMatrix": compute_day_wday_matrix(store_rows),
-            "taiDetail": compute_tai_detail(store_rows, special),
+            "taiDetail": tai_detail,
             "dateSummary": compute_date_summary(store_rows, special),
             "weekdayStats": compute_weekday_stats(store_rows),
             "todayAnalysis": compute_today_analysis(store_rows, special),
         }
+        try:
+            recommendation_pool.extend(build_store_recommendations(store, store_rows, special, tai_detail))
+        except Exception as e:
+            print(f"⚠️ 推薦抽出エラー({store}): {e}")
+    try:
+        recommendation_pool.sort(key=lambda x: (-x["score"], -x["recent_count_3m"], x["store"], x["tai"]))
+        output["recommendations"] = [
+            {k: v for k, v in rec.items() if k != "score"} for rec in recommendation_pool[:3]
+        ]
+    except Exception as e:
+        print(f"⚠️ 推薦集約エラー: {e}")
+        output["recommendations"] = []
     output["answer_check"] = build_answer_check(output["byStore"])
     output["store_accuracy"] = build_store_accuracy(output["byStore"], output["answer_check"])
+    output["predictionAccuracy"] = {
+        "overall": output["answer_check"].get("accuracy"),
+        "byStore": output["store_accuracy"],
+    }
     out_path = os.path.join(REPO_DIR, "data.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False)

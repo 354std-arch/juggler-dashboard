@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ジャグラー分析</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="stylesheet" href="style.css">
@@ -44,6 +44,13 @@
 </div>
 
 <main>
+
+<section class="card recommendation-section">
+  <div class="card-title">🎯 本日の推薦台</div>
+  <div id="recommendationsList">
+    <div class="empty-msg">データを読み込んでください</div>
+  </div>
+</section>
 
 <!-- ====== データ読込 ====== -->
 <div id="tab-data" class="tab-content active">
@@ -353,7 +360,7 @@
     </div>
     <!-- 打ち始めG数・BB・RB -->
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px">📌 打ち始め時点のカウンター値（ホールデータの引き継ぎ）</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+    <div class="st-grid-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
       <div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px">総ゲーム数</div>
         <div style="display:flex;align-items:center;gap:4px">
@@ -404,7 +411,7 @@
     </div>
 
     <!-- 総ゲーム数・BB・RB -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
+    <div class="st-grid-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
       <div style="background:#1a1a1a;border:2px solid #444;border-radius:8px;padding:10px;text-align:center;cursor:pointer;position:relative" onclick="stTapEditG()" title="タップして直接入力">
         <div style="font-size:12px;color:#4fc3f7;margin-bottom:4px">総ゲーム <span style="font-size:11px;color:#888">✏️</span></div>
         <div id="stDispG" style="font-size:22px;font-weight:700;font-family:monospace;color:#fff;letter-spacing:2px">0</div>
@@ -428,14 +435,14 @@
     </div>
 
     <!-- G数カウンターボタン -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+    <div class="st-grid-4" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px">
       <button onclick="stAddG(100)" style="background:#2a7a2a;color:#fff;border:none;border-radius:10px;padding:12px 0;font-size:14px;font-weight:700;cursor:pointer">+100G</button>
       <button onclick="stAddG(-100)" style="background:#444;color:#aaa;border:none;border-radius:10px;padding:12px 0;font-size:14px;font-weight:700;cursor:pointer">−100G</button>
       <button onclick="stAddG(50)" style="background:#2a7a2a;color:#fff;border:none;border-radius:10px;padding:12px 0;font-size:14px;font-weight:700;cursor:pointer">+50G</button>
       <button onclick="stAddG(-50)" style="background:#444;color:#aaa;border:none;border-radius:10px;padding:12px 0;font-size:14px;font-weight:700;cursor:pointer">−50G</button>
     </div>
     <!-- BIG・REGボタン -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <div class="st-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
       <div style="display:flex;align-items:stretch;gap:4px">
         <button onclick="stSubBIG()" style="background:#7b1a1a;color:#fff;border:none;border-radius:10px;width:36px;font-size:20px;cursor:pointer;flex-shrink:0">－</button>
         <button onclick="stAddBIG()" style="flex:1;background:#c0392b;color:#fff;border:none;border-radius:10px;padding:18px 0;font-size:18px;font-weight:700;cursor:pointer;letter-spacing:1px">BIG<br><span style="font-size:11px;font-weight:400">BONUS</span></button>
@@ -449,13 +456,13 @@
     </div>
 
     <!-- ブドウ・チェリーボタン -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+    <div class="st-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
       <button onclick="stAddBudo()" style="background:#27ae60;color:#fff;border:none;border-radius:12px;padding:16px 0;font-size:28px;cursor:pointer">🍇</button>
       <button onclick="stAddCherry()" style="background:#c0392b;color:#fff;border:none;border-radius:12px;padding:16px 0;font-size:28px;cursor:pointer">🍒</button>
     </div>
 
     <!-- 通常時小役カウント表示 -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+    <div class="st-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
       <div style="background:#111;border-radius:8px;padding:10px;display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:20px">🍇</span>
@@ -488,7 +495,7 @@
 
     <!-- ボーナス詳細カウント -->
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px">🎰 ボーナス詳細カウント</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <div class="st-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
       <!-- BIG詳細 -->
       <div style="background:#1a0a0a;border:1px solid #c0392b44;border-radius:8px;padding:10px">
         <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:8px">BIG BONUS</div>
@@ -585,7 +592,7 @@
     <!-- 設定456/56/6率 -->
     <div class="card">
       <div class="card-title">📊 高設定確率まとめ</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div class="st-grid-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
         <div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center">
           <div style="font-size:10px;color:var(--muted);margin-bottom:4px">設定4〜6</div>
           <div id="stProb456" style="font-size:20px;font-weight:700;color:var(--plus)">—</div>
@@ -682,7 +689,7 @@
   </div>
   <div class="card">
     <div class="card-title">🏆 期間内 強い日・強い台</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div class="period-split" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div><div style="font-size:10px;color:var(--muted);margin-bottom:6px;">強い日にち</div><div id="periodTopDays"></div></div>
       <div><div style="font-size:10px;color:var(--muted);margin-bottom:6px;">強い台</div><div id="periodTopTai"></div></div>
     </div>
@@ -778,6 +785,47 @@
 </div>
 
 </main>
+
+<!-- ====== 撤退判断フローティングUI ====== -->
+<button id="withdrawJudgeFab" class="withdraw-judge-fab" type="button">⚡ 判定</button>
+
+<div id="withdrawJudgeOverlay" class="withdraw-judge-overlay">
+  <div class="withdraw-judge-popup" role="dialog" aria-modal="true" aria-labelledby="withdrawJudgeTitle">
+    <div class="withdraw-judge-popup-title" id="withdrawJudgeTitle">撤退判断</div>
+    <div class="withdraw-judge-form">
+      <label class="withdraw-judge-field">
+        <span>G数</span>
+        <input id="withdrawGames" type="number" min="0" step="1" inputmode="numeric" placeholder="例: 1800">
+      </label>
+      <label class="withdraw-judge-field">
+        <span>BIG回数</span>
+        <input id="withdrawBig" type="number" min="0" step="1" inputmode="numeric" placeholder="例: 6">
+      </label>
+      <label class="withdraw-judge-field">
+        <span>REG回数</span>
+        <input id="withdrawReg" type="number" min="0" step="1" inputmode="numeric" placeholder="例: 4">
+      </label>
+      <label class="withdraw-judge-field">
+        <span>投資金額（円）</span>
+        <input id="withdrawInvestment" type="number" min="0" step="100" inputmode="numeric" placeholder="例: 20000">
+      </label>
+      <label class="withdraw-judge-field">
+        <span>ブドウ回数</span>
+        <input id="withdrawGrape" type="number" min="0" step="1" inputmode="numeric" placeholder="任意">
+      </label>
+      <label class="withdraw-judge-field">
+        <span>チェリー回数</span>
+        <input id="withdrawCherry" type="number" min="0" step="1" inputmode="numeric" placeholder="任意">
+      </label>
+      <button id="withdrawJudgeRunBtn" class="btn withdraw-judge-run-btn" type="button">判定する</button>
+    </div>
+  </div>
+</div>
+
+<div id="withdrawJudgeBanner" class="withdraw-judge-banner">
+  <div id="withdrawJudgeBannerText" class="withdraw-judge-banner-text"></div>
+  <button id="withdrawJudgeBannerClose" class="withdraw-judge-banner-close" type="button" aria-label="閉じる">✕</button>
+</div>
 
 <script src="app.js"></script>
 </body>

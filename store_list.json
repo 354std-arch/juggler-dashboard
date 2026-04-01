@@ -1,0 +1,32 @@
+{
+  "stores": [
+    {
+      "name": "鶴見UNO",
+      "area": "鶴見",
+      "source": "manual",
+      "added_date": "2026-04-01",
+      "score": 0.0
+    },
+    {
+      "name": "マルハン都築",
+      "area": "横浜",
+      "source": "manual",
+      "added_date": "2026-04-01",
+      "score": 0.0
+    },
+    {
+      "name": "中山UNO",
+      "area": "横浜",
+      "source": "manual",
+      "added_date": "2026-04-01",
+      "score": 0.0
+    },
+    {
+      "name": "エスパス新宿",
+      "area": "新宿",
+      "source": "manual",
+      "added_date": "2026-04-01",
+      "score": 0.0
+    }
+  ]
+}

@@ -2,15 +2,15 @@ name: Daily Scrape
 
 on:
   schedule:
+    - cron: '0 20 * * *'   # UTC 20:00 = JST 5:00
     - cron: '0 21 * * *'   # UTC 21:00 = JST 6:00
     - cron: '0 23 * * *'   # UTC 23:00 = JST 8:00
-    - cron: '30 0 * * *'   # UTC 00:30 = JST 9:30
-    - cron: '0 3 * * *'    # UTC 03:00 = JST 12:00
   workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v3
 
@@ -22,7 +22,13 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4
 
-      - name: Run scrape
+      - name: Run minrepo scrape
+        run: python scrape_minrepo.py
+
+      - name: Run new-store backfill
+        run: python backfill_new_stores.py
+
+      - name: Run juggler scrape
         run: python scrape_juggler.py
 
       - name: Run compute
@@ -32,6 +38,7 @@ jobs:
         run: |
           git config user.email "action@github.com"
           git config user.name "GitHub Actions"
-          git add data.json raw_data.csv store_freshness.json
+          git add data.json raw_data.csv store_list.json
+          [ -f store_freshness.json ] && git add store_freshness.json || true
           git diff --cached --quiet || git commit -m "auto: update data.json $(date +'%Y-%m-%d')"
           git push
