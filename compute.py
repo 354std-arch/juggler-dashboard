@@ -36,6 +36,16 @@ def wavg(vals, weights):
     if not vals: return 0
     tw = sum(weights)
     return sum(v*w for v,w in zip(vals,weights))/tw if tw else 0
+def row_w(r): return r.get("weight", 1)
+def weighted_total(rows): return sum(row_w(r) for r in rows)
+def weighted_sum(rows, key): return sum(r[key] * row_w(r) for r in rows)
+def weighted_avg_rows(rows, key):
+    tw = weighted_total(rows)
+    return weighted_sum(rows, key) / tw if tw else 0
+def weighted_rate(rows, pred):
+    tw = weighted_total(rows)
+    if not tw: return 0
+    return sum(row_w(r) for r in rows if pred(r)) / tw
 
 def parse_num(s):
     if not s: return 0
@@ -45,6 +55,8 @@ def parse_num(s):
 def load_raw():
     seen = set()
     rows = []
+    today = date.today()
+    recent_cutoff = today - timedelta(days=90)
     if not os.path.exists(RAW_CSV):
         print(f"  ❌ CSVが見つかりません: {RAW_CSV}")
         return rows
@@ -73,6 +85,7 @@ def load_raw():
                 "store": row["店名"].strip(), "model": model,
                 "tai": tai, "taiNum": tai_num,
                 "g": g, "diff": diff, "bb": bb, "rb": rb,
+                "weight": 2 if dt.date() >= recent_cutoff else 1,
                 "day": dt.day, "weekday": (dt.weekday() + 1) % 7,
                 "suef": tai_num % 10,
                 "isZoro": len(s)>=2 and s[-1]==s[-2],
@@ -103,27 +116,32 @@ def calc_bayes_prob(model, total_g, total_bb, total_rb):
     return round(sum(probs[3:]) * 100, 1)
 
 def compute_day_stats(rows, special):
-    by_day = defaultdict(lambda: {"diffs":[], "plus":0, "total":0})
+    by_day = defaultdict(lambda: {"rows":[], "plus":0, "total":0})
     for r in rows:
-        by_day[r["day"]]["diffs"].append(r["diff"])
+        by_day[r["day"]]["rows"].append(r)
         by_day[r["day"]]["total"] += 1
         if r["diff"] > 0: by_day[r["day"]]["plus"] += 1
     result = []
     for d in range(1, 32):
         b = by_day[d]
-        if not b["diffs"]: continue
-        m = avg(b["diffs"])
-        n = len(b["diffs"])
+        day_rows = b["rows"]
+        if not day_rows: continue
+        m = weighted_avg_rows(day_rows, "diff")
+        expanded_diffs = []
+        for rr in day_rows:
+            expanded_diffs.extend([rr["diff"]] * int(row_w(rr)))
+        n = len(expanded_diffs)
         if n > 1:
-            std = (sum((x-m)**2 for x in b["diffs"])/(n-1))**0.5
+            std = (sum((x-m)**2 for x in expanded_diffs)/(n-1))**0.5
             se = std / (n**0.5)
             ci_lower = round(m - 1.96*se, 1)
             ci_upper = round(m + 1.96*se, 1)
         else:
             ci_lower = ci_upper = round(m, 1)
+        plus_rate = weighted_rate(day_rows, lambda x: x["diff"] > 0) * 100
         result.append({
             "day": d, "avg": r1(m), "total": b["total"],
-            "plus": b["plus"], "plusRate": r1(b["plus"]/b["total"]*100),
+            "plus": b["plus"], "plusRate": r1(plus_rate),
             "special": d in special, "ciLower": ci_lower, "ciUpper": ci_upper,
             "reliable": n >= 10,
         })
@@ -132,22 +150,18 @@ def compute_day_stats(rows, special):
 def compute_tai_detail(rows, special):
     by_tai = defaultdict(lambda: {
         "tai":None,"taiNum":0,"model":None,"store":None,
-        "all":[],"sp":[],"nm":[],
-        "g":[],"bb":[],"rb":[],
-        "spG":[],"spBB":[],"spRB":[],
-        "nmG":[],"nmBB":[],"nmRB":[],
+        "all":[], "sp":[], "nm":[],
     })
     for r in rows:
         k = f"{r['taiNum']}_{r['model']}_{r['store']}"
         t = by_tai[k]
         t["tai"]=r["tai"]; t["taiNum"]=r["taiNum"]
         t["model"]=r["model"]; t["store"]=r["store"]
-        t["all"].append(r["diff"])
-        t["g"].append(r["g"]); t["bb"].append(r["bb"]); t["rb"].append(r["rb"])
+        t["all"].append(r)
         if r["day"] in special:
-            t["sp"].append(r["diff"]); t["spG"].append(r["g"]); t["spBB"].append(r["bb"]); t["spRB"].append(r["rb"])
+            t["sp"].append(r)
         else:
-            t["nm"].append(r["diff"]); t["nmG"].append(r["g"]); t["nmBB"].append(r["bb"]); t["nmRB"].append(r["rb"])
+            t["nm"].append(r)
     by_tai_date = defaultdict(list)
     for r in rows:
         by_tai_date[f"{r['tai']}_{r['store']}"].append(r)
@@ -161,23 +175,26 @@ def compute_tai_detail(rows, special):
                 prev_lookup[f"{curr['dateStr']}_{curr['tai']}_{curr['store']}"] = prev
     result = []
     for t in by_tai.values():
-        tg=sum(t["g"]); tb=sum(t["bb"]); tr=sum(t["rb"])
-        sg=sum(t["spG"]); sb=sum(t["spBB"]); sr=sum(t["spRB"])
-        ng=sum(t["nmG"]); nb=sum(t["nmBB"]); nr=sum(t["nmRB"])
+        tg=weighted_sum(t["all"], "g"); tb=weighted_sum(t["all"], "bb"); tr=weighted_sum(t["all"], "rb")
+        sg=weighted_sum(t["sp"], "g"); sb=weighted_sum(t["sp"], "bb"); sr=weighted_sum(t["sp"], "rb")
+        ng=weighted_sum(t["nm"], "g"); nb=weighted_sum(t["nm"], "bb"); nr=weighted_sum(t["nm"], "rb")
         n = len(t["all"])
+        wn = weighted_total(t["all"])
+        wplus_rate = weighted_rate(t["all"], lambda x: x["diff"] > 0) * 100
         latest_key = f"{latest_date.strftime('%Y-%m-%d')}_{t['tai']}_{t['store']}"
         prev = prev_lookup.get(latest_key)
         prev_row = {"dateStr":prev["dateStr"],"diff":prev["diff"],"bb":prev["bb"],"rb":prev["rb"],"g":prev["g"],"isRBLead":prev["isRBLead"],"isHighSetRBLead":prev["isHighSetRBLead"]} if prev else None
         result.append({
             "tai":t["tai"],"taiNum":t["taiNum"],"model":t["model"],"store":t["store"],
-            "avg":r1(avg(t["all"])),"count":n,
-            "plus":len([v for v in t["all"] if v>0]),
-            "plusRate":r1(len([v for v in t["all"] if v>0])/n*100),
-            "spAvg":r1(avg(t["sp"])) if t["sp"] else None,
-            "nmAvg":r1(avg(t["nm"])) if t["nm"] else None,
+            "avg":r1(weighted_avg_rows(t["all"], "diff")),"count":n,
+            "weightedCount": r1(wn),
+            "plus":len([v for v in t["all"] if v["diff"]>0]),
+            "plusRate":r1(wplus_rate),
+            "spAvg":r1(weighted_avg_rows(t["sp"], "diff")) if t["sp"] else None,
+            "nmAvg":r1(weighted_avg_rows(t["nm"], "diff")) if t["nm"] else None,
             "spCount":len(t["sp"]),"nmCount":len(t["nm"]),
             "totalG":tg,"totalBB":tb,"totalRB":tr,
-            "avgG":r1(tg/n) if n else 0,
+            "avgG":r1(tg/wn) if wn else 0,
             "rbRate":round(tg/tr) if tr>0 else None,
             "synRate":round(tg/(tb+tr)) if (tb+tr)>0 else None,
             "spRbRate":round(sg/sr) if sr>0 else None,
@@ -192,33 +209,33 @@ def compute_tai_detail(rows, special):
     return result
 
 def compute_model_stats(rows, special):
-    by_model = defaultdict(lambda: {"all":[],"sp":[],"nm":[],"g":[],"bb":[],"rb":[],"this_month":[],"last_month":[]})
+    by_model = defaultdict(lambda: {"all":[],"sp":[],"nm":[],"this_month":[],"last_month":[]})
     latest = max(r["date"] for r in rows)
     this_m = date(latest.year, latest.month, 1)
     last_m = date(latest.year, latest.month-1, 1) if latest.month>1 else date(latest.year-1,12,1)
     last_m_end = date(latest.year, latest.month, 1) - timedelta(days=1)
     for r in rows:
         m = by_model[r["model"]]
-        m["all"].append(r["diff"]); m["g"].append(r["g"]); m["bb"].append(r["bb"]); m["rb"].append(r["rb"])
-        if r["day"] in special: m["sp"].append(r["diff"])
-        else: m["nm"].append(r["diff"])
+        m["all"].append(r)
+        if r["day"] in special: m["sp"].append(r)
+        else: m["nm"].append(r)
         d = r["date"].date()
-        if d >= this_m: m["this_month"].append(r["diff"])
-        elif last_m <= d <= last_m_end: m["last_month"].append(r["diff"])
+        if d >= this_m: m["this_month"].append(r)
+        elif last_m <= d <= last_m_end: m["last_month"].append(r)
     result = []
     for model, m in by_model.items():
-        tg=sum(m["g"]); tb=sum(m["bb"]); tr=sum(m["rb"])
-        total_in=tg*3; total_out=total_in+sum(m["all"])
+        tg=weighted_sum(m["all"], "g"); tb=weighted_sum(m["all"], "bb"); tr=weighted_sum(m["all"], "rb")
+        total_in=tg*3; total_out=total_in+weighted_sum(m["all"], "diff")
         result.append({
-            "model":model,"allAvg":r1(avg(m["all"])),"count":len(m["all"]),
-            "spAvg":r1(avg(m["sp"])) if m["sp"] else None,"spCount":len(m["sp"]),
-            "nmAvg":r1(avg(m["nm"])) if m["nm"] else None,"nmCount":len(m["nm"]),
+            "model":model,"allAvg":r1(weighted_avg_rows(m["all"], "diff")),"count":len(m["all"]),
+            "spAvg":r1(weighted_avg_rows(m["sp"], "diff")) if m["sp"] else None,"spCount":len(m["sp"]),
+            "nmAvg":r1(weighted_avg_rows(m["nm"], "diff")) if m["nm"] else None,"nmCount":len(m["nm"]),
             "mechRitu":r1(total_out/total_in*100) if total_in>0 else None,
             "rbRate":round(tg/tr) if tr>0 else None,
             "synRate":round(tg/(tb+tr)) if (tb+tr)>0 else None,
-            "thisMonthAvg":r1(avg(m["this_month"])) if m["this_month"] else None,
+            "thisMonthAvg":r1(weighted_avg_rows(m["this_month"], "diff")) if m["this_month"] else None,
             "thisMonthCount":len(m["this_month"]),
-            "lastMonthAvg":r1(avg(m["last_month"])) if m["last_month"] else None,
+            "lastMonthAvg":r1(weighted_avg_rows(m["last_month"], "diff")) if m["last_month"] else None,
             "lastMonthCount":len(m["last_month"]),
         })
     return result
@@ -234,15 +251,15 @@ def compute_next_day(rows, special):
             prev=sorted_rows[i]; nxt=sorted_rows[i+1]
             if (nxt["date"]-prev["date"]).days==1:
                 pairs.append({"prev":prev,"next":nxt})
-    all_diffs=[r["diff"] for r in rows]
-    baseline=avg(all_diffs)
+    baseline=weighted_avg_rows(rows, "diff")
     def calc(matched):
-        diffs=[p["next"]["diff"] for p in matched]
-        if not diffs: return {"count":0,"avg":None,"plusRate":None,"vsBaseline":None}
-        a=avg(diffs)
-        return {"count":len(diffs),"avg":r1(a),"plusRate":r1(len([v for v in diffs if v>0])/len(diffs)*100),"vsBaseline":r1(a-baseline)}
+        next_rows=[p["next"] for p in matched]
+        if not next_rows: return {"count":0,"avg":None,"plusRate":None,"vsBaseline":None}
+        a=weighted_avg_rows(next_rows, "diff")
+        plus_rate=weighted_rate(next_rows, lambda x: x["diff"] > 0) * 100
+        return {"count":len(next_rows),"avg":r1(a),"plusRate":r1(plus_rate),"vsBaseline":r1(a-baseline)}
     return {
-        "__baseline":{"label":"全期間平均","count":len(all_diffs),"avg":r1(baseline),"plusRate":r1(len([v for v in all_diffs if v>0])/len(all_diffs)*100),"vsBaseline":0},
+        "__baseline":{"label":"全期間平均","count":len(rows),"avg":r1(baseline),"plusRate":r1(weighted_rate(rows, lambda x: x["diff"] > 0)*100),"vsBaseline":0},
         "凹み_2000以上":  {"label":"前日差枚 -2000以下",    **calc([p for p in pairs if p["prev"]["diff"]<=-2000])},
         "凹み_1000_2000": {"label":"前日差枚 -1000〜-2000", **calc([p for p in pairs if -2000<p["prev"]["diff"]<=-1000])},
         "凹み_500_1000":  {"label":"前日差枚 -500〜-1000",  **calc([p for p in pairs if -1000<p["prev"]["diff"]<=-500])},
@@ -256,11 +273,10 @@ def compute_next_day(rows, special):
     }
 
 def compute_heatmap(rows):
-    heat = defaultdict(lambda: {"diffs":[],"g":[],"count":0,"highSet":0})
+    heat = defaultdict(lambda: {"rows":[], "count":0})
     def add(key, r):
-        heat[key]["diffs"].append(r["diff"]); heat[key]["g"].append(r["g"])
-        heat[key]["count"]+=1
-        if r["isHighSetRBLead"]: heat[key]["highSet"]+=1
+        heat[key]["rows"].append(r)
+        heat[key]["count"] += 1
     for r in rows:
         dk=r["day"]%10; tk=r["suef"]
         add(f"{dk}_{tk}",r)
@@ -271,22 +287,37 @@ def compute_heatmap(rows):
     result={}
     for k,v in heat.items():
         if v["count"]<3: continue
-        ti=sum(v["g"])*3; to=ti+sum(v["diffs"])
-        result[k]={"avg":r1(avg(v["diffs"])),"ritu":r1(to/ti*100) if ti>0 else None,"win":r1(len([d for d in v["diffs"] if d>0])/v["count"]*100),"set456":r1(v["highSet"]/v["count"]*100),"count":v["count"]}
+        target_rows = v["rows"]
+        ti=weighted_sum(target_rows, "g")*3
+        to=ti+weighted_sum(target_rows, "diff")
+        result[k]={
+            "avg":r1(weighted_avg_rows(target_rows, "diff")),
+            "ritu":r1(to/ti*100) if ti>0 else None,
+            "win":r1(weighted_rate(target_rows, lambda x: x["diff"] > 0) * 100),
+            "set456":r1(weighted_rate(target_rows, lambda x: x["isHighSetRBLead"]) * 100),
+            "count":v["count"],
+        }
     return result
 
 def compute_week_matrix(rows):
-    wm=defaultdict(lambda: {"diffs":[],"g":[],"count":0,"highSet":0})
+    wm=defaultdict(lambda: {"rows":[],"count":0})
     for r in rows:
         week=(r["day"]-1)//7+1; key=f"{week}_{r['weekday']}"
-        wm[key]["diffs"].append(r["diff"]); wm[key]["g"].append(r["g"])
+        wm[key]["rows"].append(r)
         wm[key]["count"]+=1
-        if r["isHighSetRBLead"]: wm[key]["highSet"]+=1
     result={}
     for k,v in wm.items():
         if v["count"]<3: continue
-        ti=sum(v["g"])*3; to=ti+sum(v["diffs"])
-        result[k]={"avg":r1(avg(v["diffs"])),"ritu":r1(to/ti*100) if ti>0 else None,"win":r1(len([d for d in v["diffs"] if d>0])/v["count"]*100),"set456":r1(v["highSet"]/v["count"]*100),"count":v["count"]}
+        target_rows = v["rows"]
+        ti=weighted_sum(target_rows, "g")*3
+        to=ti+weighted_sum(target_rows, "diff")
+        result[k]={
+            "avg":r1(weighted_avg_rows(target_rows, "diff")),
+            "ritu":r1(to/ti*100) if ti>0 else None,
+            "win":r1(weighted_rate(target_rows, lambda x: x["diff"] > 0) * 100),
+            "set456":r1(weighted_rate(target_rows, lambda x: x["isHighSetRBLead"]) * 100),
+            "count":v["count"],
+        }
     return result
 
 def compute_date_summary(rows, special):
@@ -294,36 +325,36 @@ def compute_date_summary(rows, special):
     for r in rows:
         k = r["dateStr"]
         if k not in by_date:
-            by_date[k] = {"dateStr":k,"day":r["day"],"diffs":[],"plus":0}
-        by_date[k]["diffs"].append(r["diff"])
+            by_date[k] = {"dateStr":k,"day":r["day"],"rows":[],"plus":0}
+        by_date[k]["rows"].append(r)
         if r["diff"] > 0: by_date[k]["plus"] += 1
     result = []
     for v in sorted(by_date.values(), key=lambda x: x["dateStr"]):
-        n = len(v["diffs"])
+        day_rows = v["rows"]
+        n = len(day_rows)
         result.append({
-            "dateStr": v["dateStr"],"total": r1(sum(v["diffs"])),
+            "dateStr": v["dateStr"],"total": r1(weighted_sum(day_rows, "diff")),
             "count": n,"plus": v["plus"],
-            "plusRate": r1(v["plus"]/n*100),
+            "plusRate": r1(weighted_rate(day_rows, lambda x: x["diff"] > 0) * 100),
             "day": v["day"],"special": v["day"] in special,
         })
     return result
 
 def compute_weekday_stats(rows):
-    by_wday = defaultdict(lambda: {"diffs":[]})
+    by_wday = defaultdict(list)
     for r in rows:
-        by_wday[r["weekday"]]["diffs"].append(r["diff"])
+        by_wday[r["weekday"]].append(r)
     result = {}
     for wday, v in by_wday.items():
-        result[str(wday)] = {"avg": r1(avg(v["diffs"])), "count": len(v["diffs"])}
+        result[str(wday)] = {"avg": r1(weighted_avg_rows(v, "diff")), "count": len(v)}
     return result
 
 def compute_day_wday_matrix(rows):
-    dwm = defaultdict(lambda: {"diffs":[],"g":[],"count":0,"highSet":0})
+    dwm = defaultdict(lambda: {"rows":[],"count":0})
     def add_dw(row_key, wday, r):
         key = f"{row_key}_{wday}"
-        dwm[key]["diffs"].append(r["diff"]); dwm[key]["g"].append(r["g"])
+        dwm[key]["rows"].append(r)
         dwm[key]["count"] += 1
-        if r["isHighSetRBLead"]: dwm[key]["highSet"] += 1
     for r in rows:
         wday = r["weekday"]; suef = r["day"] % 10
         add_dw(str(suef), wday, r)
@@ -334,8 +365,16 @@ def compute_day_wday_matrix(rows):
     result = {}
     for k, v in dwm.items():
         if v["count"] < 3: continue
-        ti = sum(v["g"])*3; to = ti+sum(v["diffs"])
-        result[k] = {"avg":r1(avg(v["diffs"])),"ritu":r1(to/ti*100) if ti>0 else None,"win":r1(len([d for d in v["diffs"] if d>0])/v["count"]*100),"set456":r1(v["highSet"]/v["count"]*100),"count":v["count"]}
+        target_rows = v["rows"]
+        ti = weighted_sum(target_rows, "g")*3
+        to = ti+weighted_sum(target_rows, "diff")
+        result[k] = {
+            "avg":r1(weighted_avg_rows(target_rows, "diff")),
+            "ritu":r1(to/ti*100) if ti>0 else None,
+            "win":r1(weighted_rate(target_rows, lambda x: x["diff"] > 0) * 100),
+            "set456":r1(weighted_rate(target_rows, lambda x: x["isHighSetRBLead"]) * 100),
+            "count":v["count"]
+        }
     return result
 
 def compute_today_analysis(rows, special, today=None):
@@ -345,9 +384,8 @@ def compute_today_analysis(rows, special, today=None):
     day_stats = compute_day_stats(rows, special)
     day_info = next((d for d in day_stats if d["day"] == day), None)
     wday_rows = [r for r in rows if r["weekday"] == weekday]
-    wday_avg = r1(avg([r["diff"] for r in wday_rows])) if wday_rows else None
-    all_diffs = [r["diff"] for r in rows]
-    baseline = r1(avg(all_diffs)) if all_diffs else 0
+    wday_avg = r1(weighted_avg_rows(wday_rows, "diff")) if wday_rows else None
+    baseline = r1(weighted_avg_rows(rows, "diff")) if rows else 0
     if day_info:
         if day_info["avg"] > 100: day_judge = "🔥 かなり強い日"; day_score = 3
         elif day_info["avg"] > 0: day_judge = "🟡 やや強い日"; day_score = 2
@@ -365,13 +403,13 @@ def compute_today_analysis(rows, special, today=None):
     tai_detail = compute_tai_detail(rows, special)
     by_model = defaultdict(lambda: {"sp":[],"nm":[]})
     for r in rows:
-        if r["day"] in special: by_model[r["model"]]["sp"].append(r["diff"])
-        else: by_model[r["model"]]["nm"].append(r["diff"])
+        if r["day"] in special: by_model[r["model"]]["sp"].append(r)
+        else: by_model[r["model"]]["nm"].append(r)
     model_strength = []
     for model, m in by_model.items():
         target = m["sp"] if is_special else m["nm"]
         if not target: continue
-        model_avg = r1(avg(target)); lift = r1(model_avg - baseline)
+        model_avg = r1(weighted_avg_rows(target, "diff")); lift = r1(model_avg - baseline)
         model_strength.append({"model":model,"avg":model_avg,"lift":lift,"count":len(target),
             "label":"有力" if lift>80 else "対抗" if lift>30 else "標準" if lift>-30 else "弱め"})
     model_strength.sort(key=lambda x: -x["lift"])
@@ -381,7 +419,7 @@ def compute_today_analysis(rows, special, today=None):
     for t in tai_detail:
         score = 0; reasons = []
         ref = t["spAvg"] if is_special else t["nmAvg"]
-        if ref is not None and t["count"] >= 5:
+        if ref is not None and t.get("weightedCount", t["count"]) >= 5:
             lift = r1(ref - bl_avg)
             pts = 3 if lift>=150 else 2 if lift>=80 else 1 if lift>=30 else 0 if lift>=-30 else -1
             score += pts; reasons.append({"label":"過去成績","val":f"{ref:+}枚","pts":pts})
@@ -409,6 +447,73 @@ def compute_today_analysis(rows, special, today=None):
         "verdict":verdict,"dayInfo":day_info,"wdayAvg":wday_avg,
         "baseline":baseline,"modelStrength":model_strength,"topTargets":scored_tais[:20]
     }
+
+def build_answer_check(by_store, today=None, actual_settings=None):
+    if today is None:
+        today = date.today()
+    if actual_settings is None:
+        actual_settings = {}
+    hit_targets = []
+    for store, payload in by_store.items():
+        special = payload.get("special", [1,11,21,31])
+        is_special = today.day in special
+        for t in payload.get("taiDetail", []):
+            p = t["bayesProbSp"] if is_special else t["bayesProbNm"]
+            if p is not None and p >= 60:
+                hit_targets.append({
+                    "machine_id": t["tai"],
+                    "store": store,
+                    "model": t["model"],
+                    "p_setting4plus": p,
+                })
+    hit_count = 0
+    all_have_actual = True
+    for target in hit_targets:
+        store = target["store"]
+        machine_id = str(target["machine_id"])
+        actual_store = actual_settings.get(store, {}) if isinstance(actual_settings, dict) else {}
+        actual = actual_store.get(machine_id) if isinstance(actual_store, dict) else None
+        if actual is None:
+            all_have_actual = False
+            continue
+        if actual >= 4:
+            hit_count += 1
+    accuracy = r1(hit_count / len(hit_targets) * 100) if hit_targets and all_have_actual else None
+    return {
+        "date": today.strftime("%Y-%m-%d"),
+        "hit_targets": hit_targets,
+        "actual_settings": actual_settings,
+        "accuracy": accuracy,
+    }
+
+def build_store_accuracy(by_store, answer_check):
+    hit_targets = answer_check.get("hit_targets", [])
+    actual_settings = answer_check.get("actual_settings", {})
+    by_name = {}
+    for store in by_store.keys():
+        by_name[store] = {"hit_count": 0, "target_count": 0, "accuracy": None}
+    for target in hit_targets:
+        store = target["store"]
+        machine_id = str(target["machine_id"])
+        if store not in by_name:
+            by_name[store] = {"hit_count": 0, "target_count": 0, "accuracy": None}
+        by_name[store]["target_count"] += 1
+        actual_store = actual_settings.get(store, {}) if isinstance(actual_settings, dict) else {}
+        actual = actual_store.get(machine_id) if isinstance(actual_store, dict) else None
+        if actual is not None and actual >= 4:
+            by_name[store]["hit_count"] += 1
+    for store, stat in by_name.items():
+        actual_store = actual_settings.get(store, {}) if isinstance(actual_settings, dict) else {}
+        all_have_actual = True
+        for target in hit_targets:
+            if target["store"] != store:
+                continue
+            machine_id = str(target["machine_id"])
+            if not isinstance(actual_store, dict) or actual_store.get(machine_id) is None:
+                all_have_actual = False
+                break
+        stat["accuracy"] = r1(stat["hit_count"] / stat["target_count"] * 100) if stat["target_count"] > 0 and all_have_actual else None
+    return by_name
 
 if __name__ == "__main__":
     print("=== compute.py 開始 ===")
@@ -441,6 +546,8 @@ if __name__ == "__main__":
             "weekdayStats": compute_weekday_stats(store_rows),
             "todayAnalysis": compute_today_analysis(store_rows, special),
         }
+    output["answer_check"] = build_answer_check(output["byStore"])
+    output["store_accuracy"] = build_store_accuracy(output["byStore"], output["answer_check"])
     out_path = os.path.join(REPO_DIR, "data.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False)
