@@ -1,7 +1,7 @@
 // ====== グローバル ======
 let G = {
   raw:[], dayStats:[], taiDetail:[], dateSummary:[], modelStats:[], nextStats:{}, heatmap:{}, autoSpecial:[], weekMatrix:{}, dayWdayMatrix:{},
-  currentTargetContext: null, layer3Scored: [], layer3SelectionMeta: null, storeFreshness: {}, recommendations: []
+  currentTargetContext: null, layer3Scored: [], layer3SelectionMeta: null, storeFreshness: {}, recommendations: [], dataUpdatedAt: null, dataDate: null
 };
 let chartInst = null;
 let currentStore = 'all';
@@ -13,6 +13,7 @@ let currentModelSpFilter = 'all';
 let currentHeatMetric = 'avg';
 let currentWeekMetric = 'avg';
 let currentDayWdayMetric = 'avg';
+let targetDayMode = 'today';
 let SPECIAL_BY_STORE = {};
 const DEFAULT_SPECIAL = [1,6,7,11,16,17,22,26,27];
 const GITHUB_TOKEN_STORAGE_KEY = 'github_pat';
@@ -1637,6 +1638,106 @@ function escapeHtml(text) {
     .replace(/'/g, '&#39;');
 }
 
+function toYmdLocal(date) {
+  if(!(date instanceof Date) || isNaN(date)) return '';
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function parseYmdLocal(ymd) {
+  if(typeof ymd !== 'string') return null;
+  const m = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const dt = new Date(y, mo - 1, d);
+  if(
+    isNaN(dt) ||
+    dt.getFullYear() !== y ||
+    dt.getMonth() !== mo - 1 ||
+    dt.getDate() !== d
+  ) return null;
+  return dt;
+}
+
+function addDaysLocal(date, days) {
+  if(!(date instanceof Date) || isNaN(date)) return null;
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function getTodayLocalDate() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function getTomorrowLocalDate() {
+  return addDaysLocal(getTodayLocalDate(), 1);
+}
+
+function getActiveTargetDate() {
+  const input = document.getElementById('diagDate');
+  if(input) {
+    const parsed = parseYmdLocal(input.value);
+    if(parsed) return parsed;
+  }
+  const fallback = targetDayMode === 'tomorrow' ? getTomorrowLocalDate() : getTodayLocalDate();
+  if(input) input.value = toYmdLocal(fallback);
+  return fallback;
+}
+
+function isTodayAnalysisAvailableForSelectedDate() {
+  if(!G._precomputed || !G.todayAnalysis || targetDayMode !== 'today') return false;
+  const d = getActiveTargetDate();
+  return !!d && toYmdLocal(d) === G.todayAnalysis.date;
+}
+
+function syncTargetModeUI() {
+  const todayBtn = document.getElementById('targetTodayBtn');
+  const tomorrowBtn = document.getElementById('targetTomorrowBtn');
+  if(todayBtn) todayBtn.classList.toggle('active', targetDayMode === 'today');
+  if(tomorrowBtn) tomorrowBtn.classList.toggle('active', targetDayMode === 'tomorrow');
+  const note = document.getElementById('targetModeNote');
+  if(note) {
+    if(targetDayMode === 'tomorrow') {
+      note.style.display = 'block';
+      note.textContent = '⚠️ アナスロ未更新のため前日データ基準。精度は通常より低下します';
+    } else {
+      note.style.display = 'none';
+      note.textContent = '';
+    }
+  }
+}
+
+function setTargetDayMode(mode) {
+  targetDayMode = mode === 'tomorrow' ? 'tomorrow' : 'today';
+  const input = document.getElementById('diagDate');
+  if(input) {
+    const date = targetDayMode === 'tomorrow' ? getTomorrowLocalDate() : getTodayLocalDate();
+    input.value = toYmdLocal(date);
+  }
+  syncTargetModeUI();
+  renderLayer1();
+}
+
+function onDiagDateChange() {
+  const date = getActiveTargetDate();
+  const ymd = date ? toYmdLocal(date) : '';
+  const tomorrow = toYmdLocal(getTomorrowLocalDate());
+  targetDayMode = (ymd === tomorrow) ? 'tomorrow' : 'today';
+  syncTargetModeUI();
+  renderLayer1();
+}
+
+function bindTargetDateInputEvents() {
+  const input = document.getElementById('diagDate');
+  if(!input || input.dataset.boundDiagDate === '1') return;
+  input.dataset.boundDiagDate = '1';
+  input.addEventListener('change', onDiagDateChange);
+  input.addEventListener('input', onDiagDateChange);
+}
+
 function getSessionBayesProbOver4(session) {
   const raw = session?.bayesProbOver4;
   const n = Number(raw);
@@ -1802,11 +1903,22 @@ function detectAutoSpecial(rows) {
 // ====== タブ ======
 const DETAIL_TABS = new Set(['tab-model','tab-heat','tab-period','tab-setsuteii','tab-next']);
 
+function updateRecommendationSectionVisibility(activeTabId) {
+  const el = document.getElementById('recommendationSection');
+  if(!el) return;
+  const id = activeTabId || document.querySelector('.tab-content.active')?.id || '';
+  const visible = id === 'tab-target';
+  el.classList.toggle('visible', visible);
+  el.setAttribute('aria-hidden', visible ? 'false' : 'true');
+  el.style.display = visible ? '' : 'none';
+}
+
 function showTab(id, btn) {
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('#mainNav button').forEach(el=>el.classList.remove('active'));
   closeDetailMenu();
   document.getElementById(id).classList.add('active');
+  updateRecommendationSectionVisibility(id);
   if(btn) btn.classList.add('active');
   // TAB_RENDER_MAPで統一（未定義のタブは何もしない）
   const fn = TAB_RENDER_MAP[id];
@@ -1997,6 +2109,8 @@ function loadFromJSON() {
       const rows = normalizeGasRows(objRows);
       if (!rows.length) throw new Error('データが空です');
       G.raw = rows;
+      G.dataUpdatedAt = json.updated_at || null;
+      G.dataDate = normalizeDataDateValue(json.data_date || json.dataDate || json.updated_at) || null;
       if (!finishLoad()) throw new Error('データの処理に失敗しました');
       const dates = G.raw.map(r => r.dateStr).sort();
       const dateRange = dates.length ? `${dates[0]}〜${dates[dates.length-1]}` : '';
@@ -2017,6 +2131,8 @@ function loadFromPrecomputed(json) {
   const byStore = (json.byStore && typeof json.byStore === 'object') ? json.byStore : {};
   const storesFromByStore = Object.keys(byStore);
   G._precomputed = { ...json, byStore };
+  G.dataUpdatedAt = json.updated_at || null;
+  G.dataDate = normalizeDataDateValue(json.data_date || json.dataDate || json.updated_at) || null;
   G.storeFreshness = (json.store_freshness && typeof json.store_freshness === 'object')
     ? json.store_freshness
     : ((json.storeFreshness && typeof json.storeFreshness === 'object') ? json.storeFreshness : {});
@@ -2157,15 +2273,197 @@ function showStatusPrecomputed(json) {
     </div>`;
 }
 
+function parseDateCandidate(value) {
+  if(value instanceof Date && !isNaN(value)) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+  if(value === null || value === undefined || value === '') return null;
+  const direct = parseYmdLocal(String(value).trim());
+  if(direct) return direct;
+  const parsed = parseFlexibleDate(value);
+  if(parsed && parsed.date && !isNaN(parsed.date)) {
+    const dt = parsed.date;
+    return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+  }
+  return null;
+}
+
+function normalizeDataDateValue(value) {
+  const dt = parseDateCandidate(value);
+  return dt ? toYmdLocal(dt) : null;
+}
+
+function getLatestDataDateForPrediction() {
+  const primaryDates = [];
+  const fallbackDates = [];
+  const pushIfValid = (arr, v) => {
+    const d = parseDateCandidate(v);
+    if(d) arr.push(d);
+  };
+  pushIfValid(primaryDates, G.dataDate || G._precomputed?.data_date || G._precomputed?.dataDate);
+  const freshness = G.storeFreshness && typeof G.storeFreshness === 'object' ? G.storeFreshness : {};
+  if(currentStore !== 'all') {
+    const rec = freshness[currentStore];
+    if(rec && typeof rec === 'object') pushIfValid(primaryDates, rec.data_date || rec.dataDate);
+  } else {
+    Object.values(freshness).forEach(rec => {
+      if(rec && typeof rec === 'object') pushIfValid(primaryDates, rec.data_date || rec.dataDate);
+    });
+  }
+  if(primaryDates.length) {
+    return primaryDates.reduce((max, d) => d.getTime() > max.getTime() ? d : max, primaryDates[0]);
+  }
+
+  pushIfValid(fallbackDates, G.dataUpdatedAt || G._precomputed?.updated_at);
+  if(currentStore !== 'all') {
+    const rec = freshness[currentStore];
+    if(rec && typeof rec === 'object') pushIfValid(fallbackDates, rec.updated_at || rec.scraped_at);
+  } else {
+    Object.values(freshness).forEach(rec => {
+      if(rec && typeof rec === 'object') pushIfValid(fallbackDates, rec.updated_at || rec.scraped_at);
+    });
+  }
+  if(Array.isArray(G.dateSummary) && G.dateSummary.length) pushIfValid(fallbackDates, G.dateSummary[G.dateSummary.length - 1].dateStr);
+  if(Array.isArray(G.raw) && G.raw.length) {
+    const uniq = [...new Set(G.raw.map(r => r.dateStr))].sort();
+    const latest = uniq[uniq.length - 1];
+    pushIfValid(fallbackDates, latest);
+  }
+  if(!fallbackDates.length) return null;
+  return fallbackDates.reduce((max, d) => d.getTime() > max.getTime() ? d : max, fallbackDates[0]);
+}
+
+function getPredictionFreshnessMeta() {
+  const dataDate = getLatestDataDateForPrediction();
+  const today = getTodayLocalDate();
+  const yesterday = addDaysLocal(today, -1);
+  if(!dataDate) {
+    return {
+      badgeClass: 'red',
+      badgeText: '🔴 データ日付不明',
+      subText: '予測データ日を判定できません',
+      alertText: ''
+    };
+  }
+  const dataYmd = toYmdLocal(dataDate);
+  const todayYmd = toYmdLocal(today);
+  const yesterdayYmd = toYmdLocal(yesterday);
+  if(dataYmd === todayYmd) {
+    return {
+      badgeClass: 'green',
+      badgeText: '🟢 通常予測',
+      subText: `data_date: ${dataYmd}`,
+      alertText: ''
+    };
+  }
+  if(dataYmd === yesterdayYmd) {
+    return {
+      badgeClass: 'red',
+      badgeText: '🔴 前日データ',
+      subText: `data_date: ${dataYmd}`,
+      alertText: '⚠️ 前日データで予測中'
+    };
+  }
+  return {
+    badgeClass: 'red',
+    badgeText: '🔴 古いデータ',
+    subText: `data_date: ${dataYmd}`,
+    alertText: '⚠️ 古いデータで予測中'
+  };
+}
+
+function buildCalculatedRecommendations(targetDate, predictionBaseDate) {
+  const taiRows = Array.isArray(G.taiDetail) ? G.taiDetail : [];
+  if(!taiRows.length) return [];
+  const isSpecial = getSpecial().includes(targetDate.getDate());
+  const hasRawRows = filteredRows().length > 0;
+  const scoringDate = predictionBaseDate instanceof Date ? predictionBaseDate : targetDate;
+
+  const scored = taiRows.map(t => {
+    const refAvg = isSpecial ? t.spAvg : t.nmAvg;
+    const bayes = Number(isSpecial ? (t.bayesProbSp ?? t.bayesProbAll) : (t.bayesProbNm ?? t.bayesProbAll)) || 0;
+    const calc = hasRawRows ? calcScore(t, scoringDate) : null;
+    const score = calc ? Number(calc.score || 0) : ((Number(refAvg) || 0) / 120 + bayes / 30);
+    const rankScore = score * 100 + bayes * 2 + (Number(refAvg) || 0) * 0.15;
+    const reasons = calc
+      ? (calc.reasons || []).slice(0, 3).map(r => `${r.label}: ${r.val}`)
+      : [
+          `${isSpecial ? '特定日' : '通常日'}平均 ${refAvg !== null ? `${refAvg >= 0 ? '+' : ''}${refAvg}枚` : '—'}`,
+          `P(設定4+) ${bayes.toFixed(1)}%`,
+        ];
+    const confidence = rankScore >= 700 ? '★★★' : rankScore >= 450 ? '★★☆' : '★☆☆';
+    const expectedHourly = Math.max(0, Math.round(((Number(refAvg) || 0) + bayes * 20) / 8));
+    return {
+      ...t,
+      rankScore,
+      store: t.store || (currentStore === 'all' ? '全店舗' : currentStore),
+      tai: t.tai || '-',
+      model: t.model || '機種不明',
+      bayes_score: bayes,
+      expected_hourly: expectedHourly,
+      confidence,
+      reasons,
+    };
+  });
+
+  return scored
+    .sort((a, b) => b.rankScore - a.rankScore)
+    .slice(0, 8);
+}
+
+function getRecommendationRowsForTargetDate(targetDate) {
+  const selectedYmd = toYmdLocal(targetDate);
+  const predictionBaseDate = getTargetPredictionBaseDate(targetDate) || targetDate;
+  const fixedRows = Array.isArray(G.recommendations) ? G.recommendations : [];
+  const useFixed = targetDayMode === 'today' && fixedRows.length && (
+    !G.todayAnalysis || G.todayAnalysis.date === selectedYmd
+  );
+  if(!useFixed) return buildCalculatedRecommendations(targetDate, predictionBaseDate);
+
+  const isSpecial = getSpecial().includes(targetDate.getDate());
+  const dayTypeKeyword = isSpecial ? '特定' : '通常';
+  let rows = fixedRows.slice();
+  if(currentStore !== 'all') rows = rows.filter(r => r.store === currentStore);
+  const typed = rows.filter(r => String(r.day_type || '').includes(dayTypeKeyword));
+  if(typed.length) rows = typed;
+  return rows.slice(0, 8);
+}
+
 function renderRecommendations() {
   const el = document.getElementById('recommendationsList');
   if(!el) return;
-  const rows = Array.isArray(G.recommendations) ? G.recommendations : [];
-  if(!rows.length) {
-    el.innerHTML = '<div class="empty-msg">本日の推薦台はありません</div>';
+  if(!G._precomputed && !G.raw.length && !(Array.isArray(G.recommendations) && G.recommendations.length)) {
+    el.innerHTML = '<div class="empty-msg">データを読み込んでください</div>';
     return;
   }
+  const target = getActiveTargetDate();
+  if(!target) {
+    el.innerHTML = '<div class="empty-msg">日付を選択してください</div>';
+    return;
+  }
+  const rows = getRecommendationRowsForTargetDate(target);
+  const freshness = getPredictionFreshnessMeta();
+  const alerts = [];
+  if(freshness.alertText) alerts.push(freshness.alertText);
+
+  if(!rows.length) {
+    el.innerHTML = `
+      <div class="recommendation-status">
+        <span class="prediction-badge ${freshness.badgeClass}">${freshness.badgeText}</span>
+        <span class="recommendation-status-note">${freshness.subText}</span>
+      </div>
+      ${alerts.map(text => `<div class="recommendation-alert">${text}</div>`).join('')}
+      <div class="empty-msg">推薦候補がありません</div>
+    `;
+    return;
+  }
+
   el.innerHTML = `
+    <div class="recommendation-status">
+      <span class="prediction-badge ${freshness.badgeClass}">${freshness.badgeText}</span>
+      <span class="recommendation-status-note">${freshness.subText}</span>
+    </div>
+    ${alerts.map(text => `<div class="recommendation-alert">${text}</div>`).join('')}
     <div class="recommendation-grid">
       ${rows.map(r => {
         const reasons = Array.isArray(r.reasons)
@@ -2325,6 +2623,8 @@ function finishLoad() {
   });
   G.autoSpecial = detectAutoSpecial(G.raw);
   G.recommendations = [];
+  G.dataUpdatedAt = null;
+  G.dataDate = null;
   document.getElementById('saveBtn').disabled = false;
   // 重い処理を非同期化してUIをブロックしない
   setTimeout(() => {
@@ -3913,58 +4213,13 @@ function renderLayer1() {
     document.getElementById('layer1Result').innerHTML='<div class="empty-msg">先にデータを読み込んでください</div>';
     return;
   }
-
-  // 集計済みモード：todayAnalysisを使う
-  if(G._precomputed && G.todayAnalysis) {
-    const ta = G.todayAnalysis;
-    const wdays = ['日','月','火','水','木','金','土'];
-    const wday = wdays[ta.weekday];
-    const dayColor = ta.dayScore >= 3 ? 'var(--plus)' : ta.dayScore >= 2 ? 'var(--accent)' : ta.dayScore >= 1 ? 'var(--muted)' : 'var(--minus)';
-    const verdictColor = ta.verdict.startsWith('✅') ? 'var(--plus)' : ta.verdict.startsWith('🟡') ? 'var(--accent)' : ta.verdict.startsWith('⬜') ? 'var(--muted)' : 'var(--minus)';
-    targetDate = new Date(ta.date);
-    selectedModel = null;
-    document.getElementById('layer1Result').innerHTML = `
-      <div style="margin-bottom:12px">
-        <div style="font-family:'Share Tech Mono',monospace;font-size:22px;font-weight:700;color:var(--accent)">${ta.date}（${wday}）</div>
-        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
-          <span class="badge ${ta.isSpecial?'badge-special':'badge-normal'}">${ta.isSpecial?'⭐ 特定日':'通常日'}</span>
-          <span class="badge badge-normal" style="color:${dayColor}">${ta.dayJudge}</span>
-        </div>
-      </div>
-      <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:10px">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${ta.day}日の過去成績</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-          <div style="text-align:center">
-            <div style="font-size:10px;color:var(--muted)">平均差枚</div>
-            <div style="font-size:18px;font-weight:700;color:${ta.dayInfo&&ta.dayInfo.avg>=0?'var(--plus)':'var(--minus)'}">${ta.dayInfo?`${ta.dayInfo.avg>=0?'+':''}${ta.dayInfo.avg}`:'—'}</div>
-          </div>
-          <div style="text-align:center">
-            <div style="font-size:10px;color:var(--muted)">プラス台率</div>
-            <div style="font-size:18px;font-weight:700;color:var(--accent)">${ta.dayInfo?`${ta.dayInfo.plusRate}%`:'—'}</div>
-          </div>
-          <div style="text-align:center">
-            <div style="font-size:10px;color:var(--muted)">サンプル数</div>
-            <div style="font-size:18px;font-weight:700;color:var(--accent3)">${ta.dayInfo?`${ta.dayInfo.total}件`:'—'}</div>
-          </div>
-        </div>
-        ${ta.wdayAvg!==null?`<div style="font-size:11px;color:var(--muted)">${wday}曜日の平均差枚：<span style="color:${ta.wdayAvg>=0?'var(--plus)':'var(--minus)'};font-weight:700">${ta.wdayAvg>=0?'+':''}${ta.wdayAvg}枚</span></div>`:''}
-      </div>
-      <div style="background:var(--bg3);border-radius:8px;padding:14px;text-align:center">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">総合判定</div>
-        <div style="font-size:20px;font-weight:900;color:${verdictColor}">${ta.verdict}</div>
-      </div>
-      ${ta.dayScore>=1||ta.isSpecial?`<button class="btn" onclick="renderLayer2()" style="margin-top:12px">次へ → 機種・配分傾向を見る</button>`:''}
-    `;
-    updateSummaryBanner({ verdict:ta.verdict, verdictColor, isSpecial:ta.isSpecial, dayScore:ta.dayScore, day:ta.day, wday, dayInfo:ta.dayInfo, wdayAvg:ta.wdayAvg });
-    document.getElementById('layer2Card').style.display = 'none';
-    document.getElementById('layer3Card').style.display = 'none';
-    return;
-  }
-
-  const val = document.getElementById('diagDate').value;
-  if(!val) return;
-  const [y,m,dd] = val.split('-').map(Number);
-  targetDate = new Date(y, m-1, dd);
+  const selected = getActiveTargetDate();
+  if(!selected) return;
+  targetDate = selected;
+  const val = toYmdLocal(targetDate);
+  const input = document.getElementById('diagDate');
+  if(input && input.value !== val) input.value = val;
+  syncTargetModeUI();
   selectedModel = null;
 
   const day = targetDate.getDate();
@@ -3985,14 +4240,47 @@ function renderLayer1() {
     else                       { dayJudge='❄️ 弱い日';       dayColor='var(--minus)';   dayScore=0; }
   }
 
-  // 同じ日付の過去実績
   const rows = filteredRows();
-  const sameDayRows = rows.filter(r => r.day === day);
-  const sameDayDates = [...new Set(sameDayRows.map(r => r.dateStr))].sort().reverse().slice(0,5);
+  let sameDayEntries = [];
+  let wdayAvg = null;
+  let wdaySampleCount = 0;
 
-  // 同じ曜日の過去成績
-  const wdayRows = rows.filter(r => r.weekday === targetDate.getDay());
-  const wdayAvg = wdayRows.length ? round1(wdayRows.reduce((a,r)=>a+r.diff,0)/wdayRows.length) : null;
+  if(rows.length) {
+    const sameDayRows = rows.filter(r => r.day === day);
+    const sameDayDates = [...new Set(sameDayRows.map(r => r.dateStr))].sort().reverse().slice(0,5);
+    sameDayEntries = sameDayDates.map(ds => {
+      const dayRows = sameDayRows.filter(r => r.dateStr === ds);
+      const total = round1(dayRows.reduce((a, r) => a + r.diff, 0));
+      return {
+        dateStr: ds,
+        total,
+        plusCount: dayRows.filter(r => r.diff > 0).length,
+        count: dayRows.length,
+      };
+    });
+    const wdayRows = rows.filter(r => r.weekday === targetDate.getDay());
+    wdaySampleCount = wdayRows.length;
+    wdayAvg = wdayRows.length ? round1(wdayRows.reduce((a,r)=>a+r.diff,0)/wdayRows.length) : null;
+  } else {
+    const summaries = Array.isArray(G.dateSummary) ? G.dateSummary : [];
+    sameDayEntries = summaries
+      .filter(d => Number(d.day) === day)
+      .sort((a,b)=>String(b.dateStr).localeCompare(String(a.dateStr)))
+      .slice(0,5)
+      .map(d => ({
+        dateStr: d.dateStr,
+        total: round1(Number(d.total || 0)),
+        plusCount: Number(d.plus || 0),
+        count: Number(d.count || 0),
+      }));
+    const sameWday = summaries.filter(d => {
+      const dt = parseYmdLocal(d.dateStr);
+      return dt && dt.getDay() === targetDate.getDay();
+    });
+    const wdayTotal = sameWday.reduce((a,d)=>a+Number(d.total || 0),0);
+    wdaySampleCount = sameWday.reduce((a,d)=>a+Number(d.count || 0),0);
+    wdayAvg = wdaySampleCount ? round1(wdayTotal / wdaySampleCount) : null;
+  }
 
   const verdict = (isSpecial && dayScore >= 2) ? '✅ 狙う価値あり' :
                   (isSpecial && dayScore >= 1)  ? '🟡 条件次第' :
@@ -4028,20 +4316,19 @@ function renderLayer1() {
           <div style="font-size:18px;font-weight:700;color:var(--accent3)">${dayInfo?`${dayInfo.total}件`:'—'}</div>
         </div>
       </div>
-      ${wdayAvg!==null?`<div style="font-size:11px;color:var(--muted)">${wday}曜日の平均差枚：<span style="color:${wdayAvg>=0?'var(--plus)':'var(--minus)'};font-weight:700">${wdayAvg>=0?'+':''}${wdayAvg}枚</span>（${wdayRows.length}件）</div>`:''}
+      ${wdayAvg!==null?`<div style="font-size:11px;color:var(--muted)">${wday}曜日の平均差枚：<span style="color:${wdayAvg>=0?'var(--plus)':'var(--minus)'};font-weight:700">${wdayAvg>=0?'+':''}${wdayAvg}枚</span>（${wdaySampleCount}件）</div>`:''}
     </div>
 
-    ${sameDayDates.length?`
+    ${sameDayEntries.length?`
     <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:10px">
       <div style="font-size:11px;color:var(--muted);margin-bottom:6px">直近の同日実績</div>
-      ${sameDayDates.map(ds=>{
-        const dayRows = sameDayRows.filter(r=>r.dateStr===ds);
-        const total = round1(dayRows.reduce((a,r)=>a+r.diff,0));
-        const plusCount = dayRows.filter(r=>r.diff>0).length;
+      ${sameDayEntries.map(entry => {
+        const total = entry.total;
+        const plusCount = entry.plusCount;
         return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">
-          <span style="color:var(--muted)">${ds}</span>
+          <span style="color:var(--muted)">${entry.dateStr}</span>
           <span style="color:${total>=0?'var(--plus)':'var(--minus)'};font-weight:700">${total>=0?'+':''}${total}枚</span>
-          <span style="color:var(--accent3)">${plusCount}/${dayRows.length}台プラス</span>
+          <span style="color:var(--accent3)">${plusCount}/${entry.count}台プラス</span>
         </div>`;
       }).join('')}
     </div>`:''}
@@ -4060,13 +4347,14 @@ function renderLayer1() {
 
   // サマリーバナーを更新
   updateSummaryBanner({ verdict, verdictColor, isSpecial, dayScore, day, wday, dayInfo, wdayAvg });
+  renderRecommendations();
 }
 
 function renderLayer2() {
   if(!targetDate && !G._precomputed) return;
 
   // 集計済みモード：todayAnalysisのmodelStrengthを使う
-  if(G._precomputed && G.todayAnalysis) {
+  if(isTodayAnalysisAvailableForSelectedDate()) {
     const ta = G.todayAnalysis;
     const condLabel = ta.isSpecial ? '特定日' : '通常日';
     const modelStrength = ta.modelStrength || [];
@@ -4104,6 +4392,12 @@ function renderLayer2() {
   const condLabel = isSpecial ? '特定日' : '通常日';
   const conditionType = isSpecial ? 'sp' : 'nm';
   const allRows = filteredRows();
+  if(!allRows.length && G._precomputed) {
+    document.getElementById('layer2Card').style.display = 'block';
+    document.getElementById('layer2Result').innerHTML = '<div class="empty-msg">選択日の詳細予測データはありません（todayAnalysis日付のみ詳細表示）</div>';
+    document.getElementById('layer3Card').style.display = 'none';
+    return;
+  }
   const rows = getRowsByCondition(allRows, conditionType); // 条件内行（ゾロ目等で使用）
 
   // 3関数で第2段階を計算
@@ -4318,7 +4612,7 @@ function renderLayer3(model) {
   if(!model) return;
 
   // 集計済みモード：todayAnalysisのtopTargetsを使う
-  if(G._precomputed && G.todayAnalysis) {
+  if(isTodayAnalysisAvailableForSelectedDate()) {
     const ta = G.todayAnalysis;
     const targets = ta.topTargets.filter(t => t.model === model);
     const condLabel = ta.isSpecial ? '特定日' : '通常日';
@@ -4379,12 +4673,18 @@ function renderLayer3(model) {
   }
 
   if(!targetDate || !model) return;
+  const predictionBaseDate = getTargetPredictionBaseDate(targetDate) || targetDate;
   const day = targetDate.getDate();
   const SP  = getSpecial();
   const isSpecial = SP.includes(day);
   const baseline  = G.nextStats['__baseline'];
   const rows      = filteredRows();
   const allRows   = filteredRows();
+  if(!allRows.length && G._precomputed) {
+    document.getElementById('layer3Card').style.display = 'block';
+    document.getElementById('layer3Result').innerHTML = '<div class="empty-msg">選択日の候補台データはありません（todayAnalysis日付のみ表示）</div>';
+    return;
+  }
   const condLabel = isSpecial ? '特定日' : '通常日';
   const conditionType = isSpecial ? 'sp' : 'nm';
 
@@ -4397,7 +4697,7 @@ function renderLayer3(model) {
   const { cornerTais, edgeTais, hasLayout } = getLayoutCornerTais(layoutStore);
   const cornerTendency = hasLayout ? calcCornerTendency(allRows, cornerTais, edgeTais) : null;
 
-  const context = { isSpecial, baseline, rows, SP, model, targetDate, modelStrength, suefStrength, clusterResult,
+  const context = { isSpecial, baseline, rows, SP, model, targetDate: predictionBaseDate, modelStrength, suefStrength, clusterResult,
                     cornerTais, edgeTais, cornerTendency };
 
   const taiList = G.taiDetail.filter(t => t.model === model);
@@ -4614,7 +4914,10 @@ function selectLayer3Candidate(idx) {
 
 
 // 旧関数（他タブから呼ばれている可能性があるため残す）
-function renderTarget() { renderLayer1(); }
+function renderTarget() {
+  syncTargetModeUI();
+  renderLayer1();
+}
 
 // ====== 翌日分析 レンダリング ======
 function renderNextAnalysis() {
@@ -5737,9 +6040,10 @@ const TAB_RENDER_MAP = {
 };
 
 function renderAll() {
+  const activeTab = document.querySelector('.tab-content.active');
+  updateRecommendationSectionVisibility(activeTab?.id || '');
   renderRecommendations();
   // アクティブタブのみ描画（タブ切り替え時に初めて描画）
-  const activeTab = document.querySelector('.tab-content.active');
   if(!activeTab) return;
   const fn = TAB_RENDER_MAP[activeTab.id];
   if(fn) {
@@ -5826,7 +6130,12 @@ function showStatus() {
 
 // ====== 初期化 ======
 window.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('diagDate').valueAsDate=new Date();
+  const diag = document.getElementById('diagDate');
+  if(diag) diag.value = toYmdLocal(getTodayLocalDate());
+  targetDayMode = 'today';
+  bindTargetDateInputEvents();
+  syncTargetModeUI();
+  updateRecommendationSectionVisibility(document.querySelector('.tab-content.active')?.id || '');
   initStoreBarEvents();
   restoreGasUrlInput();
   if(window._PRELOAD&&window._PRELOAD.length){

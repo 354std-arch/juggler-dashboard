@@ -45,7 +45,7 @@
 
 <main>
 
-<section class="card recommendation-section">
+<section class="card recommendation-section" id="recommendationSection" style="display:none" aria-hidden="true">
   <div class="card-title">🎯 本日の推薦台</div>
   <div id="recommendationsList">
     <div class="empty-msg">データを読み込んでください</div>
@@ -170,10 +170,15 @@
   <!-- 第1段階：日付選択 -->
   <div class="card">
     <div class="card-title">📅 第1段階：今日は狙える日か</div>
+    <div class="target-day-switch" id="targetDaySwitch">
+      <button type="button" class="target-day-btn active" id="targetTodayBtn" onclick="setTargetDayMode('today')">📅 今日</button>
+      <button type="button" class="target-day-btn" id="targetTomorrowBtn" onclick="setTargetDayMode('tomorrow')">📅 明日</button>
+    </div>
     <div class="date-row">
-      <input type="date" id="diagDate" onchange="renderLayer1()">
+      <input type="date" id="diagDate">
       <button class="btn" onclick="renderLayer1()">判定</button>
     </div>
+    <div id="targetModeNote" class="target-mode-note" style="display:none"></div>
     <div id="layer1Result"><div class="empty-msg">日付を選んでください</div></div>
   </div>
 
