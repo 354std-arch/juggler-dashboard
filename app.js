@@ -2351,15 +2351,65 @@ function mergeAllModelStats(stores, json) {
   const merged = {};
   stores.forEach(s => {
     (json.byStore[s]?.modelStats || []).forEach(m => {
-      if (!merged[m.model]) merged[m.model] = { ...m };
-      else {
-        merged[m.model].count += m.count;
-        merged[m.model].spCount = (merged[m.model].spCount||0) + (m.spCount||0);
-        merged[m.model].nmCount = (merged[m.model].nmCount||0) + (m.nmCount||0);
+      if (!merged[m.model]) {
+        merged[m.model] = {
+          ...m,
+          byDay: {},
+          digitAvg: {},
+          zoroCount: 0,
+          _zoroSum: 0,
+          _allSum: 0,
+          _spSum: 0,
+          _nmSum: 0,
+        };
+        // byDay: copy arrays
+        Object.entries(m.byDay || {}).forEach(([d, arr]) => {
+          merged[m.model].byDay[d] = [...(arr || [])];
+        });
+        // digitAvg: copy
+        Object.entries(m.digitAvg || {}).forEach(([k, v]) => {
+          merged[m.model].digitAvg[k] = { avg: v?.avg ?? null, count: v?.count ?? 0 };
+        });
+        merged[m.model].zoroCount = m.zoroCount ?? 0;
+        merged[m.model]._zoroSum = (m.zoroAvg ?? 0) * (m.zoroCount ?? 0);
+        merged[m.model]._allSum = (m.allAvg ?? 0) * (m.count ?? 0);
+        merged[m.model]._spSum = (m.spAvg ?? 0) * (m.spCount ?? 0);
+        merged[m.model]._nmSum = (m.nmAvg ?? 0) * (m.nmCount ?? 0);
+      } else {
+        const mg = merged[m.model];
+        mg.count += m.count ?? 0;
+        mg.spCount = (mg.spCount||0) + (m.spCount||0);
+        mg.nmCount = (mg.nmCount||0) + (m.nmCount||0);
+        mg._allSum += (m.allAvg ?? 0) * (m.count ?? 0);
+        mg._spSum  += (m.spAvg  ?? 0) * (m.spCount ?? 0);
+        mg._nmSum  += (m.nmAvg  ?? 0) * (m.nmCount ?? 0);
+        // merge byDay arrays
+        Object.entries(m.byDay || {}).forEach(([d, arr]) => {
+          if (!mg.byDay[d]) mg.byDay[d] = [];
+          mg.byDay[d].push(...(arr || []));
+        });
+        // merge digitAvg
+        Object.entries(m.digitAvg || {}).forEach(([k, v]) => {
+          if (!mg.digitAvg[k]) { mg.digitAvg[k] = { avg: null, count: 0, _sum: 0 }; }
+          mg.digitAvg[k].count += v?.count ?? 0;
+          mg.digitAvg[k]._sum  = (mg.digitAvg[k]._sum || 0) + (v?.avg ?? 0) * (v?.count ?? 0);
+          mg.digitAvg[k].avg   = mg.digitAvg[k].count > 0
+            ? Math.round(mg.digitAvg[k]._sum / mg.digitAvg[k].count * 10) / 10 : null;
+        });
+        // merge zoro
+        mg._zoroSum += (m.zoroAvg ?? 0) * (m.zoroCount ?? 0);
+        mg.zoroCount += m.zoroCount ?? 0;
       }
     });
   });
-  return Object.values(merged);
+  // finalize weighted averages
+  return Object.values(merged).map(mg => {
+    if (mg.count > 0) mg.allAvg = Math.round(mg._allSum / mg.count * 10) / 10;
+    if (mg.spCount > 0) mg.spAvg = Math.round(mg._spSum / mg.spCount * 10) / 10;
+    if (mg.nmCount > 0) mg.nmAvg = Math.round(mg._nmSum / mg.nmCount * 10) / 10;
+    mg.zoroAvg = mg.zoroCount > 0 ? Math.round(mg._zoroSum / mg.zoroCount * 10) / 10 : null;
+    return mg;
+  });
 }
 
 function mergeAllNextStats(stores, json) {
@@ -5593,20 +5643,26 @@ function renderModelComp() {
   if(!G.modelStats.length) return;
   renderModelSpFilter();
 
-  // 集計済みモード：G.modelStatsを使う
-  // ただし digit_*/zoro フィルターは precomputed に対応フィールドがないため生データで集計
-  const isDigitOrZoro = currentModelSpFilter.startsWith('digit_') || currentModelSpFilter === 'zoro';
-  if(G._precomputed && !isDigitOrZoro) {
+  // 集計済みモード：G.modelStatsのprecomputedフィールドを使う
+  if(G._precomputed) {
     const SP = getSpecial();
     const isSpecial = currentModelSpFilter === 'sp';
     const isNormal = currentModelSpFilter === 'nm';
+    const isZoro = currentModelSpFilter === 'zoro';
+    const digitMatch = currentModelSpFilter.startsWith('digit_')
+      ? currentModelSpFilter.replace('digit_', '') : null;
     const allAvgDiff = round1(avg(G.modelStats.map(m=>m.allAvg)));
 
     const data = G.modelStats.map(m => {
       let a, count;
       if(isSpecial) { a = m.spAvg; count = m.spCount; }
       else if(isNormal) { a = m.nmAvg; count = m.nmCount; }
-      else { a = m.allAvg; count = m.count; }
+      else if(isZoro) {
+        a = m.zoroAvg ?? null; count = m.zoroCount ?? 0;
+      } else if(digitMatch !== null) {
+        const d = m.digitAvg?.[digitMatch];
+        a = d?.avg ?? null; count = d?.count ?? 0;
+      } else { a = m.allAvg; count = m.count; }
       if(a === null || a === undefined) return null;
       const lift = round1(a - allAvgDiff);
       return {model:m.model, avg:a, count, mechRitu:m.mechRitu, lift};

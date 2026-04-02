@@ -276,7 +276,12 @@ def compute_tai_detail(rows, special):
     return result
 
 def compute_model_stats(rows, special):
-    by_model = defaultdict(lambda: {"all":[],"sp":[],"nm":[],"this_month":[],"last_month":[]})
+    by_model = defaultdict(lambda: {
+        "all":[],"sp":[],"nm":[],"this_month":[],"last_month":[],
+        "by_day": defaultdict(list),
+        "digit": defaultdict(list),
+        "zoro": [],
+    })
     latest = max(r["date"] for r in rows)
     this_m = date(latest.year, latest.month, 1)
     last_m = date(latest.year, latest.month-1, 1) if latest.month>1 else date(latest.year-1,12,1)
@@ -289,10 +294,27 @@ def compute_model_stats(rows, special):
         d = r["date"].date()
         if d >= this_m: m["this_month"].append(r)
         elif last_m <= d <= last_m_end: m["last_month"].append(r)
+        # 日にち別・末尾digit別・ゾロ目
+        m["by_day"][r["day"]].append(r)
+        m["digit"][r["day"] % 10].append(r)
+        day_str = str(r["day"])
+        if len(set(day_str)) == 1:
+            m["zoro"].append(r)
     result = []
     for model, m in by_model.items():
         tg=weighted_sum(m["all"], "g"); tb=weighted_sum(m["all"], "bb"); tr=weighted_sum(m["all"], "rb")
         total_in=tg*3; total_out=total_in+weighted_sum(m["all"], "diff")
+        # byDay: {1: avg, 2: avg, ...} (平均差枚のみ。app.jsのavg()に渡すため配列で格納)
+        by_day_out = {day: [row["diff"] for row in day_rows]
+                      for day, day_rows in m["by_day"].items()}
+        # digitAvg: {0: avg, 1: avg, ...}
+        digit_avg = {}
+        for digit, digit_rows in m["digit"].items():
+            digit_avg[str(digit)] = {
+                "avg": r1(weighted_avg_rows(digit_rows, "diff")) if digit_rows else None,
+                "count": len(digit_rows),
+            }
+        zoro_avg = r1(weighted_avg_rows(m["zoro"], "diff")) if m["zoro"] else None
         result.append({
             "model":model,"allAvg":r1(weighted_avg_rows(m["all"], "diff")),"count":len(m["all"]),
             "spAvg":r1(weighted_avg_rows(m["sp"], "diff")) if m["sp"] else None,"spCount":len(m["sp"]),
@@ -304,6 +326,10 @@ def compute_model_stats(rows, special):
             "thisMonthCount":len(m["this_month"]),
             "lastMonthAvg":r1(weighted_avg_rows(m["last_month"], "diff")) if m["last_month"] else None,
             "lastMonthCount":len(m["last_month"]),
+            "byDay": by_day_out,
+            "digitAvg": digit_avg,
+            "zoroAvg": zoro_avg,
+            "zoroCount": len(m["zoro"]),
         })
     return result
 
