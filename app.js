@@ -5764,24 +5764,29 @@ function renderModelDayBar() {
   if(!m) return;
 
   // byDay が precomputed に含まれていない場合は G.raw から動的集計
-  let byDay = m.byDay;
+  let byDay = (m.byDay && typeof m.byDay === 'object' && !Array.isArray(m.byDay)) ? m.byDay : null;
   if(!byDay || Object.keys(byDay).length === 0) {
     byDay = {};
-    const rows = filteredRows().filter(r => r.model === currentModelFilter);
+    const rows = (filteredRows() || []).filter(r => r != null && r.model === currentModelFilter);
     rows.forEach(r => {
-      if(!byDay[r.day]) byDay[r.day] = [];
-      byDay[r.day].push(r.diff);
+      const dayKey = r.day;
+      if(dayKey == null) return;
+      if(!byDay[dayKey]) byDay[dayKey] = [];
+      if(r.diff != null) byDay[dayKey].push(r.diff);
     });
   }
 
-  const days = Array.from({length:31}, (_, i) => i+1).filter(d => byDay[d] && byDay[d].length);
+  const days = Array.from({length:31}, (_, i) => i+1).filter(d => {
+    const v = byDay[d];
+    return Array.isArray(v) && v.length > 0;
+  });
   if(!days.length) {
     document.getElementById('modelDayBar').innerHTML = '<div class="empty-msg">ℹ️ この機種のデータがありません</div>';
     return;
   }
-  const maxAbs = Math.max(...days.map(d => Math.abs(avg(byDay[d]))), 1);
+  const maxAbs = Math.max(...days.map(d => Math.abs(avg(byDay[d] || []))), 1);
   document.getElementById('modelDayBar').innerHTML = days.map(d => {
-    const a = round1(avg(byDay[d])); const pct = Math.abs(a) / maxAbs * 100; const isSp = SP.includes(d);
+    const a = round1(avg(byDay[d] || [])); const pct = Math.abs(a) / maxAbs * 100; const isSp = SP.includes(d);
     return`<div class="bar-row">
       <div class="bar-label" style="${isSp?'color:var(--accent3)':''}">${d}${isSp?'★':''}</div>
       <div class="bar-bg"><div class="bar-fill ${a>=0?'pos':'neg'}" style="width:${pct}%"></div></div>
