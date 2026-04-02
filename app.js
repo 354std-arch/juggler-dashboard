@@ -5594,7 +5594,9 @@ function renderModelComp() {
   renderModelSpFilter();
 
   // 集計済みモード：G.modelStatsを使う
-  if(G._precomputed) {
+  // ただし digit_*/zoro フィルターは precomputed に対応フィールドがないため生データで集計
+  const isDigitOrZoro = currentModelSpFilter.startsWith('digit_') || currentModelSpFilter === 'zoro';
+  if(G._precomputed && !isDigitOrZoro) {
     const SP = getSpecial();
     const isSpecial = currentModelSpFilter === 'sp';
     const isNormal = currentModelSpFilter === 'nm';
@@ -5758,17 +5760,34 @@ function selectModelFilter(model,btn) {
 
 function renderModelDayBar() {
   const SP = getSpecial();
-  const m=G.modelStats.find(x=>x.model===currentModelFilter);
+  const m = G.modelStats.find(x => x.model === currentModelFilter);
   if(!m) return;
-  const days=Array.from({length:31},(_,i)=>i+1).filter(d=>m.byDay[d]);
-  const maxAbs=Math.max(...days.map(d=>Math.abs(avg(m.byDay[d]))),1);
-  document.getElementById('modelDayBar').innerHTML=days.map(d=>{
-    const a=round1(avg(m.byDay[d]));const pct=Math.abs(a)/maxAbs*100;const isSp=SP.includes(d);
+
+  // byDay が precomputed に含まれていない場合は G.raw から動的集計
+  let byDay = m.byDay;
+  if(!byDay || Object.keys(byDay).length === 0) {
+    byDay = {};
+    const rows = filteredRows().filter(r => r.model === currentModelFilter);
+    rows.forEach(r => {
+      if(!byDay[r.day]) byDay[r.day] = [];
+      byDay[r.day].push(r.diff);
+    });
+  }
+
+  const days = Array.from({length:31}, (_, i) => i+1).filter(d => byDay[d] && byDay[d].length);
+  if(!days.length) {
+    document.getElementById('modelDayBar').innerHTML = '<div class="empty-msg">ℹ️ この機種のデータがありません</div>';
+    return;
+  }
+  const maxAbs = Math.max(...days.map(d => Math.abs(avg(byDay[d]))), 1);
+  document.getElementById('modelDayBar').innerHTML = days.map(d => {
+    const a = round1(avg(byDay[d])); const pct = Math.abs(a) / maxAbs * 100; const isSp = SP.includes(d);
     return`<div class="bar-row">
       <div class="bar-label" style="${isSp?'color:var(--accent3)':''}">${d}${isSp?'★':''}</div>
       <div class="bar-bg"><div class="bar-fill ${a>=0?'pos':'neg'}" style="width:${pct}%"></div></div>
       <div class="bar-val" style="color:${a>=0?'var(--plus)':'var(--minus)'}">${a>=0?'+':''}${a}</div>
-    </div>`;}).join('');
+    </div>`;
+  }).join('');
 }
 
 // ====== 台別 ======
