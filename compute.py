@@ -111,10 +111,14 @@ def get_store_coeff(store: str, weekday: int, day: int) -> float:
             coeff *= float(mv)
     return coeff
 
+def jst_today() -> date:
+    return datetime.now(JST).date()
+
+
 def load_raw():
     seen = set()
     rows = []
-    today = date.today()
+    today = jst_today()
     recent_cutoff = today - timedelta(days=90)
     if not os.path.exists(RAW_CSV):
         print(f"  ❌ CSVが見つかりません: {RAW_CSV}")
@@ -441,7 +445,8 @@ def compute_day_wday_matrix(rows):
     return result
 
 def compute_today_analysis(rows, special, today=None):
-    if today is None: today = date.today()
+    if today is None:
+        today = jst_today()
     day = today.day; weekday = today.weekday()
     is_special = day in special
     day_stats = compute_day_stats(rows, special)
@@ -513,7 +518,7 @@ def compute_today_analysis(rows, special, today=None):
 
 def build_store_recommendations(store, store_rows, special, tai_detail, today=None):
     if today is None:
-        today = date.today()
+        today = jst_today()
     yesterday = today - timedelta(days=1)
     recommendation_day = today.day
     recommendation_weekday = today.weekday()
@@ -588,7 +593,7 @@ def build_store_recommendations(store, store_rows, special, tai_detail, today=No
 
 def build_answer_check(by_store, today=None, actual_settings=None):
     if today is None:
-        today = date.today()
+        today = jst_today()
     if actual_settings is None:
         actual_settings = {}
     hit_targets = []
@@ -655,6 +660,7 @@ def build_store_accuracy(by_store, answer_check):
 
 if __name__ == "__main__":
     print("=== compute.py 開始 ===")
+    today = jst_today()
     rows = load_raw()
     if not rows:
         print("データがありません。終了します。")
@@ -693,10 +699,10 @@ if __name__ == "__main__":
             "taiDetail": tai_detail,
             "dateSummary": compute_date_summary(store_rows, special),
             "weekdayStats": compute_weekday_stats(store_rows),
-            "todayAnalysis": compute_today_analysis(store_rows, special),
+            "todayAnalysis": compute_today_analysis(store_rows, special, today=today),
         }
         try:
-            recommendation_pool.extend(build_store_recommendations(store, store_rows, special, tai_detail))
+            recommendation_pool.extend(build_store_recommendations(store, store_rows, special, tai_detail, today=today))
         except Exception as e:
             print(f"⚠️ 推薦抽出エラー({store}): {e}")
     try:
@@ -707,7 +713,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"⚠️ 推薦集約エラー: {e}")
         output["recommendations"] = []
-    output["answer_check"] = build_answer_check(output["byStore"])
+    output["answer_check"] = build_answer_check(output["byStore"], today=today)
     output["store_accuracy"] = build_store_accuracy(output["byStore"], output["answer_check"])
     output["predictionAccuracy"] = {
         "overall": output["answer_check"].get("accuracy"),

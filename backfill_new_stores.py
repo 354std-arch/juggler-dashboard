@@ -2,7 +2,7 @@ import csv
 import json
 import os
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Dict, List, Tuple
 from urllib.parse import quote
 
@@ -45,6 +45,7 @@ REQUEST_RETRY_WAIT_SECONDS = 5
 PAGE_INTERVAL_SECONDS = 3
 STORE_INTERVAL_SECONDS = 10
 BACKFILL_DAYS = 365
+JST = timezone(timedelta(hours=9))
 
 
 def log_info(message: str) -> None:
@@ -57,6 +58,10 @@ def log_warn(message: str) -> None:
 
 def log_error(message: str) -> None:
     print(f"[ERROR] {message}")
+
+
+def jst_today() -> date:
+    return datetime.now(JST).date()
 
 
 def slug_from_store_name(store_name: str) -> str:
@@ -250,7 +255,7 @@ def date_window(today: date) -> List[str]:
 
 
 def main() -> int:
-    today = date.today()
+    today = jst_today()
     today_str = today.isoformat()
     targets_start = today - timedelta(days=BACKFILL_DAYS)
     targets_end = today - timedelta(days=1)

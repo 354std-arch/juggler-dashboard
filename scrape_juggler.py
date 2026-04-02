@@ -105,7 +105,7 @@ def get_latest_data_date(rows):
 def update_store_freshness(store_name, data_date):
     freshness = load_store_freshness()
     freshness[store_name] = {
-        'scraped_at': datetime.now(JST).replace(tzinfo=None).isoformat(timespec='seconds'),
+        'scraped_at': datetime.now(JST).isoformat(timespec='seconds'),
         'data_date': data_date,
     }
     with open(STORE_FRESHNESS_JSON, 'w', encoding='utf-8') as f:

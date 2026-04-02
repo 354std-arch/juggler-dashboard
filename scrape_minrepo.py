@@ -3,7 +3,7 @@ import logging
 import os
 import re
 import tempfile
-from datetime import date
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Set, Tuple
 from urllib.parse import urljoin
 
@@ -17,6 +17,12 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 }
+
+JST = timezone(timedelta(hours=9))
+
+
+def jst_today_iso() -> str:
+    return datetime.now(JST).date().isoformat()
 
 # NOTE:
 # みんレポのURL構造は運用変更されることがあるため、複数候補URLを順に試す。
@@ -53,10 +59,10 @@ AREA_URL_CANDIDATES: Dict[str, List[str]] = {
 }
 
 SEED_STORES = [
-    {"name": "鶴見UNO", "area": "鶴見", "source": "manual", "added_date": date.today().isoformat(), "score": 0.0},
-    {"name": "マルハン都筑", "area": "横浜", "source": "manual", "added_date": date.today().isoformat(), "score": 0.0},
-    {"name": "中山UNO", "area": "横浜", "source": "manual", "added_date": date.today().isoformat(), "score": 0.0},
-    {"name": "エスパス新宿", "area": "新宿", "source": "manual", "added_date": date.today().isoformat(), "score": 0.0},
+    {"name": "鶴見UNO", "area": "鶴見", "source": "manual", "added_date": jst_today_iso(), "score": 0.0},
+    {"name": "マルハン都筑", "area": "横浜", "source": "manual", "added_date": jst_today_iso(), "score": 0.0},
+    {"name": "中山UNO", "area": "横浜", "source": "manual", "added_date": jst_today_iso(), "score": 0.0},
+    {"name": "エスパス新宿", "area": "新宿", "source": "manual", "added_date": jst_today_iso(), "score": 0.0},
 ]
 
 JUGGLER_KEYWORDS = [
@@ -352,7 +358,7 @@ def main() -> int:
         }
 
     premium_candidates: List[dict] = []
-    today = date.today().isoformat()
+    today = jst_today_iso()
     for store_name, payload in parsed_by_store.items():
         records = payload["records"]
         area = payload["area"]

@@ -1660,14 +1660,39 @@ function parseYmdLocal(ymd) {
   return dt;
 }
 
-function addDaysLocal(date, days) {
+function cloneLocalDate(date) {
   if(!(date instanceof Date) || isNaN(date)) return null;
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addDaysLocal(date, days) {
+  const d = cloneLocalDate(date);
+  if(!d) return null;
   d.setDate(d.getDate() + days);
   return d;
 }
 
+function getTodayInTimeZone(timeZone) {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const parts = formatter.formatToParts(new Date());
+    const year = Number(parts.find(p => p.type === 'year')?.value);
+    const month = Number(parts.find(p => p.type === 'month')?.value);
+    const day = Number(parts.find(p => p.type === 'day')?.value);
+    const dt = new Date(year, month - 1, day);
+    if(!isNaN(dt)) return dt;
+  } catch (_) {}
+  return null;
+}
+
 function getTodayLocalDate() {
+  const jstToday = getTodayInTimeZone('Asia/Tokyo');
+  if(jstToday) return jstToday;
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
@@ -2331,6 +2356,16 @@ function getLatestDataDateForPrediction() {
   }
   if(!fallbackDates.length) return null;
   return fallbackDates.reduce((max, d) => d.getTime() > max.getTime() ? d : max, fallbackDates[0]);
+}
+
+function getTargetPredictionBaseDate(targetDate) {
+  const target = cloneLocalDate(targetDate);
+  if(!target) return null;
+  const latestDataDate = getLatestDataDateForPrediction();
+  if(!latestDataDate) return target;
+  const latestPredictableDate = addDaysLocal(latestDataDate, 1);
+  if(!latestPredictableDate) return target;
+  return target.getTime() > latestPredictableDate.getTime() ? latestPredictableDate : target;
 }
 
 function getPredictionFreshnessMeta() {
@@ -4060,8 +4095,8 @@ function calcScore(tai, targetDate) {
   // ③ 前日条件（翌日分析のベース比liftをそのまま重みにする）
   const prevDay = new Date(targetDate);
   prevDay.setDate(prevDay.getDate()-1);
-  const prevDateStr1 = prevDay.toISOString().slice(0,10).replace(/-/g,'/');
-  const prevDateStr2 = prevDay.toISOString().slice(0,10);
+  const prevDateStr2 = toYmdLocal(prevDay);
+  const prevDateStr1 = prevDateStr2.replace(/-/g,'/');
   const prevRow = rows.find(r=>
     r.tai===tai.tai &&
     (r.dateStr===prevDateStr1 || r.dateStr===prevDateStr2)
@@ -4111,8 +4146,8 @@ function calcScore(tai, targetDate) {
     // 連続凹み
     const prevPrevDay = new Date(prevDay);
     prevPrevDay.setDate(prevPrevDay.getDate()-1);
-    const pp1 = prevPrevDay.toISOString().slice(0,10).replace(/-/g,'/');
-    const pp2 = prevPrevDay.toISOString().slice(0,10);
+    const pp2 = toYmdLocal(prevPrevDay);
+    const pp1 = pp2.replace(/-/g,'/');
     const prevPrevRow = rows.find(r=>r.tai===tai.tai&&(r.dateStr===pp1||r.dateStr===pp2));
     if(prevRow.diff < 0 && prevPrevRow && prevPrevRow.diff < 0){
       const {lift, ok, count, avg:cAvg} = getCondLift('連続凹み');
@@ -4719,7 +4754,7 @@ function renderLayer3(model) {
   G.layer3SelectionMeta = {
     store: currentStore === 'all' ? (G.raw[0]?.store || 'all') : currentStore,
     model,
-    targetDate: targetDate ? targetDate.toISOString().slice(0,10) : null,
+    targetDate: targetDate ? toYmdLocal(targetDate) : null,
     isSpecial
   };
 
@@ -4875,7 +4910,7 @@ function selectLayer3Candidate(idx) {
     floor: (typeof L !== 'undefined' && L && L.store === meta.store && L.floor) ? L.floor : '',
     model: t.model || meta.model || '',
     tai: t.tai,
-    targetDate: meta.targetDate || (targetDate ? targetDate.toISOString().slice(0,10) : ''),
+    targetDate: meta.targetDate || (targetDate ? toYmdLocal(targetDate) : ''),
     isSpecial: !!meta.isSpecial,
     rank: t.rank || '',
     configScore: t.configScore,
@@ -5555,7 +5590,8 @@ function renderModelMonthComp() {
   // 集計済みモードではdateSummaryから最新日を取得
   const latestDateStr = G.dateSummary.length ? G.dateSummary[G.dateSummary.length-1].dateStr : null;
   if(!latestDateStr && !filteredRows().length) { document.getElementById('modelMonthComp').innerHTML='<div class="empty-msg">データなし</div>'; return; }
-  const latestDate2 = latestDateStr ? new Date(latestDateStr) : filteredRows().reduce((a,b)=>a.date>b.date?a:b).date;
+  const latestDate2 = latestDateStr ? parseYmdLocal(latestDateStr) : filteredRows().reduce((a,b)=>a.date>b.date?a:b).date;
+  if(!latestDate2) { document.getElementById('modelMonthComp').innerHTML='<div class="empty-msg">データなし</div>'; return; }
   const thisLabel = `${latestDate2.getMonth()+1}月`;
   const lastLabel = `${latestDate2.getMonth()===0?12:latestDate2.getMonth()}月`;
   // 今月の経過日数
@@ -5923,9 +5959,10 @@ function renderPeriod() {
   if(currentPeriod>0){
     // dateStrが文字列なので文字列比較で絞り込む
     const lastDateStr = allDates[allDates.length-1].dateStr;
-    const cutoff = new Date(lastDateStr);
+    const cutoff = parseYmdLocal(lastDateStr);
+    if(!cutoff) return;
     cutoff.setDate(cutoff.getDate()-currentPeriod);
-    const cutoffStr = cutoff.toISOString().slice(0,10);
+    const cutoffStr = toYmdLocal(cutoff);
     filtered=allDates.filter(d=>d.dateStr>=cutoffStr);
   }
   if(!filtered.length) return;
@@ -6017,7 +6054,7 @@ function saveDataHTML() {
   const blob=new Blob([injected],{type:'text/html;charset=utf-8'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=`juggler_${new Date().toISOString().slice(0,10)}.html`;
+  a.download=`juggler_${toYmdLocal(getTodayLocalDate())}.html`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -6061,11 +6098,10 @@ function getStoreFreshnessMeta(storeName) {
   const dataDate = record.data_date || null;
   const scrapedAt = record.scraped_at || '';
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
+  const today = getTodayLocalDate();
+  const todayStr = toYmdLocal(today);
+  const yesterday = addDaysLocal(today, -1);
+  const yesterdayStr = toYmdLocal(yesterday);
 
   const title = `data_date: ${dataDate || 'N/A'}${scrapedAt ? ` / scraped_at: ${scrapedAt}` : ''}`;
   if(dataDate === todayStr) return { color: 'green', icon: '🟢', ts: title };
