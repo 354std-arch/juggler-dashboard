@@ -16,6 +16,7 @@
     <button class="save-btn" id="saveBtn" onclick="saveDataHTML()" disabled>💾 保存</button>
   </div>
 </header>
+<div id="errorToast" class="toast-error" role="alert" aria-live="assertive"></div>
 
 <div class="store-bar" id="storeBar">
   <span class="store-label">店舗：</span>
@@ -59,6 +60,7 @@
     <p class="section-note">スプシのデータを直接取得します。PCでもスマホでも同じデータが見られます。</p>
     <button class="btn" onclick="loadFromJSON()" id="gasLoadBtn" style="width:100%;margin-bottom:8px;font-size:15px;padding:12px">📡 データを読み込む</button>
     <div id="gasStatus" style="font-size:11px;color:var(--muted);text-align:center;min-height:16px"></div>
+    <div id="dataEmptyState" class="data-empty-state" aria-live="polite">未読込: 「📡 データを読み込む」を押してください</div>
   </div>
   <div class="card">
     <div class="card-title">📂 CSVファイルを読み込む</div>
@@ -145,7 +147,7 @@
     </div>
 
     <div class="session-actions">
-      <button class="btn session-btn-sub" onclick="syncSessionFormFromCurrent(true)">↻ 現在値を反映</button>
+      <button class="btn btn-secondary session-btn-sub" onclick="syncSessionFormFromCurrent(true)">↻ 現在値を反映</button>
       <button class="btn" onclick="saveSessionRecord()">💾 セッションを保存</button>
     </div>
 
@@ -312,7 +314,7 @@
 <div id="heatPopup" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;z-index:1000;min-width:260px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.7)">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
     <div id="popupTitle" style="font-weight:700;font-size:14px;color:var(--accent)"></div>
-    <button onclick="document.getElementById('heatPopup').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">×</button>
+    <button class="modal-close-btn" onclick="document.getElementById('heatPopup').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">×</button>
   </div>
   <div id="popupBody"></div>
 </div>
@@ -336,7 +338,7 @@
 <div id="calPopup" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;z-index:1000;min-width:280px;max-width:92vw;box-shadow:0 8px 32px rgba(0,0,0,.7)">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
     <div id="calPopupTitle" style="font-weight:900;font-size:15px;color:var(--accent)"></div>
-    <button onclick="document.getElementById('calPopup').style.display='none';document.getElementById('calPopupOverlay').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1">×</button>
+    <button class="modal-close-btn" onclick="document.getElementById('calPopup').style.display='none';document.getElementById('calPopupOverlay').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1">×</button>
   </div>
   <div id="calPopupBody" style="max-height:65vh;overflow-y:auto"></div>
 </div>
@@ -718,7 +720,7 @@
     </div>
     <div class="session-actions">
       <button class="btn" onclick="saveGitHubToken()">✅ トークンを保存</button>
-      <button class="btn session-btn-sub" onclick="clearGitHubToken()">🗑 トークンを削除</button>
+      <button class="btn btn-secondary session-btn-sub" onclick="clearGitHubToken()">🗑 トークンを削除</button>
     </div>
     <div id="githubTokenStatus" class="session-status">未設定</div>
   </div>
@@ -829,6 +831,7 @@
 
 <div id="withdrawJudgeBanner" class="withdraw-judge-banner">
   <div id="withdrawJudgeBannerText" class="withdraw-judge-banner-text"></div>
+  <button id="withdrawJudgeToSessionBtn" class="btn btn-secondary withdraw-judge-banner-action" type="button">🗃️ セッション保存へ</button>
   <button id="withdrawJudgeBannerClose" class="withdraw-judge-banner-close" type="button" aria-label="閉じる">✕</button>
 </div>
 

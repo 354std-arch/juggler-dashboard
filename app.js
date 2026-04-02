@@ -20,6 +20,20 @@ const GITHUB_TOKEN_STORAGE_KEY = 'github_pat';
 const GITHUB_SESSIONS_REPO = '354std-arch/juggler-dashboard';
 const GITHUB_SESSIONS_BRANCH = 'main';
 const GITHUB_SESSIONS_PATH = 'sessions.json';
+const DATA_EMPTY_STATE = {
+  UNLOADED: 'unloaded',
+  LOADING: 'loading',
+  ERROR: 'error',
+  EMPTY: 'empty',
+  LOADED: 'loaded',
+};
+const DATA_EMPTY_STATE_TEXT = {
+  [DATA_EMPTY_STATE.UNLOADED]: '未読込: 「📡 データを読み込む」を押してください',
+  [DATA_EMPTY_STATE.LOADING]: '読込中: data.json を取得しています',
+  [DATA_EMPTY_STATE.ERROR]: 'エラー: データ読込に失敗しました',
+  [DATA_EMPTY_STATE.EMPTY]: 'データ空: 読み込んだデータに表示対象がありません',
+};
+let errorToastTimer = null;
 
 // ====== 機種別設定値（合成・BB・RB確率の分母） ======
 const MODEL_SETTINGS = {
@@ -2092,6 +2106,54 @@ function normalizeGasRows(payload) {
   }).filter(Boolean);
 }
 
+function hasDisplayableData() {
+  if(Array.isArray(G.raw) && G.raw.length > 0) return true;
+  if(Array.isArray(G.dayStats) && G.dayStats.length > 0) return true;
+  if(Array.isArray(G.taiDetail) && G.taiDetail.length > 0) return true;
+  if(Array.isArray(G.modelStats) && G.modelStats.length > 0) return true;
+  if(Array.isArray(G.dateSummary) && G.dateSummary.length > 0) return true;
+  return false;
+}
+
+function setHeaderDataStatus(text, type = '') {
+  const el = document.getElementById('dataStatus');
+  if(!el) return;
+  el.textContent = text;
+  el.classList.remove('loaded', 'loading', 'error');
+  if(type) el.classList.add(type);
+}
+
+function setDataEmptyState(state, detail = '') {
+  const el = document.getElementById('dataEmptyState');
+  if(!el) return;
+  el.dataset.state = state;
+  if(state === DATA_EMPTY_STATE.LOADED) {
+    el.style.display = 'none';
+    return;
+  }
+  const base = DATA_EMPTY_STATE_TEXT[state] || DATA_EMPTY_STATE_TEXT[DATA_EMPTY_STATE.UNLOADED];
+  el.style.display = 'block';
+  el.textContent = detail ? `${base} (${detail})` : base;
+}
+
+function showErrorToast(message) {
+  const toast = document.getElementById('errorToast');
+  if(!toast) return;
+  toast.textContent = message;
+  toast.classList.add('show');
+  if(errorToastTimer) clearTimeout(errorToastTimer);
+  errorToastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+function setJsonLoadButtonLoading(isLoading) {
+  const btn = document.getElementById('gasLoadBtn');
+  if(!btn) return;
+  btn.disabled = !!isLoading;
+  btn.textContent = isLoading ? '読込中...' : '📡 データを読み込む';
+}
+
 function resetGasUrl() {
   localStorage.removeItem('juggler_gas_url');
   const el = document.getElementById('gasUrlInput');
@@ -2102,10 +2164,11 @@ function resetGasUrl() {
 }
 
 function loadFromJSON() {
-  const btn = document.getElementById('gasLoadBtn');
   const status = document.getElementById('gasStatus');
-  btn.disabled = true;
-  btn.textContent = '⏳ 読み込み中...';
+  const emptyErrorCode = 'DATA_EMPTY';
+  setJsonLoadButtonLoading(true);
+  setDataEmptyState(DATA_EMPTY_STATE.LOADING);
+  setHeaderDataStatus('読込中...', 'loading');
   status.textContent = 'data.jsonを読み込んでいます...';
   status.style.color = 'var(--accent3)';
 
@@ -2117,10 +2180,14 @@ function loadFromJSON() {
     .then(json => {
       if (json.byStore && typeof json.byStore === 'object') {
         loadFromPrecomputed(json);
+        if(!hasDisplayableData()) {
+          const err = new Error('表示可能なデータがありません');
+          err.code = emptyErrorCode;
+          throw err;
+        }
         status.textContent = `✅ 読み込み完了（${json.updated_at || '更新日不明'}）`;
         status.style.color = 'var(--plus)';
-        btn.textContent = '📡 データを読み込む';
-        btn.disabled = false;
+        setDataEmptyState(DATA_EMPTY_STATE.LOADED);
         return;
       }
       // 旧形式フォールバック
@@ -2132,23 +2199,41 @@ function loadFromJSON() {
         return obj;
       });
       const rows = normalizeGasRows(objRows);
-      if (!rows.length) throw new Error('データが空です');
+      if (!rows.length) {
+        const err = new Error('データが空です');
+        err.code = emptyErrorCode;
+        throw err;
+      }
       G.raw = rows;
       G.dataUpdatedAt = json.updated_at || null;
       G.dataDate = normalizeDataDateValue(json.data_date || json.dataDate || json.updated_at) || null;
-      if (!finishLoad()) throw new Error('データの処理に失敗しました');
+      if (!finishLoad()) {
+        const err = new Error('データの処理に失敗しました');
+        err.code = emptyErrorCode;
+        throw err;
+      }
       const dates = G.raw.map(r => r.dateStr).sort();
       const dateRange = dates.length ? `${dates[0]}〜${dates[dates.length-1]}` : '';
       status.textContent = `✅ ${G.raw.length.toLocaleString()}件読み込み完了 (${dateRange})`;
       status.style.color = 'var(--plus)';
-      btn.textContent = '📡 データを読み込む';
-      btn.disabled = false;
+      setDataEmptyState(DATA_EMPTY_STATE.LOADED);
     })
     .catch(err => {
+      if(err?.code === emptyErrorCode) {
+        status.textContent = `⚠️ ${err.message}`;
+        status.style.color = 'var(--accent4)';
+        setDataEmptyState(DATA_EMPTY_STATE.EMPTY, err.message);
+        setHeaderDataStatus('データ空', 'error');
+        return;
+      }
       status.textContent = `❌ エラー：${err.message}`;
       status.style.color = 'var(--minus)';
-      btn.textContent = '📡 データを読み込む';
-      btn.disabled = false;
+      setDataEmptyState(DATA_EMPTY_STATE.ERROR, err.message);
+      setHeaderDataStatus('エラー', 'error');
+      showErrorToast(`データ読込失敗: ${err.message}`);
+    })
+    .finally(() => {
+      setJsonLoadButtonLoading(false);
     });
 }
 
@@ -2178,7 +2263,15 @@ function loadFromPrecomputed(json) {
   setTimeout(() => {
     renderStoreBar();
     renderAll();
-    showStatusPrecomputed(json);
+    if(hasDisplayableData()) {
+      showStatusPrecomputed(json);
+      setDataEmptyState(DATA_EMPTY_STATE.LOADED);
+    } else {
+      setDataEmptyState(DATA_EMPTY_STATE.EMPTY);
+      setHeaderDataStatus('データ空', 'error');
+      const loadedInfo = document.getElementById('loadedInfo');
+      if(loadedInfo) loadedInfo.style.display = 'none';
+    }
   }, 0);
 }
 
@@ -2286,15 +2379,14 @@ function mergeAllDateSummary(stores, json) {
 
 function showStatusPrecomputed(json) {
   const stores = json.stores || [];
-  const el = document.getElementById('dataStatus');
   const updatedAt = json.updated_at || '更新日不明';
-  el.textContent = `${updatedAt}更新`;
-  el.classList.add('loaded');
+  setHeaderDataStatus(`${updatedAt}更新`, 'loaded');
+  setDataEmptyState(DATA_EMPTY_STATE.LOADED);
   document.getElementById('loadedInfo').style.display = 'block';
   document.getElementById('loadedSummary').innerHTML = `
     <div style="font-size:12px;line-height:2;">
       📅 更新日: ${updatedAt}<br>
-      🏪 ${stores.map(s=>`<span class="badge badge-normal">${s}</span>`).join('')}
+      🏪 ${stores.map(s=>`<span class="badge badge-info">${s}</span>`).join('')}
     </div>`;
 }
 
@@ -2534,6 +2626,8 @@ function loadFromGAS() {
   const btn = document.getElementById('gasLoadBtn');
   const status = document.getElementById('gasStatus');
   const baseUrl = saveGasUrlInput();
+  setDataEmptyState(DATA_EMPTY_STATE.LOADING);
+  setHeaderDataStatus('読込中...', 'loading');
   btn.disabled = true;
   btn.textContent = '⏳ 取得中...';
   status.textContent = 'スプレッドシートに接続しています...';
@@ -2571,16 +2665,26 @@ function loadFromGAS() {
       status.style.color = 'var(--plus)';
       btn.textContent = '📡 スプシからデータを取得';
       btn.disabled = false;
+      setDataEmptyState(DATA_EMPTY_STATE.LOADED);
     })
     .catch(err => {
       const msg = String(err && err.message ? err.message : err);
       const hint = /Failed to fetch|NetworkError|CORS/i.test(msg)
         ? '（URL誤り・公開設定・CORSを確認）'
         : '';
+      const emptyLike = /データが空|処理に失敗/i.test(msg);
       status.textContent = `❌ エラー：${msg}${hint}`;
       status.style.color = 'var(--minus)';
       btn.textContent = '📡 スプシからデータを取得';
       btn.disabled = false;
+      if(emptyLike) {
+        setDataEmptyState(DATA_EMPTY_STATE.EMPTY, msg);
+        setHeaderDataStatus('データ空', 'error');
+      } else {
+        setDataEmptyState(DATA_EMPTY_STATE.ERROR, msg);
+        setHeaderDataStatus('エラー', 'error');
+        showErrorToast(`データ読込失敗: ${msg}`);
+      }
     });
 }
 
@@ -2595,6 +2699,8 @@ function handleFile(file){if(!file)return;const r=new FileReader();r.onload=e=>p
 function parsePaste(){const t=document.getElementById('pasteArea').value.trim();if(!t){alert('データを貼り付けてください');return;}parseCSV(t);}
 
 function parseCSV(text) {
+  setDataEmptyState(DATA_EMPTY_STATE.LOADING);
+  setHeaderDataStatus('読込中...', 'loading');
   const lines = text.split(/\r?\n/).filter(l=>l.trim());
   const rows = [];
   const sep = lines[0].includes('\t')?'\t':',';
@@ -2617,7 +2723,12 @@ function parseCSV(text) {
       cleanNum(cols[6])||0, cleanNum(cols[7])||0
     ));
   }
-  if(rows.length<3){alert('データが読み込めませんでした\n形式：日付、店名、機種名、台番号、G数、差枚、BB、RB...');return;}
+  if(rows.length<3){
+    setDataEmptyState(DATA_EMPTY_STATE.EMPTY, 'CSVの有効データが3件未満です');
+    setHeaderDataStatus('データ空', 'error');
+    alert('データが読み込めませんでした\n形式：日付、店名、機種名、台番号、G数、差枚、BB、RB...');
+    return;
+  }
   G.raw = rows;
   finishLoad();
 }
@@ -2625,6 +2736,8 @@ function parseCSV(text) {
 // ====== 読込後の共通処理 ======
 function finishLoad() {
   if(!G.raw || G.raw.length < 3) {
+    setDataEmptyState(DATA_EMPTY_STATE.EMPTY, '有効行が3件未満です');
+    setHeaderDataStatus('データ空', 'error');
     alert('データが読み込めませんでした');
     return false;
   }
@@ -2640,7 +2753,12 @@ function finishLoad() {
   G.raw = G.raw.filter(r => MODEL_SETTINGS[r.model]);
   const skipped = before - G.raw.length;
   if(skipped > 0) console.info(`[finishLoad] 非対応機種 ${skipped}行を除外（残:${G.raw.length}行）`);
-  if(G.raw.length < 3) { alert('ジャグラー系のデータが不足しています（3行未満）'); return false; }
+  if(G.raw.length < 3) {
+    setDataEmptyState(DATA_EMPTY_STATE.EMPTY, 'ジャグラー系データが3件未満です');
+    setHeaderDataStatus('データ空', 'error');
+    alert('ジャグラー系のデータが不足しています（3行未満）');
+    return false;
+  }
   // 読込時に台別の表示状態を初期化（古いフィルタ状態を持ち越さない）
   currentTaiFilter = 'all';
   currentTaiPeriod = 0;
@@ -2661,6 +2779,7 @@ function finishLoad() {
   G.dataUpdatedAt = null;
   G.dataDate = null;
   document.getElementById('saveBtn').disabled = false;
+  setDataEmptyState(DATA_EMPTY_STATE.LOADED);
   // 重い処理を非同期化してUIをブロックしない
   setTimeout(() => {
     compute();
@@ -6152,20 +6271,22 @@ function switchStore(store,btn) {
 function showStatus() {
   const rows=G.raw;
   const dates=[...new Set(rows.map(r=>r.dateStr))].sort();
-  const el=document.getElementById('dataStatus');
-  el.textContent=`${dates.length}日分`;el.classList.add('loaded');
+  setHeaderDataStatus(`${dates.length}日分`, 'loaded');
+  setDataEmptyState(DATA_EMPTY_STATE.LOADED);
   document.getElementById('saveBtn').disabled=false;
   document.getElementById('loadedInfo').style.display='block';
   document.getElementById('loadedSummary').innerHTML=`
     <div style="font-size:12px;line-height:2;">
       📅 ${dates[0]} 〜 ${dates[dates.length-1]}（${dates.length}日間）<br>
-      🏪 ${[...new Set(rows.map(r=>r.store))].map(s=>`<span class="badge badge-normal">${s}</span>`).join('')}<br>
+      🏪 ${[...new Set(rows.map(r=>r.store))].map(s=>`<span class="badge badge-info">${s}</span>`).join('')}<br>
       🎰 ${[...new Set(rows.map(r=>r.tai))].length}台 / ${rows.length}行
     </div>`;
 }
 
 // ====== 初期化 ======
 window.addEventListener('DOMContentLoaded',()=>{
+  setHeaderDataStatus('未読込');
+  setDataEmptyState(DATA_EMPTY_STATE.UNLOADED);
   const diag = document.getElementById('diagDate');
   if(diag) diag.value = toYmdLocal(getTodayLocalDate());
   targetDayMode = 'today';
@@ -6530,12 +6651,52 @@ function runWithdrawJudge() {
   const isWarn = warnByInvestment || warnByProb;
 
   if(isWarn) {
-    setWithdrawBanner(true, '⚠️ 撤退を検討してください');
+    setWithdrawBanner(true, `⚠️ 撤退を検討してください（P(設定4以上) ${pPercent}%）`);
   } else {
     setWithdrawBanner(false, `✅ 続行推奨：P(設定4以上) ${pPercent}%`);
   }
 
   closeWithdrawPopup();
+}
+
+function openDataTabForSession() {
+  const tabBtn = document.querySelector('#mainNav button[onclick*="tab-data"]');
+  showTab('tab-data', tabBtn || null);
+}
+
+function syncSessionFormFromWithdrawJudge() {
+  const games = wdSafeNum(document.getElementById('withdrawGames')?.value);
+  const big = wdSafeNum(document.getElementById('withdrawBig')?.value);
+  const reg = wdSafeNum(document.getElementById('withdrawReg')?.value);
+  const investment = wdSafeNum(document.getElementById('withdrawInvestment')?.value);
+  const grape = wdSafeNum(document.getElementById('withdrawGrape')?.value);
+  const cherry = wdSafeNum(document.getElementById('withdrawCherry')?.value);
+
+  openDataTabForSession();
+  syncSessionFormFromCurrent(false);
+  setSessionInputIfNeeded('sessionG', games, true);
+  setSessionInputIfNeeded('sessionBig', big, true);
+  setSessionInputIfNeeded('sessionReg', reg, true);
+  setSessionInputIfNeeded('sessionBudo', grape, true);
+  setSessionInputIfNeeded('sessionCherry', cherry, true);
+  if(investment > 0) {
+    setSessionInputIfNeeded('sessionDiff', -Math.abs(investment), true);
+  }
+
+  const otherNotes = [];
+  if(investment > 0) otherNotes.push(`投資金額:${Math.round(investment)}円`);
+  if(grape > 0) otherNotes.push(`ブドウ:${Math.round(grape)}`);
+  if(cherry > 0) otherNotes.push(`チェリー:${Math.round(cherry)}`);
+  if(otherNotes.length) {
+    setSessionInputIfNeeded('sessionOtherKoyaku', otherNotes.join(' / '), true);
+  }
+
+  const reasonEl = document.getElementById('sessionWithdrawReason');
+  if(reasonEl) {
+    if(investment >= 20000) reasonEl.value = '損切りライン到達（-2万円）';
+    else if(!reasonEl.value) reasonEl.value = 'その他';
+  }
+  setSessionStatus('撤退判定の入力値をセッション保存フォームへ反映しました', 'warn');
 }
 
 function initWithdrawJudgeUI() {
@@ -6544,9 +6705,10 @@ function initWithdrawJudgeUI() {
   const popup = overlay ? overlay.querySelector('.withdraw-judge-popup') : null;
   const runBtn = document.getElementById('withdrawJudgeRunBtn');
   const bannerClose = document.getElementById('withdrawJudgeBannerClose');
+  const bannerToSession = document.getElementById('withdrawJudgeToSessionBtn');
   const banner = document.getElementById('withdrawJudgeBanner');
 
-  if(!fab || !overlay || !popup || !runBtn || !bannerClose || !banner) return;
+  if(!fab || !overlay || !popup || !runBtn || !bannerClose || !banner || !bannerToSession) return;
 
   fab.addEventListener('click', () => {
     overlay.classList.add('open');
@@ -6561,6 +6723,7 @@ function initWithdrawJudgeUI() {
   bannerClose.addEventListener('click', () => {
     banner.classList.remove('show');
   });
+  bannerToSession.addEventListener('click', syncSessionFormFromWithdrawJudge);
 }
 
 document.addEventListener('DOMContentLoaded', initWithdrawJudgeUI);
