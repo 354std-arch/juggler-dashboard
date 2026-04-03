@@ -27,6 +27,7 @@ STORE_SPECIAL = {
 MODEL_NAME_MAP = {
     "ネオアイムジャグラーEX": "ネオアイムジャグラー",
     "ジャグラーガールズ":     "ジャグラーガールズSS",
+    "スマスロ ハナビ":       "スマスロハナビ",
 }
 
 MODEL_SETTINGS = {
@@ -39,7 +40,18 @@ MODEL_SETTINGS = {
     "マイジャグラーV":           {"syn":{1:163,2:159,3:148,4:135,5:126,6:114},"bb":{1:273,2:270,3:266,4:254,5:240,6:229},"rb":{1:409,2:385,3:336,4:290,5:268,6:229}},
     "ファンキージャグラー2":     {"syn":{1:165,2:158,3:150,4:140,5:133,6:119},"bb":{1:266,2:259,3:256,4:249,5:240,6:219},"rb":{1:439,2:407,3:366,4:322,5:299,6:262}},
     "新ハナビ":                  {"syn":{1:131,2:127,3:122,4:118,5:113,6:109},"bb":{1:240,2:234,3:228,4:221,5:214,6:205},"rb":{1:397,2:378,3:357,4:336,5:314,6:290}},
+    "スマスロハナビ":            {"syn":{1:176,2:161,3:155,4:149,5:143,6:137},"bb":{1:282,2:270,3:261,4:252,5:243,6:234},"rb":{1:470,2:434,3:398,4:364,5:336,6:303}},
     "クランキーセレブレーション": {"syn":{1:160,2:154,3:146,4:137,5:129,6:120},"bb":{1:268,2:260,3:252,4:240,5:229,6:216},"rb":{1:400,2:375,3:349,4:320,5:293,6:265}},
+}
+
+MODEL_HIGH_SETTING_MIN = {
+    "新ハナビ": 2,
+    "スマスロハナビ": 2,
+}
+
+MODEL_GOOD_SYN_THRESHOLD = {
+    "新ハナビ": 148,
+    "スマスロハナビ": 161,
 }
 
 def r1(v): return round(v*10)/10
@@ -63,6 +75,24 @@ def parse_num(s):
     if not s: return 0
     try: return float(str(s).replace(",","").replace("+","").strip())
     except: return 0
+
+def normalize_model_name(model_name):
+    name = str(model_name or "").replace("　", " ").strip()
+    mapped = MODEL_NAME_MAP.get(name, name)
+    if mapped.replace(" ", "") == "スマスロハナビ":
+        return "スマスロハナビ"
+    return mapped
+
+def is_good_result_model(model, g, bb, rb):
+    if g <= 0 or (bb + rb) <= 0:
+        return False
+    syn_threshold = MODEL_GOOD_SYN_THRESHOLD.get(model)
+    if syn_threshold is not None:
+        return (g / (bb + rb)) <= syn_threshold
+    ms = MODEL_SETTINGS.get(model)
+    if not ms or rb <= 0 or bb <= 0:
+        return False
+    return (g / rb) <= ms["rb"][4] and (g / bb) > ms["bb"][4]
 
 def load_store_freshness():
     if not os.path.exists(STORE_FRESHNESS_JSON):
@@ -134,7 +164,7 @@ def load_raw():
             key = (date_str, store, tai, model_name)
             if key in seen: continue
             seen.add(key)
-            model = MODEL_NAME_MAP.get(model_name, model_name)
+            model = normalize_model_name(model_name)
             if model not in MODEL_SETTINGS: continue
             try:
                 dt = datetime.strptime(date_str, "%Y-%m-%d")
@@ -146,8 +176,7 @@ def load_raw():
             tai_num = int(tai) if tai.isdigit() else 0
             s = str(tai_num)
             day = dt.day
-            ms = MODEL_SETTINGS[model]
-            is_high_set_rb = (rb > 0 and bb > 0 and g > 0 and (g/rb) <= ms["rb"][4] and (g/bb) > ms["bb"][4])
+            is_high_set_rb = is_good_result_model(model, g, bb, rb)
             rows.append({
                 "dateStr": date_str, "date": dt,
                 "store": store, "model": model,
@@ -182,7 +211,9 @@ def calc_bayes_prob(model, total_g, total_bb, total_rb):
     probs = [math.exp(p - max_log) for p in log_probs]
     total = sum(probs)
     probs = [p/total for p in probs]
-    return round(sum(probs[3:]) * 100, 1)
+    high_min = MODEL_HIGH_SETTING_MIN.get(model, 4)
+    start_idx = max(1, min(6, int(high_min))) - 1
+    return round(sum(probs[start_idx:]) * 100, 1)
 
 def compute_day_stats(rows, special):
     by_day = defaultdict(lambda: {"rows":[], "plus":0, "total":0})

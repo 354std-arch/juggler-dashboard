@@ -37,6 +37,19 @@ const DATA_EMPTY_STATE_TEXT = {
 let errorToastTimer = null;
 let recommendationExpanded = false;
 
+const MODEL_NAME_MAP_CANONICAL = {
+  'ネオアイムジャグラーEX': 'ネオアイムジャグラー',
+  'ジャグラーガールズ': 'ジャグラーガールズSS',
+  'スマスロ ハナビ': 'スマスロハナビ',
+};
+
+function normalizeModelName(name) {
+  const raw = String(name || '').replace(/　/g, ' ').trim();
+  const mapped = MODEL_NAME_MAP_CANONICAL[raw] || raw;
+  if(mapped.replace(/\s+/g, '') === 'スマスロハナビ') return 'スマスロハナビ';
+  return mapped;
+}
+
 // ====== 機種別設定値（合成・BB・RB確率の分母） ======
 const MODEL_SETTINGS = {
   'ネオアイムジャグラー':     { syn:{1:168,2:161,3:148,4:142,5:128,6:128}, bb:{1:273,2:269,3:269,4:259,5:259,6:255}, rb:{1:439,2:399,3:331,4:315,5:255,6:255} },
@@ -47,6 +60,8 @@ const MODEL_SETTINGS = {
   'ハッピージャグラーVIII':   { syn:{1:161,2:154,3:146,4:137,5:127,6:120}, bb:{1:273,2:270,3:263,4:254,5:239,6:226}, rb:{1:397,2:362,3:332,4:300,5:273,6:256} },
   'マイジャグラーV':          { syn:{1:163,2:159,3:148,4:135,5:126,6:114}, bb:{1:273,2:270,3:266,4:254,5:240,6:229}, rb:{1:409,2:385,3:336,4:290,5:268,6:229} },
   'ファンキージャグラー2':    { syn:{1:165,2:158,3:150,4:140,5:133,6:119}, bb:{1:266,2:259,3:256,4:249,5:240,6:219}, rb:{1:439,2:407,3:366,4:322,5:299,6:262} },
+  '新ハナビ':                 { syn:{1:131,2:127,3:122,4:118,5:113,6:109}, bb:{1:240,2:234,3:228,4:221,5:214,6:205}, rb:{1:397,2:378,3:357,4:336,5:314,6:290} },
+  'スマスロハナビ':           { syn:{1:176,2:161,3:155,4:149,5:143,6:137}, bb:{1:282,2:270,3:261,4:252,5:243,6:234}, rb:{1:470,2:434,3:398,4:364,5:336,6:303} },
 };
 
 // ====== 機種別小役確率（正確な設定値） ======
@@ -129,6 +144,8 @@ const MODEL_RITU = {
   'ハッピージャグラーVIII':   {1:97.3,2:98.5,3:99.7,4:101.6,5:103.8,6:106.8},
   'マイジャグラーV':          {1:97.0,2:98.2,3:99.3,4:101.2,5:103.3,6:106.3},
   'ファンキージャグラー2':    {1:97.0,2:98.1,3:99.3,4:101.2,5:103.3,6:106.6},
+  '新ハナビ':                 {1:98.0,2:99.5,3:101.0,4:103.0,5:105.5,6:108.0},
+  'スマスロハナビ':           {1:97.5,2:99.0,3:100.5,4:102.0,5:104.5,6:107.0},
 };
 
 // ====== 設定推測：ベイズ推定 ======
@@ -142,6 +159,8 @@ const MODEL_WEIGHTS = {
   'ハッピージャグラーVIII':     { bb:0.5, rb:2.0, budo:1.5, cherry:0.3, soloBB:1.0, soloRB:2.0, kadoBB:0.8, kadoRB:2.5 },
   'マイジャグラーV':            { bb:0.5, rb:1.5, budo:1.5, cherry:1.0, soloBB:0.8, soloRB:3.0, kadoBB:0.8, kadoRB:2.0 },
   'ファンキージャグラー2':      { bb:1.5, rb:2.5, budo:1.5, cherry:1.0, soloBB:0.5, soloRB:2.5, kadoBB:0.5, kadoRB:2.0 },
+  '新ハナビ':                  { bb:1.2, rb:1.3, budo:0.2, cherry:0.2, soloBB:0.5, soloRB:0.5, kadoBB:0.3, kadoRB:0.3 },
+  'スマスロハナビ':            { bb:1.2, rb:1.3, budo:0.2, cherry:0.2, soloBB:0.5, soloRB:0.5, kadoBB:0.3, kadoRB:0.3 },
 };
 
 // 小台数機種フラグ（データから動的に計算）
@@ -212,7 +231,27 @@ const MODEL_SCORE_PROFILE = {
   'ハッピージャグラーVIII':     { uiNote:'RBとブドウ補助で判断',                    rbReliance:0.9, synReliance:0.6, budoReliance:0.7 },
   'マイジャグラーV':            { uiNote:'RB重視で判断',                            rbReliance:1.0, synReliance:0.8, budoReliance:0.8 },
   'ファンキージャグラー2':      { uiNote:'RB重視・BB偏り注意',                      rbReliance:1.0, synReliance:0.7, budoReliance:0.7 },
+  '新ハナビ':                  { uiNote:'合算重視（設定2以上基準）',                 rbReliance:0.6, synReliance:1.0, budoReliance:0.0 },
+  'スマスロハナビ':            { uiNote:'合算重視（設定2以上基準）',                 rbReliance:0.6, synReliance:1.0, budoReliance:0.0 },
 };
+
+const MODEL_HIGH_SETTING_MIN_LEVEL = {
+  '新ハナビ': 2,
+  'スマスロハナビ': 2,
+};
+
+const MODEL_GOOD_SYN_THRESHOLD = {
+  '新ハナビ': 148,
+  'スマスロハナビ': 161,
+};
+
+function getHighSettingMinLevel(model) {
+  return MODEL_HIGH_SETTING_MIN_LEVEL[model] || 4;
+}
+
+function getGoodSynThreshold(model) {
+  return MODEL_GOOD_SYN_THRESHOLD[model] || null;
+}
 
 // ポアソン対数尤度（グローバル関数）
 function logLikelihoodPoisson(observed, expected) {
@@ -1922,6 +1961,12 @@ async function renderAnswerTab() {
 // RB確率から推定設定（設定4以上のRB確率に相当するか判定）
 function isHighSetRBLead(model, g, bb, rb) {
   if(!g||!rb||!bb) return false;
+  const synThreshold = getGoodSynThreshold(model);
+  if(synThreshold) {
+    const totalBonus = bb + rb;
+    if(totalBonus <= 0) return false;
+    return (g / totalBonus) <= synThreshold;
+  }
   const actualRB = g / rb;
   const actualBB = g / bb;
   const ms = MODEL_SETTINGS[model];
@@ -2056,13 +2101,14 @@ document.addEventListener('click', e => {
 
 // ====== 行データ正規化（共通） ======
 function normalizeRow(date, dateStr, store, model, taiStr, g, diff, bb, rb) {
+  const normalizedModel = normalizeModelName(model);
   const taiNum = parseInt(taiStr) || 0;
   const s = String(taiNum);
   const day = date.getDate();
   return {
     date, dateStr,
     store: (store || '不明').trim(),
-    model: (model || '').trim(),
+    model: normalizedModel,
     tai: String(taiStr).trim(),
     taiNum,
     g:    g    || 0,
@@ -2076,7 +2122,7 @@ function normalizeRow(date, dateStr, store, model, taiStr, g, diff, bb, rb) {
     isZoro:   isZoroDay(day),
     isTaiZoro:s.length >= 2 && s[s.length-1] === s[s.length-2],
     isRBLead: rb > bb,
-    isHighSetRBLead: isHighSetRBLead(model, g, bb, rb),
+    isHighSetRBLead: isHighSetRBLead(normalizedModel, g, bb, rb),
   };
 }
 
@@ -2842,21 +2888,17 @@ function finishLoad() {
     return false;
   }
   // 機種名の表記揺れを正規化（アナスロの表記ゆれ対応）
-  const MODEL_NAME_MAP = {
-    'ネオアイムジャグラーEX': 'ネオアイムジャグラー',
-    'ジャグラーガールズ':     'ジャグラーガールズSS',
-  };
-  G.raw.forEach(r => { if(MODEL_NAME_MAP[r.model]) r.model = MODEL_NAME_MAP[r.model]; });
+  G.raw.forEach(r => { r.model = normalizeModelName(r.model); });
 
-  // ジャグラー系以外の機種を除外（MODEL_SETTINGS未登録機種はスコアリング不能のため）
+  // 対応外機種を除外（MODEL_SETTINGS未登録機種はスコアリング不能のため）
   const before = G.raw.length;
   G.raw = G.raw.filter(r => MODEL_SETTINGS[r.model]);
   const skipped = before - G.raw.length;
   if(skipped > 0) console.info(`[finishLoad] 非対応機種 ${skipped}行を除外（残:${G.raw.length}行）`);
   if(G.raw.length < 3) {
-    setDataEmptyState(DATA_EMPTY_STATE.EMPTY, 'ジャグラー系データが3件未満です');
+    setDataEmptyState(DATA_EMPTY_STATE.EMPTY, '対応機種データが3件未満です');
     setHeaderDataStatus('データ空', 'error');
-    alert('ジャグラー系のデータが不足しています（3行未満）');
+    alert('対応機種のデータが不足しています（3行未満）');
     return false;
   }
   // 読込時に台別の表示状態を初期化（古いフィルタ状態を持ち越さない）
@@ -3781,6 +3823,12 @@ function scoreTaiRbRate(model, rbRate, totalRB) {
 // Task 5: 合算点関数
 function scoreTaiSynRate(model, synRate, totalBonus) {
   if(!synRate || !totalBonus || totalBonus < 10) return { pts: 0, setLevel: null, valid: false };
+  const synThreshold = getGoodSynThreshold(model);
+  if(synThreshold) {
+    if(synRate <= synThreshold) return { pts: 2, setLevel: 2, valid: true };
+    if(synRate <= synThreshold * 1.05) return { pts: 1, setLevel: 2, valid: true };
+    return { pts: -1, setLevel: 1, valid: true };
+  }
   const ms = MODEL_SETTINGS[model];
   if(!ms) return { pts: 0, setLevel: null, valid: false };
   const syn = ms.syn;
@@ -3932,7 +3980,9 @@ function calcTaiBayesProb(model, totalG, totalBB, totalRB) {
   let probs = logProbs.map(p => Math.exp(p - maxLog));
   const total = probs.reduce((a,b) => a+b, 0);
   probs = probs.map(p => p/total);
-  const result = Math.round((probs[3]+probs[4]+probs[5])*100);
+  const minLevel = getHighSettingMinLevel(model);
+  const startIndex = Math.max(1, Math.min(6, minLevel)) - 1;
+  const result = Math.round(probs.slice(startIndex).reduce((a, b) => a + b, 0) * 100);
   _bayesCache.set(cacheKey, result);
   return result;
 }
@@ -4254,6 +4304,12 @@ function rbRateScore(model, rbRate, totalRB) {
 // 合算確率から数値根拠点を計算
 function synRateScore(model, synRate, totalBonus) {
   if(!synRate || totalBonus < 10) return { pts: 0, label: null };
+  const synThreshold = getGoodSynThreshold(model);
+  if(synThreshold) {
+    if(synRate <= synThreshold)        return { pts: 2, label: `合算確率 1/${synRate}（設定2以上相当）` };
+    if(synRate <= synThreshold * 1.05) return { pts: 1, label: `合算確率 1/${synRate}（設定2付近）` };
+    return { pts: -1, label: `合算確率 1/${synRate}（設定1相当）` };
+  }
   const ms = MODEL_SETTINGS[model];
   if(!ms) return { pts: 0, label: null };
   const th = ms.syn;
