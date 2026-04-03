@@ -47,8 +47,11 @@
 <main>
 
 <section class="card recommendation-section" id="recommendationSection" style="display:none" aria-hidden="true">
-  <div class="card-title">🎯 本日の推薦台</div>
-  <div id="recommendationsList">
+  <button type="button" class="card-title recommendation-toggle" id="recommendationToggle" aria-expanded="false" onclick="toggleRecommendationSection()">
+    <span>🎯 本日の推薦台</span>
+    <span class="recommendation-toggle-icon" aria-hidden="true">▸</span>
+  </button>
+  <div id="recommendationsList" class="recommendation-content" hidden>
     <div class="empty-msg">データを読み込んでください</div>
   </div>
 </section>

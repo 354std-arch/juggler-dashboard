@@ -20,6 +20,7 @@ const GITHUB_TOKEN_STORAGE_KEY = 'github_pat';
 const GITHUB_SESSIONS_REPO = '354std-arch/juggler-dashboard';
 const GITHUB_SESSIONS_BRANCH = 'main';
 const GITHUB_SESSIONS_PATH = 'sessions.json';
+const RECOMMENDATION_EXPANDED_STORAGE_KEY = 'juggler_recommendation_expanded';
 const DATA_EMPTY_STATE = {
   UNLOADED: 'unloaded',
   LOADING: 'loading',
@@ -34,6 +35,7 @@ const DATA_EMPTY_STATE_TEXT = {
   [DATA_EMPTY_STATE.EMPTY]: 'データ空: 読み込んだデータに表示対象がありません',
 };
 let errorToastTimer = null;
+let recommendationExpanded = false;
 
 // ====== 機種別設定値（合成・BB・RB確率の分母） ======
 const MODEL_SETTINGS = {
@@ -1967,6 +1969,35 @@ function updateRecommendationSectionVisibility(activeTabId) {
   el.classList.toggle('visible', visible);
   el.setAttribute('aria-hidden', visible ? 'false' : 'true');
   el.style.display = visible ? '' : 'none';
+}
+
+function loadRecommendationExpandedPreference() {
+  try {
+    return localStorage.getItem(RECOMMENDATION_EXPANDED_STORAGE_KEY) === '1';
+  } catch(_) {
+    return false;
+  }
+}
+
+function saveRecommendationExpandedPreference(isExpanded) {
+  try {
+    localStorage.setItem(RECOMMENDATION_EXPANDED_STORAGE_KEY, isExpanded ? '1' : '0');
+  } catch(_) {}
+}
+
+function setRecommendationExpanded(isExpanded, { persist = true } = {}) {
+  recommendationExpanded = !!isExpanded;
+  const section = document.getElementById('recommendationSection');
+  const toggle = document.getElementById('recommendationToggle');
+  const content = document.getElementById('recommendationsList');
+  if(section) section.classList.toggle('expanded', recommendationExpanded);
+  if(toggle) toggle.setAttribute('aria-expanded', recommendationExpanded ? 'true' : 'false');
+  if(content) content.hidden = !recommendationExpanded;
+  if(persist) saveRecommendationExpandedPreference(recommendationExpanded);
+}
+
+function toggleRecommendationSection() {
+  setRecommendationExpanded(!recommendationExpanded);
 }
 
 function showTab(id, btn) {
@@ -6466,6 +6497,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   targetDayMode = 'today';
   bindTargetDateInputEvents();
   syncTargetModeUI();
+  setRecommendationExpanded(loadRecommendationExpandedPreference(), { persist: false });
   updateRecommendationSectionVisibility(document.querySelector('.tab-content.active')?.id || '');
   initStoreBarEvents();
   restoreGasUrlInput();
