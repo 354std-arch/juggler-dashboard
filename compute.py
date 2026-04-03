@@ -145,6 +145,7 @@ def load_raw():
             rb   = parse_num(row.get("RB"))
             tai_num = int(tai) if tai.isdigit() else 0
             s = str(tai_num)
+            day = dt.day
             ms = MODEL_SETTINGS[model]
             is_high_set_rb = (rb > 0 and bb > 0 and g > 0 and (g/rb) <= ms["rb"][4] and (g/bb) > ms["bb"][4])
             rows.append({
@@ -153,9 +154,10 @@ def load_raw():
                 "tai": tai, "taiNum": tai_num,
                 "g": g, "diff": diff, "bb": bb, "rb": rb,
                 "weight": 2 if dt.date() >= recent_cutoff else 1,
-                "day": dt.day, "weekday": (dt.weekday() + 1) % 7,
+                "day": day, "weekday": (dt.weekday() + 1) % 7,
                 "suef": tai_num % 10,
-                "isZoro": len(s)>=2 and s[-1]==s[-2],
+                "isZoro": day >= 11 and len(str(day)) == 2 and str(day)[0] == str(day)[1],
+                "isTaiZoro": len(s)>=2 and s[-1]==s[-2],
                 "isRBLead": rb > bb,
                 "isHighSetRBLead": is_high_set_rb,
             })
@@ -297,8 +299,7 @@ def compute_model_stats(rows, special):
         # 日にち別・末尾digit別・ゾロ目
         m["by_day"][r["day"]].append(r)
         m["digit"][r["day"] % 10].append(r)
-        day_str = str(r["day"])
-        if len(set(day_str)) == 1:
+        if r["isZoro"]:
             m["zoro"].append(r)
     result = []
     for model, m in by_model.items():

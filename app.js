@@ -1674,6 +1674,13 @@ function parseYmdLocal(ymd) {
   return dt;
 }
 
+function isZoroDay(day) {
+  const d = Number(day);
+  if(!Number.isInteger(d) || d < 11) return false;
+  const s = String(d);
+  return s.length === 2 && s[0] === s[1];
+}
+
 function cloneLocalDate(date) {
   if(!(date instanceof Date) || isNaN(date)) return null;
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -1727,9 +1734,15 @@ function getActiveTargetDate() {
 }
 
 function isTodayAnalysisAvailableForSelectedDate() {
-  if(!G._precomputed || !G.todayAnalysis || targetDayMode !== 'today') return false;
+  if(!G._precomputed || !G.todayAnalysis) return false;
   const d = getActiveTargetDate();
-  return !!d && toYmdLocal(d) === G.todayAnalysis.date;
+  const base = parseYmdLocal(String(G.todayAnalysis.date || '').trim());
+  if(!d || !base) return false;
+  const selected = toYmdLocal(d);
+  const candidates = [base, addDaysLocal(base, -1), addDaysLocal(base, 1)]
+    .filter(Boolean)
+    .map(toYmdLocal);
+  return candidates.includes(selected);
 }
 
 function syncTargetModeUI() {
@@ -1761,10 +1774,14 @@ function setTargetDayMode(mode) {
 }
 
 function onDiagDateChange() {
-  const date = getActiveTargetDate();
-  const ymd = date ? toYmdLocal(date) : '';
+  const input = document.getElementById('diagDate');
+  const parsed = parseYmdLocal(input?.value || '');
+  if(!parsed) return;
+  const ymd = toYmdLocal(parsed);
+  const today = toYmdLocal(getTodayLocalDate());
   const tomorrow = toYmdLocal(getTomorrowLocalDate());
-  targetDayMode = (ymd === tomorrow) ? 'tomorrow' : 'today';
+  if(ymd === tomorrow) targetDayMode = 'tomorrow';
+  else if(ymd === today) targetDayMode = 'today';
   syncTargetModeUI();
   renderLayer1();
 }
@@ -2010,6 +2027,7 @@ document.addEventListener('click', e => {
 function normalizeRow(date, dateStr, store, model, taiStr, g, diff, bb, rb) {
   const taiNum = parseInt(taiStr) || 0;
   const s = String(taiNum);
+  const day = date.getDate();
   return {
     date, dateStr,
     store: (store || '不明').trim(),
@@ -2021,10 +2039,11 @@ function normalizeRow(date, dateStr, store, model, taiStr, g, diff, bb, rb) {
     sai:  diff || 0,
     bb:   bb   || 0,
     rb:   rb   || 0,
-    day:      date.getDate(),
+    day,
     weekday:  date.getDay(),
     suef:     taiNum % 10,
-    isZoro:   s.length >= 2 && s[s.length-1] === s[s.length-2],
+    isZoro:   isZoroDay(day),
+    isTaiZoro:s.length >= 2 && s[s.length-1] === s[s.length-2],
     isRBLead: rb > bb,
     isHighSetRBLead: isHighSetRBLead(model, g, bb, rb),
   };
@@ -5633,10 +5652,56 @@ function getModelFilteredRows() {
   if(currentModelSpFilter==='all') return rows;
   if(currentModelSpFilter==='sp') return rows.filter(r=>SP.includes(r.day));
   if(currentModelSpFilter==='nm') return rows.filter(r=>!SP.includes(r.day));
-  if(currentModelSpFilter==='zoro') return rows.filter(r=>r.isZoro);
+  if(currentModelSpFilter==='zoro') return rows.filter(r=>isZoroDay(r.day));
   const digit = parseInt(currentModelSpFilter.replace('digit_',''));
   if(!isNaN(digit)) return rows.filter(r=>r.day%10===digit);
   return rows;
+}
+
+function toDayDiffStat(value) {
+  if(Array.isArray(value)) {
+    const nums = value.map(Number).filter(Number.isFinite);
+    return { sum: nums.reduce((a,b)=>a+b,0), count: nums.length };
+  }
+  const direct = Number(value);
+  if(Number.isFinite(direct)) return { sum: direct, count: 1 };
+  if(value && typeof value === 'object') {
+    const diffs = Array.isArray(value.diffs) ? value.diffs : (Array.isArray(value.values) ? value.values : null);
+    if(diffs) {
+      const nums = diffs.map(Number).filter(Number.isFinite);
+      return { sum: nums.reduce((a,b)=>a+b,0), count: nums.length };
+    }
+    const avgVal = Number(value.avg);
+    if(Number.isFinite(avgVal)) {
+      const rawCount = Number(value.count);
+      const count = Number.isFinite(rawCount) && rawCount > 0 ? rawCount : 1;
+      return { sum: avgVal * count, count };
+    }
+  }
+  return { sum: 0, count: 0 };
+}
+
+function getModelByDayStats(modelStat) {
+  const stats = {};
+  Object.entries(modelStat?.byDay || {}).forEach(([k, v]) => {
+    const day = Number(k);
+    if(!Number.isInteger(day) || day < 1 || day > 31) return;
+    const s = toDayDiffStat(v);
+    if(s.count > 0) stats[day] = s;
+  });
+  return stats;
+}
+
+function aggregateByDayStats(byDayStats, predicate) {
+  let sum = 0;
+  let count = 0;
+  Object.entries(byDayStats).forEach(([k, s]) => {
+    const day = Number(k);
+    if(!predicate(day, s)) return;
+    sum += Number(s.sum || 0);
+    count += Number(s.count || 0);
+  });
+  return { avg: count > 0 ? round1(sum / count) : null, count };
 }
 
 function renderModelComp() {
@@ -5651,19 +5716,41 @@ function renderModelComp() {
     const isZoro = currentModelSpFilter === 'zoro';
     const digitMatch = currentModelSpFilter.startsWith('digit_')
       ? currentModelSpFilter.replace('digit_', '') : null;
-    const allAvgDiff = round1(avg(G.modelStats.map(m=>m.allAvg)));
+    const allAvgValues = G.modelStats.map(m => Number(m.allAvg)).filter(Number.isFinite);
+    const allAvgDiff = allAvgValues.length ? round1(avg(allAvgValues)) : 0;
 
     const data = G.modelStats.map(m => {
+      const byDayStats = getModelByDayStats(m);
       let a, count;
       if(isSpecial) { a = m.spAvg; count = m.spCount; }
       else if(isNormal) { a = m.nmAvg; count = m.nmCount; }
       else if(isZoro) {
-        a = m.zoroAvg ?? null; count = m.zoroCount ?? 0;
+        const z = aggregateByDayStats(byDayStats, day => isZoroDay(day));
+        const zoroAvg = Number(m.zoroAvg);
+        const zoroCount = Number(m.zoroCount);
+        if(z.count > 0) {
+          a = z.avg;
+          count = z.count;
+        } else {
+          const hasPrecomputed = Number.isFinite(zoroAvg) && zoroCount > 0;
+          a = hasPrecomputed ? zoroAvg : null;
+          count = hasPrecomputed ? zoroCount : 0;
+        }
       } else if(digitMatch !== null) {
         const d = m.digitAvg?.[digitMatch];
-        a = d?.avg ?? null; count = d?.count ?? 0;
+        const dAvg = Number(d?.avg);
+        const dCount = Number(d?.count);
+        if(Number.isFinite(dAvg) && dCount > 0) {
+          a = dAvg;
+          count = dCount;
+        } else {
+          const digit = Number(digitMatch);
+          const derived = aggregateByDayStats(byDayStats, day => day % 10 === digit);
+          a = derived.avg;
+          count = derived.count;
+        }
       } else { a = m.allAvg; count = m.count; }
-      if(a === null || a === undefined) return null;
+      if(a === null || a === undefined || !Number.isFinite(Number(a))) return null;
       const lift = round1(a - allAvgDiff);
       return {model:m.model, avg:a, count, mechRitu:m.mechRitu, lift};
     }).filter(Boolean).sort((a,b)=>b.avg-a.avg);
@@ -5819,30 +5906,37 @@ function renderModelDayBar() {
   const m = G.modelStats.find(x => x.model === currentModelFilter);
   if(!m) return;
 
-  // byDay が precomputed に含まれていない場合は G.raw から動的集計
-  let byDay = (m.byDay && typeof m.byDay === 'object' && !Array.isArray(m.byDay)) ? m.byDay : null;
-  if(!byDay || Object.keys(byDay).length === 0) {
-    byDay = {};
+  // byDay は配列/平均値/オブジェクトの混在を許容して正規化する
+  let byDayStats = getModelByDayStats(m);
+  if(Object.keys(byDayStats).length === 0) {
+    const fallbackByDay = {};
     const rows = (filteredRows() || []).filter(r => r != null && r.model === currentModelFilter);
     rows.forEach(r => {
       const dayKey = r.day;
       if(dayKey == null) return;
-      if(!byDay[dayKey]) byDay[dayKey] = [];
-      if(r.diff != null) byDay[dayKey].push(r.diff);
+      if(!fallbackByDay[dayKey]) fallbackByDay[dayKey] = [];
+      if(r.diff != null) fallbackByDay[dayKey].push(r.diff);
     });
+    byDayStats = getModelByDayStats({ byDay: fallbackByDay });
   }
 
   const days = Array.from({length:31}, (_, i) => i+1).filter(d => {
-    const v = byDay[d];
-    return Array.isArray(v) && v.length > 0;
+    const s = byDayStats[d];
+    return !!s && s.count > 0;
   });
   if(!days.length) {
     document.getElementById('modelDayBar').innerHTML = '<div class="empty-msg">ℹ️ この機種のデータがありません</div>';
     return;
   }
-  const maxAbs = Math.max(...days.map(d => Math.abs(avg(byDay[d] || []))), 1);
+  const maxAbs = Math.max(...days.map(d => {
+    const s = byDayStats[d];
+    return Math.abs((s && s.count > 0) ? (s.sum / s.count) : 0);
+  }), 1);
   document.getElementById('modelDayBar').innerHTML = days.map(d => {
-    const a = round1(avg(byDay[d] || [])); const pct = Math.abs(a) / maxAbs * 100; const isSp = SP.includes(d);
+    const s = byDayStats[d];
+    const a = round1((s && s.count > 0) ? (s.sum / s.count) : 0);
+    const pct = Math.abs(a) / maxAbs * 100;
+    const isSp = SP.includes(d);
     return`<div class="bar-row">
       <div class="bar-label" style="${isSp?'color:var(--accent3)':''}">${d}${isSp?'★':''}</div>
       <div class="bar-bg"><div class="bar-fill ${a>=0?'pos':'neg'}" style="width:${pct}%"></div></div>
@@ -6377,12 +6471,18 @@ window.addEventListener('DOMContentLoaded',()=>{
   restoreGasUrlInput();
   if(window._PRELOAD&&window._PRELOAD.length){
     if(window._SPECIAL_STORE) SPECIAL_BY_STORE=window._SPECIAL_STORE;
-    G.raw=window._PRELOAD.map(r=>({
-      ...r,
-      date:new Date(r.date),
-      isRBLead:r.rb>r.bb,
-      isHighSetRBLead: isHighSetRBLead(r.model, r.g, r.bb, r.rb),
-    }));
+    G.raw=window._PRELOAD.map(r=>{
+      const dt = new Date(r.date);
+      const day = dt.getDate();
+      return {
+        ...r,
+        date: dt,
+        day,
+        isZoro: isZoroDay(day),
+        isRBLead:r.rb>r.bb,
+        isHighSetRBLead: isHighSetRBLead(r.model, r.g, r.bb, r.rb),
+      };
+    });
     G.stores=['all',...new Set(G.raw.map(r=>r.store))];
     setTimeout(() => { compute(); renderStoreBar(); renderAll(); showStatus(); }, 0);
   }
