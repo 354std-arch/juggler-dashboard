@@ -34,7 +34,9 @@
       "source": "minrepo",
       "added_date": "2026-04-04",
       "score": 0.0,
-      "exchange_rate": 5.0
+      "exchange_rate": 5.0,
+      "backfilled": true,
+      "backfilled_date": "2026-04-04"
     },
     {
       "name": "ギンザホール707",
@@ -42,7 +44,9 @@
       "source": "minrepo",
       "added_date": "2026-04-04",
       "score": 0.0,
-      "exchange_rate": 5.0
+      "exchange_rate": 5.0,
+      "backfilled": true,
+      "backfilled_date": "2026-04-04"
     },
     {
       "name": "ジアスセンター南",
@@ -50,7 +54,9 @@
       "source": "minrepo",
       "added_date": "2026-04-04",
       "score": 0.0,
-      "exchange_rate": 5.0
+      "exchange_rate": 5.0,
+      "backfilled": true,
+      "backfilled_date": "2026-04-04"
     },
     {
       "name": "マルハンメガシティ横浜町田",
@@ -58,7 +64,9 @@
       "source": "minrepo",
       "added_date": "2026-04-04",
       "score": 0.0,
-      "exchange_rate": 5.0
+      "exchange_rate": 5.0,
+      "backfilled": true,
+      "backfilled_date": "2026-04-04"
     },
     {
       "name": "SKIP関内店",
