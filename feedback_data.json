@@ -1,0 +1,22 @@
+﻿{
+  "updated_at": "2026-04-04",
+  "threshold_p_high": 60.0,
+  "ema_decay": 0.9,
+  "base_alpha": 1.0,
+  "base_beta": 1.0,
+  "alpha": 1.0,
+  "beta": 1.0,
+  "posterior_mean": 0.5,
+  "total_hits": 0,
+  "total_misses": 0,
+  "processed_session_ids": [],
+  "updates": [],
+  "last_run": {
+    "sessions_total": 0,
+    "sessions_target": 0,
+    "new_updates": 0,
+    "pending_sessions": 0,
+    "skipped_low_p": 0,
+    "skipped_unsupported_model": 0
+  }
+}

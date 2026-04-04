@@ -31,6 +31,9 @@ jobs:
       - name: Run juggler scrape
         run: python scrape_juggler.py
 
+      - name: Run feedback
+        run: python feedback.py
+
       - name: Run compute
         run: python compute.py
 
@@ -38,7 +41,7 @@ jobs:
         run: |
           git config user.email "action@github.com"
           git config user.name "GitHub Actions"
-          git add data.json raw_data.csv store_list.json
+          git add data.json raw_data.csv store_list.json feedback_data.json
           [ -f store_freshness.json ] && git add store_freshness.json || true
           git diff --cached --quiet || git commit -m "auto: update data.json $(date +'%Y-%m-%d')"
           git push

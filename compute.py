@@ -5,6 +5,7 @@ from collections import defaultdict
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_CSV  = os.path.join(REPO_DIR, "raw_data.csv")
 STORE_FRESHNESS_JSON = os.path.join(REPO_DIR, "store_freshness.json")
+FEEDBACK_JSON = os.path.join(REPO_DIR, "feedback_data.json")
 JST = timezone(timedelta(hours=9))
 
 WEEKDAY_COEFF = {0:1.0, 1:1.0, 2:1.0, 3:1.0, 4:1.1, 5:1.2, 6:1.2}
@@ -52,6 +53,13 @@ MODEL_HIGH_SETTING_MIN = {
 MODEL_GOOD_SYN_THRESHOLD = {
     "新ハナビ": 148,
     "スマスロハナビ": 161,
+}
+
+FEEDBACK_PRIOR = {
+    "alpha": 1.0,
+    "beta": 1.0,
+    "highProb": 0.5,
+    "source": "default",
 }
 
 def r1(v): return round(v*10)/10
@@ -103,6 +111,59 @@ def load_store_freshness():
             return data if isinstance(data, dict) else {}
     except Exception:
         return {}
+
+def load_feedback_prior():
+    default = {
+        "alpha": 1.0,
+        "beta": 1.0,
+        "highProb": 0.5,
+        "source": "default",
+    }
+    if not os.path.exists(FEEDBACK_JSON):
+        return default
+    try:
+        with open(FEEDBACK_JSON, encoding="utf-8-sig") as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"⚠️ feedback_data.json読み込み失敗: {e}")
+        return default
+    if not isinstance(data, dict):
+        return default
+    alpha = parse_num(data.get("alpha"))
+    beta = parse_num(data.get("beta"))
+    if alpha <= 0 or beta <= 0:
+        return default
+    high_prob = alpha / (alpha + beta)
+    high_prob = max(0.05, min(0.95, high_prob))
+    return {
+        "alpha": alpha,
+        "beta": beta,
+        "highProb": high_prob,
+        "source": "feedback_data.json",
+    }
+
+def build_setting_priors(model):
+    high_prob = FEEDBACK_PRIOR.get("highProb", 0.5)
+    high_min = MODEL_HIGH_SETTING_MIN.get(model, 4)
+    high_settings = [s for s in range(high_min, 7)]
+    low_settings = [s for s in range(1, 7) if s < high_min]
+    if not high_settings:
+        return {s: 1/6 for s in [1,2,3,4,5,6]}
+    priors = {}
+    if low_settings:
+        low_each = (1 - high_prob) / len(low_settings)
+        for s in low_settings:
+            priors[s] = low_each
+    high_each = high_prob / len(high_settings)
+    for s in high_settings:
+        priors[s] = high_each
+    for s in [1,2,3,4,5,6]:
+        if s not in priors:
+            priors[s] = 1e-9
+    total = sum(priors.values())
+    if total <= 0:
+        return {s: 1/6 for s in [1,2,3,4,5,6]}
+    return {s: max(1e-9, priors[s] / total) for s in [1,2,3,4,5,6]}
 
 def get_monthly_timing_coeff(day: int) -> float:
     if day in (24, 25, 26):
@@ -197,6 +258,7 @@ def load_raw():
 def calc_bayes_prob(model, total_g, total_bb, total_rb):
     ms = MODEL_SETTINGS.get(model)
     if not ms or total_g < 100: return None
+    priors = build_setting_priors(model)
     log_probs = []
     for s in [1,2,3,4,5,6]:
         log_l = 0
@@ -206,7 +268,7 @@ def calc_bayes_prob(model, total_g, total_bb, total_rb):
         if total_rb > 0:
             exp_rb = total_g / ms["rb"][s]
             log_l += total_rb * math.log(exp_rb) - exp_rb
-        log_probs.append(math.log(1/6) + log_l)
+        log_probs.append(math.log(max(1e-9, priors[s])) + log_l)
     max_log = max(log_probs)
     probs = [math.exp(p - max_log) for p in log_probs]
     total = sum(probs)
@@ -718,6 +780,12 @@ def build_store_accuracy(by_store, answer_check):
 
 if __name__ == "__main__":
     print("=== compute.py 開始 ===")
+    FEEDBACK_PRIOR = load_feedback_prior()
+    print(
+        "feedback prior:"
+        f" source={FEEDBACK_PRIOR.get('source')}"
+        f" highProb={round(FEEDBACK_PRIOR.get('highProb', 0.5) * 100, 1)}%"
+    )
     today = jst_today()
     rows = load_raw()
     if not rows:
