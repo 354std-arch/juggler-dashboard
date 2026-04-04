@@ -1,9 +1,10 @@
+import argparse
 import csv
 import json
 import os
 import time
 from datetime import date, datetime, timedelta, timezone
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import quote
 
 import requests
@@ -39,12 +40,12 @@ NORMAL_TYPE_KEYWORDS = [
     "タコスロ",
 ]
 
-REQUEST_TIMEOUT_SECONDS = 30
-REQUEST_RETRY_MAX = 3
-REQUEST_RETRY_WAIT_SECONDS = 5
-PAGE_INTERVAL_SECONDS = 3
-STORE_INTERVAL_SECONDS = 10
-BACKFILL_DAYS = 365
+DEFAULT_REQUEST_TIMEOUT_SECONDS = 30
+DEFAULT_REQUEST_RETRY_MAX = 3
+DEFAULT_REQUEST_RETRY_WAIT_SECONDS = 5.0
+DEFAULT_PAGE_INTERVAL_SECONDS = 3.0
+DEFAULT_STORE_INTERVAL_SECONDS = 10.0
+DEFAULT_BACKFILL_DAYS = 365
 JST = timezone(timedelta(hours=9))
 
 
@@ -64,10 +65,60 @@ def jst_today() -> date:
     return datetime.now(JST).date()
 
 
+def parse_iso_date(value: Optional[str], label: str) -> Optional[date]:
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        raise ValueError(f"{label} は YYYY-MM-DD 形式で指定してください: {value}") from None
+
+
+def resolve_date_window(
+    today: date,
+    start_date_arg: Optional[str],
+    end_date_arg: Optional[str],
+    backfill_days: int,
+) -> Tuple[date, date]:
+    if backfill_days < 1:
+        raise ValueError("--backfill-days は1以上で指定してください")
+
+    default_start = today - timedelta(days=backfill_days)
+    default_end = today - timedelta(days=1)
+
+    start_date = parse_iso_date(start_date_arg, "--start-date") or default_start
+    end_date = parse_iso_date(end_date_arg, "--end-date") or default_end
+
+    if end_date >= today:
+        log_warn(f"--end-date={end_date.isoformat()} は未来日を含むため {default_end.isoformat()} に補正します")
+        end_date = default_end
+
+    if start_date > end_date:
+        raise ValueError(
+            f"対象期間が不正です: start={start_date.isoformat()} end={end_date.isoformat()}"
+        )
+
+    return start_date, end_date
+
+
 def slug_from_store_name(store_name: str) -> str:
     if store_name in KNOWN_SLUG_BY_NAME:
         return KNOWN_SLUG_BY_NAME[store_name]
     return f"{quote(store_name, safe='').lower()}-data"
+
+
+def parse_csv_list(value: Optional[str]) -> List[str]:
+    if not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def resolve_store_slug(store: Dict) -> str:
+    slug = str(store.get("slug", "")).strip()
+    if slug:
+        return slug
+    store_name = str(store.get("name", "")).strip()
+    return slug_from_store_name(store_name)
 
 
 def is_normal_type(machine_name: str) -> bool:
@@ -115,9 +166,16 @@ def load_existing_store_names_from_raw() -> set:
     return names
 
 
-def find_backfill_targets(store_list: Dict, existing_store_names: set) -> List[Dict]:
+def find_backfill_targets(
+    store_list: Dict,
+    existing_store_names: set,
+    include_existing_stores: bool,
+    selected_store_names: Optional[set] = None,
+) -> List[Dict]:
     targets = []
     seen = set()
+    selected = selected_store_names or set()
+    explicit_selection = bool(selected)
 
     for store in store_list.get("stores", []):
         if not isinstance(store, dict):
@@ -131,11 +189,13 @@ def find_backfill_targets(store_list: Dict, existing_store_names: set) -> List[D
             continue
         seen.add(store_name)
 
+        if explicit_selection and store_name not in selected:
+            continue
         if source != "minrepo":
             continue
-        if is_backfilled:
+        if (not explicit_selection) and is_backfilled:
             continue
-        if store_name in existing_store_names:
+        if (not explicit_selection) and (not include_existing_stores) and store_name in existing_store_names:
             continue
 
         targets.append(store)
@@ -143,29 +203,49 @@ def find_backfill_targets(store_list: Dict, existing_store_names: set) -> List[D
     return targets
 
 
-def request_with_retry(url: str) -> Tuple[str, bool]:
+def request_with_retry(
+    url: str,
+    timeout_seconds: int,
+    retry_max: int,
+    retry_wait_seconds: float,
+) -> Tuple[str, bool, str]:
+    if retry_max < 1:
+        retry_max = 1
+
     last_error = ""
 
-    for attempt in range(1, REQUEST_RETRY_MAX + 1):
+    for attempt in range(1, retry_max + 1):
         try:
-            response = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT_SECONDS)
+            response = requests.get(url, headers=HEADERS, timeout=timeout_seconds)
             if response.status_code == 200:
-                return response.text, True
+                return response.text, True, ""
             last_error = f"HTTP {response.status_code}"
         except Exception as exc:  # pylint: disable=broad-except
             last_error = str(exc)
 
-        if attempt < REQUEST_RETRY_MAX:
-            log_warn(f"リトライ {attempt}/{REQUEST_RETRY_MAX - 1}: {url} ({last_error})")
-            time.sleep(REQUEST_RETRY_WAIT_SECONDS)
+        if attempt < retry_max and retry_wait_seconds > 0:
+            log_warn(f"リトライ {attempt}/{retry_max - 1}: {url} ({last_error})")
+            time.sleep(retry_wait_seconds)
 
     log_error(f"リクエスト失敗: {url} ({last_error})")
-    return "", False
+    return "", False, last_error
 
 
-def scrape_day(target_date: str, store_name: str, slug: str) -> Tuple[List[Dict[str, str]], bool]:
+def scrape_day(
+    target_date: str,
+    store_name: str,
+    slug: str,
+    request_timeout_seconds: int,
+    request_retry_max: int,
+    request_retry_wait_seconds: float,
+) -> Tuple[List[Dict[str, str]], bool]:
     url = f"https://ana-slo.com/{target_date}-{slug}/"
-    html, ok = request_with_retry(url)
+    html, ok, _ = request_with_retry(
+        url,
+        timeout_seconds=request_timeout_seconds,
+        retry_max=request_retry_max,
+        retry_wait_seconds=request_retry_wait_seconds,
+    )
     if not ok:
         return [], False
 
@@ -242,10 +322,7 @@ def save_to_csv(rows: List[Dict[str, str]]) -> int:
     return replaced + appended
 
 
-def date_window(today: date) -> List[str]:
-    start_date = today - timedelta(days=BACKFILL_DAYS)
-    end_date = today - timedelta(days=1)
-
+def date_window(start_date: date, end_date: date) -> List[str]:
     dates = []
     cursor = start_date
     while cursor <= end_date:
@@ -254,39 +331,133 @@ def date_window(today: date) -> List[str]:
     return dates
 
 
-def main() -> int:
-    today = jst_today()
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="新規 minrepo 店舗の過去データを ana-slo からバックフィルします")
+    parser.add_argument("--start-date", type=str, default=None, help="開始日 (YYYY-MM-DD)")
+    parser.add_argument("--end-date", type=str, default=None, help="終了日 (YYYY-MM-DD)。未指定時は前日")
+    parser.add_argument(
+        "--backfill-days",
+        type=int,
+        default=DEFAULT_BACKFILL_DAYS,
+        help="開始日/終了日未指定時の遡り日数",
+    )
+    parser.add_argument(
+        "--include-existing-stores",
+        action="store_true",
+        help="raw_data.csv に既存行がある店舗も対象に含める",
+    )
+    parser.add_argument(
+        "--request-timeout-seconds",
+        type=int,
+        default=DEFAULT_REQUEST_TIMEOUT_SECONDS,
+        help="HTTP リクエストタイムアウト秒",
+    )
+    parser.add_argument(
+        "--request-retry-max",
+        type=int,
+        default=DEFAULT_REQUEST_RETRY_MAX,
+        help="HTTP リクエストの最大試行回数",
+    )
+    parser.add_argument(
+        "--request-retry-wait-seconds",
+        type=float,
+        default=DEFAULT_REQUEST_RETRY_WAIT_SECONDS,
+        help="HTTP リトライ待機秒",
+    )
+    parser.add_argument(
+        "--page-interval-seconds",
+        type=float,
+        default=DEFAULT_PAGE_INTERVAL_SECONDS,
+        help="1日ごとの取得間隔秒",
+    )
+    parser.add_argument(
+        "--store-interval-seconds",
+        type=float,
+        default=DEFAULT_STORE_INTERVAL_SECONDS,
+        help="店舗ごとの取得間隔秒",
+    )
+    parser.add_argument(
+        "--stores",
+        type=str,
+        default=None,
+        help="対象店舗名をカンマ区切りで指定（指定時は backfilled 状態を無視）",
+    )
+    return parser
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    args = build_arg_parser().parse_args(argv)
+
+    try:
+        today = jst_today()
+        targets_start, targets_end = resolve_date_window(
+            today=today,
+            start_date_arg=args.start_date,
+            end_date_arg=args.end_date,
+            backfill_days=args.backfill_days,
+        )
+    except ValueError as exc:
+        log_error(str(exc))
+        return 1
+
     today_str = today.isoformat()
-    targets_start = today - timedelta(days=BACKFILL_DAYS)
-    targets_end = today - timedelta(days=1)
 
     log_info("===== 新規店舗バックフィル開始 =====")
-    log_info(f"対象期間: {targets_start.isoformat()} 〜 {targets_end.isoformat()} ({BACKFILL_DAYS}日)")
+    log_info(
+        f"対象期間: {targets_start.isoformat()} 〜 {targets_end.isoformat()} "
+        f"({(targets_end - targets_start).days + 1}日)"
+    )
 
     store_list = load_store_list()
     existing_store_names = load_existing_store_names_from_raw()
-    targets = find_backfill_targets(store_list, existing_store_names)
+    selected_store_names = set(parse_csv_list(args.stores))
+    if selected_store_names:
+        log_info(f"明示指定店舗: {', '.join(sorted(selected_store_names))}")
+
+    targets = find_backfill_targets(
+        store_list=store_list,
+        existing_store_names=existing_store_names,
+        include_existing_stores=args.include_existing_stores,
+        selected_store_names=selected_store_names,
+    )
 
     if not targets:
         log_info("バックフィル対象の店舗はありません")
         return 0
 
-    target_dates = date_window(today)
+    _, reachable, err = request_with_retry(
+        "https://ana-slo.com/",
+        timeout_seconds=args.request_timeout_seconds,
+        retry_max=1,
+        retry_wait_seconds=0,
+    )
+    if not reachable:
+        log_error(f"ana-slo.com に接続できないため中断します: {err}")
+        return 1
+
+    target_dates = date_window(targets_start, targets_end)
     all_new_rows: List[Dict[str, str]] = []
     success_count = 0
     failure_count = 0
 
     for index, store in enumerate(targets, start=1):
         store_name = str(store.get("name", "")).strip()
-        slug = slug_from_store_name(store_name)
+        slug = resolve_store_slug(store)
 
-        log_info(f"[{index}/{len(targets)}] 店舗開始: {store_name}")
+        log_info(f"[{index}/{len(targets)}] 店舗開始: {store_name} (slug={slug})")
 
         store_rows: List[Dict[str, str]] = []
         store_failed = False
 
         for day_index, target_date in enumerate(target_dates, start=1):
-            rows, ok = scrape_day(target_date, store_name, slug)
+            rows, ok = scrape_day(
+                target_date=target_date,
+                store_name=store_name,
+                slug=slug,
+                request_timeout_seconds=args.request_timeout_seconds,
+                request_retry_max=args.request_retry_max,
+                request_retry_wait_seconds=args.request_retry_wait_seconds,
+            )
             if not ok:
                 store_failed = True
             store_rows.extend(rows)
@@ -296,8 +467,8 @@ def main() -> int:
                     f"  進捗 {store_name}: {day_index}/{len(target_dates)}日 ({len(store_rows)}行取得)"
                 )
 
-            if day_index < len(target_dates):
-                time.sleep(PAGE_INTERVAL_SECONDS)
+            if day_index < len(target_dates) and args.page_interval_seconds > 0:
+                time.sleep(args.page_interval_seconds)
 
         if store_failed:
             failure_count += 1
@@ -309,15 +480,16 @@ def main() -> int:
             all_new_rows.extend(store_rows)
             log_info(f"店舗完了: {store_name} ({len(store_rows)}行)")
 
-        if index < len(targets):
-            time.sleep(STORE_INTERVAL_SECONDS)
+        if index < len(targets) and args.store_interval_seconds > 0:
+            time.sleep(args.store_interval_seconds)
 
     saved_rows = save_to_csv(all_new_rows)
     save_store_list(store_list)
 
     log_info("===== 新規店舗バックフィル終了 =====")
     log_info(
-        f"サマリー: 対象店舗={len(targets)}, 成功={success_count}, 失敗={failure_count}, CSV更新行={saved_rows}"
+        f"サマリー: 対象店舗={len(targets)}, 成功={success_count}, "
+        f"失敗={failure_count}, CSV更新行={saved_rows}"
     )
 
     return 0 if failure_count == 0 else 1
