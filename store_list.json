@@ -75,7 +75,9 @@
       "added_date": "2026-04-04",
       "score": 0.0,
       "exchange_rate": 5.0,
-      "slug": "skip%e3%82%b9%e3%83%ad%e3%83%83%e3%83%88%e3%82%af%e3%83%a9%e3%83%96%e9%96%a2%e5%86%85%e5%ba%97"
+      "slug": "skip%e3%82%b9%e3%83%ad%e3%83%83%e3%83%88%e3%82%af%e3%83%a9%e3%83%96%e9%96%a2%e5%86%85%e5%ba%97",
+      "backfilled": true,
+      "backfilled_date": "2026-04-04"
     }
   ]
 }
