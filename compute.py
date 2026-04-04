@@ -5,6 +5,7 @@ from collections import defaultdict
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_CSV  = os.path.join(REPO_DIR, "raw_data.csv")
 STORE_FRESHNESS_JSON = os.path.join(REPO_DIR, "store_freshness.json")
+STORE_LIST_JSON = os.path.join(REPO_DIR, "store_list.json")
 FEEDBACK_JSON = os.path.join(REPO_DIR, "feedback_data.json")
 JST = timezone(timedelta(hours=9))
 
@@ -225,6 +226,45 @@ def load_store_freshness():
             return data if isinstance(data, dict) else {}
     except Exception:
         return {}
+
+def load_store_list_names():
+    if not os.path.exists(STORE_LIST_JSON):
+        return []
+    try:
+        with open(STORE_LIST_JSON, encoding="utf-8") as f:
+            payload = json.load(f)
+    except Exception:
+        return []
+    stores = payload.get("stores", []) if isinstance(payload, dict) else []
+    if not isinstance(stores, list):
+        return []
+    names = []
+    seen = set()
+    for store in stores:
+        if not isinstance(store, dict):
+            continue
+        name = str(store.get("name", "")).strip()
+        if not name or name in seen:
+            continue
+        names.append(name)
+        seen.add(name)
+    return names
+
+def build_store_display_order(stores_with_data):
+    if not stores_with_data:
+        return []
+    data_set = set(stores_with_data)
+    ordered = []
+    seen = set()
+    for name in load_store_list_names():
+        if name in data_set and name not in seen:
+            ordered.append(name)
+            seen.add(name)
+    for name in sorted(data_set):
+        if name not in seen:
+            ordered.append(name)
+            seen.add(name)
+    return ordered
 
 def load_feedback_prior():
     default = {
@@ -945,11 +985,11 @@ if __name__ == "__main__":
         print("データがありません。終了します。")
         exit(1)
     all_stores = sorted(set(r["store"] for r in rows))
-    main_stores = [s for s in all_stores if s != "中山ZoRoN"]
+    display_stores = build_store_display_order(all_stores)
     output = {
         "updated_at": datetime.now(JST).date().strftime("%Y-%m-%d"),
         "store_freshness": load_store_freshness(),
-        "stores": main_stores,
+        "stores": display_stores,
         "specialByStore": STORE_SPECIAL,
         "score_coefficients": {
             "weekday": WEEKDAY_COEFF,
