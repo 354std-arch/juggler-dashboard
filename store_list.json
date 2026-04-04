@@ -27,6 +27,46 @@
       "source": "manual",
       "added_date": "2026-04-01",
       "score": 0.0
+    },
+    {
+      "name": "中山ZoRoN",
+      "area": "横浜",
+      "source": "minrepo",
+      "added_date": "2026-04-04",
+      "score": 0.0,
+      "exchange_rate": 5.0
+    },
+    {
+      "name": "ギンザホール707",
+      "area": "横浜",
+      "source": "minrepo",
+      "added_date": "2026-04-04",
+      "score": 0.0,
+      "exchange_rate": 5.0
+    },
+    {
+      "name": "ジアスセンター南",
+      "area": "横浜",
+      "source": "minrepo",
+      "added_date": "2026-04-04",
+      "score": 0.0,
+      "exchange_rate": 5.0
+    },
+    {
+      "name": "マルハンメガシティ横浜町田",
+      "area": "横浜",
+      "source": "minrepo",
+      "added_date": "2026-04-04",
+      "score": 0.0,
+      "exchange_rate": 5.0
+    },
+    {
+      "name": "SKIP関内店",
+      "area": "横浜",
+      "source": "minrepo",
+      "added_date": "2026-04-04",
+      "score": 0.0,
+      "exchange_rate": 5.0
     }
   ]
 }
