@@ -257,25 +257,38 @@ def scrape_day(
     rows = []
     for tr in table.find_all("tr")[1:]:
         cols = [td.get_text(strip=True) for td in tr.find_all("td")]
-        if len(cols) < 11:
+        n = len(cols)
+        if n < 8:
             continue
         if not is_normal_type(cols[0]):
             continue
-        rows.append(
-            {
-                "日付": target_date,
-                "店名": store_name,
-                "機種名": cols[0],
-                "台番号": cols[1],
-                "G数": cols[2],
-                "差枚": cols[3],
-                "BB": cols[4],
-                "RB": cols[5],
-                "合成確率": cols[7],
-                "BB確率": cols[8],
-                "RB確率": cols[9],
+        if n >= 11:
+            # 11列以上: 機種名,台番号,G数,差枚,BB,RB,?,合成確率,BB確率,RB確率,...
+            row = {
+                "日付": target_date, "店名": store_name,
+                "機種名": cols[0], "台番号": cols[1], "G数": cols[2],
+                "差枚": cols[3], "BB": cols[4], "RB": cols[5],
+                "合成確率": cols[7], "BB確率": cols[8], "RB確率": cols[9],
             }
-        )
+        elif n == 9:
+            # 9列: 機種名,台番号,G数,差枚,BB,RB,合成確率,BB確率,RB確率
+            row = {
+                "日付": target_date, "店名": store_name,
+                "機種名": cols[0], "台番号": cols[1], "G数": cols[2],
+                "差枚": cols[3], "BB": cols[4], "RB": cols[5],
+                "合成確率": cols[6], "BB確率": cols[7], "RB確率": cols[8],
+            }
+        elif n == 8:
+            # 8列(差枚なし): 機種名,台番号,G数,BB,RB,合成確率,BB確率,RB確率
+            row = {
+                "日付": target_date, "店名": store_name,
+                "機種名": cols[0], "台番号": cols[1], "G数": cols[2],
+                "差枚": "0", "BB": cols[3], "RB": cols[4],
+                "合成確率": cols[5], "BB確率": cols[6], "RB確率": cols[7],
+            }
+        else:
+            continue
+        rows.append(row)
 
     return rows, True
 
