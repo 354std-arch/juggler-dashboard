@@ -1693,6 +1693,19 @@ function escapeHtml(text) {
     .replace(/'/g, '&#39;');
 }
 
+function formatSignedYen(value) {
+  const n = Number(value);
+  if(!Number.isFinite(n)) return '—';
+  const rounded = Math.round(n);
+  const sign = rounded > 0 ? '+' : '';
+  return `${sign}${rounded.toLocaleString()}円`;
+}
+
+function formatSignedYenHourly(value) {
+  const txt = formatSignedYen(value);
+  return txt === '—' ? txt : `${txt}/時`;
+}
+
 function toYmdLocal(date) {
   if(!(date instanceof Date) || isNaN(date)) return '';
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
@@ -2655,17 +2668,32 @@ function buildCalculatedRecommendations(targetDate, predictionBaseDate) {
   const scored = taiRows.map(t => {
     const refAvg = isSpecial ? t.spAvg : t.nmAvg;
     const bayes = Number(isSpecial ? (t.bayesProbSp ?? t.bayesProbAll) : (t.bayesProbNm ?? t.bayesProbAll)) || 0;
+    const monteCarlo = (t.monteCarlo && typeof t.monteCarlo === 'object') ? t.monteCarlo : null;
+    const finalScoreRaw = Number(t.finalScore ?? t.thompson?.finalScore);
+    const hasFinalScore = Number.isFinite(finalScoreRaw);
     const calc = hasRawRows ? calcScore(t, scoringDate) : null;
     const score = calc ? Number(calc.score || 0) : ((Number(refAvg) || 0) / 120 + bayes / 30);
-    const rankScore = score * 100 + bayes * 2 + (Number(refAvg) || 0) * 0.15;
+    const rankScore = hasFinalScore
+      ? finalScoreRaw
+      : (score * 100 + bayes * 2 + (Number(refAvg) || 0) * 0.15);
     const reasons = calc
       ? (calc.reasons || []).slice(0, 3).map(r => `${r.label}: ${r.val}`)
       : [
           `${isSpecial ? '特定日' : '通常日'}平均 ${refAvg !== null ? `${refAvg >= 0 ? '+' : ''}${refAvg}枚` : '—'}`,
           `P(設定4+) ${bayes.toFixed(1)}%`,
         ];
-    const confidence = rankScore >= 700 ? '★★★' : rankScore >= 450 ? '★★☆' : '★☆☆';
-    const expectedHourly = Math.max(0, Math.round(((Number(refAvg) || 0) + bayes * 20) / 8));
+    const confidence = hasFinalScore
+      ? (finalScoreRaw >= 75 ? '★★★' : finalScoreRaw >= 65 ? '★★☆' : '★☆☆')
+      : (rankScore >= 700 ? '★★★' : rankScore >= 450 ? '★★☆' : '★☆☆');
+    const expectedHourly = Number.isFinite(Number(monteCarlo?.expectedHourlyMedian))
+      ? Math.round(Number(monteCarlo.expectedHourlyMedian))
+      : Math.round(((Number(refAvg) || 0) + bayes * 20) / 8);
+    const worstCase = Number.isFinite(Number(monteCarlo?.worstCase5p))
+      ? Math.round(Number(monteCarlo.worstCase5p))
+      : null;
+    const luckyCase = Number.isFinite(Number(monteCarlo?.luckyCase95p))
+      ? Math.round(Number(monteCarlo.luckyCase95p))
+      : null;
     return {
       ...t,
       rankScore,
@@ -2674,6 +2702,9 @@ function buildCalculatedRecommendations(targetDate, predictionBaseDate) {
       model: t.model || '機種不明',
       bayes_score: bayes,
       expected_hourly: expectedHourly,
+      final_score: hasFinalScore ? finalScoreRaw : null,
+      worst_case: worstCase,
+      lucky_case: luckyCase,
       confidence,
       reasons,
     };
@@ -2757,7 +2788,10 @@ function renderRecommendations() {
             <div class="recommendation-meta">
               <span>台番号 <b>${r.tai || '-'}</b></span>
               <span>ベイズスコア <b>${Number(r.bayes_score || 0).toFixed(1)}%</b></span>
-              <span>期待時給 <b>${Math.round(Number(r.expected_hourly || 0)).toLocaleString()}円</b></span>
+              <span>最終スコア <b>${Number.isFinite(Number(r.final_score)) ? Number(r.final_score).toFixed(2) : '—'}</b></span>
+              <span>期待時給 <b>${formatSignedYenHourly(r.expected_hourly)}</b></span>
+              <span>最悪ケース <b>${formatSignedYen(r.worst_case)}</b></span>
+              <span>ツイてるケース <b>${formatSignedYen(r.lucky_case)}</b></span>
               <span>信頼度 <b>${r.confidence || '★'}</b></span>
             </div>
             ${reasonHtml}

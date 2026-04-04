@@ -1,4 +1,4 @@
-import json, csv, math, os
+import json, csv, math, os, random, hashlib
 from datetime import datetime, date, timedelta, timezone
 from collections import defaultdict
 
@@ -62,6 +62,23 @@ FEEDBACK_PRIOR = {
     "source": "default",
 }
 
+STORE_EXCHANGE_RATE = {
+    "鶴見UNO": 4.9,
+    "マルハン都筑": 5.0,
+    "中山UNO": 5.0,
+    "エスパス日拓新宿歌舞伎町": 5.17,
+}
+DEFAULT_EXCHANGE_RATE = 5.0
+MC_TRIALS = 1000
+MC_PLAY_HOURS = 8
+MC_GAMES_PER_HOUR = 750
+MC_DIFF_PER_1000G = {4: 50, 5: 120, 6: 200}
+MC_LOW_SETTING_DIFF_PER_1000G = -180
+MC_SIGMA_PER_1000G = 550
+HIGH_SETTING_WEIGHT = {4: 0.6, 5: 0.3, 6: 0.1}
+THOMPSON_BAYES_WEIGHT = 0.7
+THOMPSON_SAMPLE_WEIGHT = 0.3
+
 def r1(v): return round(v*10)/10
 def avg(arr): return sum(arr)/len(arr) if arr else 0
 def wavg(vals, weights):
@@ -83,6 +100,103 @@ def parse_num(s):
     if not s: return 0
     try: return float(str(s).replace(",","").replace("+","").strip())
     except: return 0
+
+def clamp(v, lo, hi):
+    return max(lo, min(hi, v))
+
+def stable_seed_int(*parts):
+    raw = "|".join(str(p) for p in parts)
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    return int(digest[:16], 16)
+
+def calc_percentile(values, p):
+    if not values:
+        return 0
+    arr = sorted(values)
+    if len(arr) == 1:
+        return arr[0]
+    pos = clamp(p, 0, 1) * (len(arr) - 1)
+    lo = int(math.floor(pos))
+    hi = int(math.ceil(pos))
+    if lo == hi:
+        return arr[lo]
+    w = pos - lo
+    return arr[lo] * (1 - w) + arr[hi] * w
+
+def get_store_exchange_rate(store):
+    rate = STORE_EXCHANGE_RATE.get(store)
+    if isinstance(rate, (int, float)) and rate > 0:
+        return float(rate)
+    return DEFAULT_EXCHANGE_RATE
+
+def build_high_setting_dist():
+    total = sum(v for v in HIGH_SETTING_WEIGHT.values() if v > 0)
+    if total <= 0:
+        return {4: 1/3, 5: 1/3, 6: 1/3}
+    return {s: max(0, w) / total for s, w in HIGH_SETTING_WEIGHT.items()}
+
+def run_monte_carlo_simulation(store, model, p_setting4_plus, trials=MC_TRIALS):
+    if p_setting4_plus is None:
+        return None
+    p_high = clamp(p_setting4_plus / 100.0, 0.0, 1.0)
+    exchange_rate = get_store_exchange_rate(store)
+    yen_per_coin = 1000.0 / (exchange_rate * 10.0)
+    chunks = max(1, int((MC_PLAY_HOURS * MC_GAMES_PER_HOUR) // 1000))
+    high_dist = build_high_setting_dist()
+    seed = stable_seed_int("mc", store, model, p_setting4_plus, exchange_rate, trials)
+    rng = random.Random(seed)
+    totals_yen = []
+    hourly_yen = []
+    high_settings = [4, 5, 6]
+    for _ in range(trials):
+        if rng.random() < p_high:
+            u = rng.random()
+            acc = 0
+            selected = 6
+            for s in high_settings:
+                acc += high_dist.get(s, 0)
+                if u <= acc:
+                    selected = s
+                    break
+            per_1000g_mean = MC_DIFF_PER_1000G[selected]
+        else:
+            per_1000g_mean = MC_LOW_SETTING_DIFF_PER_1000G
+        total_coin = 0
+        for _ in range(chunks):
+            total_coin += rng.gauss(per_1000g_mean, MC_SIGMA_PER_1000G)
+        total_yen = total_coin * yen_per_coin
+        totals_yen.append(total_yen)
+        hourly_yen.append(total_yen / MC_PLAY_HOURS)
+    return {
+        "trials": trials,
+        "playHours": MC_PLAY_HOURS,
+        "gamesPerHour": MC_GAMES_PER_HOUR,
+        "exchangeRate": exchange_rate,
+        "pSetting4Plus": r1(p_setting4_plus),
+        "expectedHourlyMedian": int(round(calc_percentile(hourly_yen, 0.5))),
+        "worstCase5p": int(round(calc_percentile(totals_yen, 0.05))),
+        "luckyCase95p": int(round(calc_percentile(totals_yen, 0.95))),
+    }
+
+def calc_thompson_metrics(store, tai, model, bayes_prob, sample_size, phase="all"):
+    if bayes_prob is None:
+        return None
+    p = clamp(bayes_prob / 100.0, 0.0, 1.0)
+    n = max(1.0, float(sample_size or 1))
+    alpha = 1.0 + p * n
+    beta = 1.0 + (1.0 - p) * n
+    seed = stable_seed_int("thompson", store, tai, model, phase, bayes_prob, n)
+    rng = random.Random(seed)
+    sampled_prob = rng.betavariate(alpha, beta)
+    final_score = (
+        THOMPSON_BAYES_WEIGHT * p + THOMPSON_SAMPLE_WEIGHT * sampled_prob
+    ) * 100.0
+    return {
+        "alpha": r1(alpha),
+        "beta": r1(beta),
+        "sampledProb": round(sampled_prob * 100, 2),
+        "finalScore": round(final_score, 2),
+    }
 
 def normalize_model_name(model_name):
     name = str(model_name or "").replace("　", " ").strip()
@@ -255,9 +369,10 @@ def load_raw():
     print(f"合計 {len(rows)} 行読み込み完了")
     return rows
 
-def calc_bayes_prob(model, total_g, total_bb, total_rb):
+def calc_setting_posterior(model, total_g, total_bb, total_rb):
     ms = MODEL_SETTINGS.get(model)
-    if not ms or total_g < 100: return None
+    if not ms or total_g < 100:
+        return None
     priors = build_setting_priors(model)
     log_probs = []
     for s in [1,2,3,4,5,6]:
@@ -272,7 +387,14 @@ def calc_bayes_prob(model, total_g, total_bb, total_rb):
     max_log = max(log_probs)
     probs = [math.exp(p - max_log) for p in log_probs]
     total = sum(probs)
-    probs = [p/total for p in probs]
+    if total <= 0:
+        return None
+    return [p/total for p in probs]
+
+def calc_bayes_prob(model, total_g, total_bb, total_rb):
+    probs = calc_setting_posterior(model, total_g, total_bb, total_rb)
+    if not probs:
+        return None
     high_min = MODEL_HIGH_SETTING_MIN.get(model, 4)
     start_idx = max(1, min(6, int(high_min))) - 1
     return round(sum(probs[start_idx:]) * 100, 1)
@@ -346,6 +468,11 @@ def compute_tai_detail(rows, special):
         latest_key = f"{latest_date.strftime('%Y-%m-%d')}_{t['tai']}_{t['store']}"
         prev = prev_lookup.get(latest_key)
         prev_row = {"dateStr":prev["dateStr"],"diff":prev["diff"],"bb":prev["bb"],"rb":prev["rb"],"g":prev["g"],"isRBLead":prev["isRBLead"],"isHighSetRBLead":prev["isHighSetRBLead"]} if prev else None
+        bayes_all = calc_bayes_prob(t["model"], tg, tb, tr)
+        bayes_sp = calc_bayes_prob(t["model"], sg, sb, sr)
+        bayes_nm = calc_bayes_prob(t["model"], ng, nb, nr)
+        monte_carlo = run_monte_carlo_simulation(t["store"], t["model"], bayes_all)
+        thompson = calc_thompson_metrics(t["store"], t["tai"], t["model"], bayes_all, wn, phase="all")
         result.append({
             "tai":t["tai"],"taiNum":t["taiNum"],"model":t["model"],"store":t["store"],
             "avg":r1(weighted_avg_rows(t["all"], "diff")),"count":n,
@@ -361,9 +488,12 @@ def compute_tai_detail(rows, special):
             "synRate":round(tg/(tb+tr)) if (tb+tr)>0 else None,
             "spRbRate":round(sg/sr) if sr>0 else None,
             "nmRbRate":round(ng/nr) if nr>0 else None,
-            "bayesProbAll":calc_bayes_prob(t["model"],tg,tb,tr),
-            "bayesProbSp":calc_bayes_prob(t["model"],sg,sb,sr),
-            "bayesProbNm":calc_bayes_prob(t["model"],ng,nb,nr),
+            "bayesProbAll":bayes_all,
+            "bayesProbSp":bayes_sp,
+            "bayesProbNm":bayes_nm,
+            "monteCarlo": monte_carlo,
+            "thompson": thompson,
+            "finalScore": thompson["finalScore"] if thompson else None,
             "confidence":"高" if n>=30 else "中" if n>=15 else "低",
             "prevRow": prev_row,
         })
@@ -675,12 +805,25 @@ def build_store_recommendations(store, store_rows, special, tai_detail, today=No
             bayes = t.get("bayesProbAll")
         if bayes is None or bayes < 60:
             continue
-        weighted_score = bayes * weekday_coeff * monthly_timing_coeff * store_coeff
+        cond_n = t.get("spCount") if is_special else t.get("nmCount")
+        cond_n = cond_n if cond_n is not None else t.get("count", 0)
+        thompson = calc_thompson_metrics(
+            store,
+            t["tai"],
+            t["model"],
+            bayes,
+            cond_n,
+            phase="special" if is_special else "normal",
+        )
+        final_score = thompson["finalScore"] if thompson else float(bayes)
+        weighted_score = final_score * weekday_coeff * monthly_timing_coeff * store_coeff
+        monte_carlo = run_monte_carlo_simulation(store, t["model"], bayes)
         reasons = []
         if is_special:
             reasons.append("今日は特定日")
         if is_special_next_day:
             reasons.append("特定日翌日")
+        reasons.append(f"Thompson最終スコア {final_score:.2f}")
         if t["taiNum"] > 0:
             tail_digit = t["taiNum"] % 10
             tail_rows = tail_rows_by_model.get((t["model"], tail_digit), [])
@@ -696,16 +839,26 @@ def build_store_recommendations(store, store_rows, special, tai_detail, today=No
             reasons.append("曜日係数1.1以上")
         if monthly_timing_coeff >= 1.0:
             reasons.append("月内係数1.0以上")
+        expected_hourly = (
+            monte_carlo["expectedHourlyMedian"]
+            if monte_carlo and monte_carlo.get("expectedHourlyMedian") is not None
+            else r1(bayes * 16.6)
+        )
         recs.append({
             "store": store,
             "tai": t["tai"],
             "model": t["model"],
             "bayes_score": bayes,
-            "expected_hourly": r1(bayes * 16.6),
-            "confidence": "★★★" if bayes >= 75 else "★★" if bayes >= 65 else "★",
+            "final_score": final_score,
+            "expected_hourly": expected_hourly,
+            "worst_case": monte_carlo.get("worstCase5p") if monte_carlo else None,
+            "lucky_case": monte_carlo.get("luckyCase95p") if monte_carlo else None,
+            "confidence": "★★★" if final_score >= 75 else "★★" if final_score >= 65 else "★",
             "day_type": "特定日" if is_special else "特定日翌日",
             "recent_count_3m": recent_count,
             "reasons": reasons,
+            "thompson": thompson,
+            "monteCarlo": monte_carlo,
             "score": weighted_score,
         })
     recs.sort(key=lambda x: (-x["score"], -x["recent_count_3m"], x["store"], x["tai"]))
