@@ -36,6 +36,12 @@ const DATA_EMPTY_STATE_TEXT = {
 };
 let errorToastTimer = null;
 let recommendationExpanded = false;
+const DESIGN_SYSTEM_SELECTORS = {
+  buttons: 'button.btn,button.btn-primary,button.btn-secondary,button.btn-filter,button.filter-btn,button.period-btn,button.cal-nav-btn,button.target-day-btn,button.store-btn,button.save-btn,button.model-chip,button.session-btn-sub',
+  badges: '.badge,.prediction-badge,.summary-badge,.store-freshness-badge,.answer-judge',
+  cards: '.card,.diag-box,.recommendation-card,.score-card,.cond-card,.win-box,.session-card,.withdraw-judge-popup,.summary-banner',
+  tables: '.data-table,.heat-table,.answer-table,.answer-rate-table',
+};
 
 const MODEL_NAME_MAP_CANONICAL = {
   'ネオアイムジャグラーEX': 'ネオアイムジャグラー',
@@ -4923,8 +4929,7 @@ function renderLayer2() {
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px">狙う機種を選んでください：</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px">
       ${modelStrength.map(m=>`
-        <button onclick="selectModel('${m.model}')" id="modelBtn_${m.model.replace(/[^\w]/g,'_')}"
-          style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;transition:all .2s">
+        <button onclick="selectModel('${m.model}')" id="modelBtn_${m.model.replace(/[^\w]/g,'_')}" class="model-chip ${selectedModel===m.model?'active':''}">
           ${m.model}
         </button>`).join('')}
     </div>
@@ -4937,18 +4942,10 @@ function renderLayer2() {
 
 function selectModel(model) {
   selectedModel = model;
-  document.querySelectorAll('[id^="modelBtn_"]').forEach(btn => {
-    btn.style.background = 'var(--bg3)';
-    btn.style.color = 'var(--text)';
-    btn.style.borderColor = 'var(--border)';
-  });
+  document.querySelectorAll('.model-chip').forEach(btn => btn.classList.remove('active'));
   const btnId = 'modelBtn_' + model.replace(/[^\w]/g,'_');
   const btn = document.getElementById(btnId);
-  if(btn){
-    btn.style.background = 'var(--accent)';
-    btn.style.color = '#000';
-    btn.style.borderColor = 'var(--accent)';
-  }
+  if(btn) btn.classList.add('active');
   renderLayer3(model);
 }
 
@@ -6578,6 +6575,39 @@ function showStatus() {
     </div>`;
 }
 
+function applyDesignSystemClassToElement(el) {
+  if(!el || !(el instanceof Element)) return;
+  if(el.matches(DESIGN_SYSTEM_SELECTORS.buttons)) el.classList.add('ui-btn');
+  if(el.matches(DESIGN_SYSTEM_SELECTORS.badges)) el.classList.add('ui-badge');
+  if(el.matches(DESIGN_SYSTEM_SELECTORS.cards)) el.classList.add('ui-card');
+  if(el.matches(DESIGN_SYSTEM_SELECTORS.tables)) el.classList.add('ui-table');
+}
+
+function applyDesignSystemClasses(root) {
+  if(!root) return;
+  if(root instanceof Element) applyDesignSystemClassToElement(root);
+  const scope = root instanceof Document ? root.documentElement : root;
+  if(!scope || !(scope instanceof Element)) return;
+  scope.querySelectorAll(DESIGN_SYSTEM_SELECTORS.buttons).forEach(el => el.classList.add('ui-btn'));
+  scope.querySelectorAll(DESIGN_SYSTEM_SELECTORS.badges).forEach(el => el.classList.add('ui-badge'));
+  scope.querySelectorAll(DESIGN_SYSTEM_SELECTORS.cards).forEach(el => el.classList.add('ui-card'));
+  scope.querySelectorAll(DESIGN_SYSTEM_SELECTORS.tables).forEach(el => el.classList.add('ui-table'));
+}
+
+function initDesignSystemObserver() {
+  if(!document.body) return;
+  applyDesignSystemClasses(document);
+  if(typeof MutationObserver === 'undefined') return;
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if(node.nodeType === 1) applyDesignSystemClasses(node);
+      });
+    });
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
 // ====== 初期化 ======
 window.addEventListener('DOMContentLoaded',()=>{
   setHeaderDataStatus('未読込');
@@ -6589,6 +6619,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   syncTargetModeUI();
   setRecommendationExpanded(loadRecommendationExpandedPreference(), { persist: false });
   updateRecommendationSectionVisibility(document.querySelector('.tab-content.active')?.id || '');
+  initDesignSystemObserver();
   initStoreBarEvents();
   restoreGasUrlInput();
   if(window._PRELOAD&&window._PRELOAD.length){
