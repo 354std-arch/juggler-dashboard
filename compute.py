@@ -22,8 +22,13 @@ STORE_COEFFICIENTS = {}
 STORE_SPECIAL = {
     "鶴見UNO":                  [1, 11, 21, 31],
     "中山UNO":                  [1, 11, 21, 31],
-    "マルハン都筑":              [1, 7, 10, 11, 17, 21, 22, 25, 27, 31],
+    "マルハン都築":              [1, 7, 10, 11, 17, 21, 22, 25, 27, 31],
     "エスパス日拓新宿歌舞伎町":  [1, 6, 7, 11, 16, 17, 22, 23, 24, 26, 27],
+}
+
+STORE_NAME_ALIASES = {
+    "マルハン都筑": "マルハン都築",
+    "エスパス新宿": "エスパス日拓新宿歌舞伎町",
 }
 
 MODEL_NAME_MAP = {
@@ -65,7 +70,7 @@ FEEDBACK_PRIOR = {
 
 STORE_EXCHANGE_RATE = {
     "鶴見UNO": 4.9,
-    "マルハン都筑": 5.0,
+    "マルハン都築": 5.0,
     "中山UNO": 5.0,
     "エスパス日拓新宿歌舞伎町": 5.17,
 }
@@ -73,12 +78,45 @@ DEFAULT_EXCHANGE_RATE = 5.0
 MC_TRIALS = 1000
 MC_PLAY_HOURS = 8
 MC_GAMES_PER_HOUR = 750
-MC_DIFF_PER_1000G = {4: 50, 5: 120, 6: 200}
 MC_LOW_SETTING_DIFF_PER_1000G = -180
-MC_SIGMA_PER_1000G = 550
 HIGH_SETTING_WEIGHT = {4: 0.6, 5: 0.3, 6: 0.1}
 THOMPSON_BAYES_WEIGHT = 0.7
 THOMPSON_SAMPLE_WEIGHT = 0.3
+EMA_HALF_LIFE_DAYS = 180.0
+DIFF_AUXILIARY_WEIGHT = 1.0 / 3.0
+DIFF_AUXILIARY_MAX_DELTA = 9.0
+DIFF_AUXILIARY_SCALE_PER_1000G = 700.0
+PRIOR_DETAIL_MIN_SAMPLES = 10
+PRIOR_MODEL_MIN_SAMPLES = 5
+MC_PARAM_MIN_SAMPLES = 10
+HOLDOVER_BONUS_MAX = 8.0
+DEFAULT_SPECIAL_DAYS = [1, 11, 21, 31]
+
+MODEL_HOLDOVER_SYN_THRESHOLD = {
+    "アイムジャグラー": 135,
+    "マイジャグラー": 140,
+    "ファンキージャグラー": 138,
+    "ゴーゴージャグラー": 136,
+    "新ハナビ": 148,
+    "スマスロハナビ": 161,
+}
+
+MODEL_MC_FALLBACK = {
+    "ネオアイムジャグラー": {"meanHigh": 90.0, "sigma": 520.0},
+    "ウルトラミラクルジャグラー": {"meanHigh": 120.0, "sigma": 560.0},
+    "ミスタージャグラー": {"meanHigh": 110.0, "sigma": 540.0},
+    "ジャグラーガールズSS": {"meanHigh": 110.0, "sigma": 540.0},
+    "ゴーゴージャグラー3": {"meanHigh": 120.0, "sigma": 550.0},
+    "ハッピージャグラーVIII": {"meanHigh": 110.0, "sigma": 540.0},
+    "マイジャグラーV": {"meanHigh": 130.0, "sigma": 560.0},
+    "ファンキージャグラー2": {"meanHigh": 125.0, "sigma": 560.0},
+    "新ハナビ": {"meanHigh": 70.0, "sigma": 500.0},
+    "スマスロハナビ": {"meanHigh": 80.0, "sigma": 520.0},
+    "クランキーセレブレーション": {"meanHigh": 85.0, "sigma": 510.0},
+}
+DEFAULT_MODEL_MC_FALLBACK = {"meanHigh": 100.0, "sigma": 550.0}
+
+ANALYTICS_CACHE = {}
 
 def r1(v): return round(v*10)/10
 def avg(arr): return sum(arr)/len(arr) if arr else 0
@@ -89,6 +127,7 @@ def wavg(vals, weights):
 def row_w(r): return r.get("weight", 1)
 def weighted_total(rows): return sum(row_w(r) for r in rows)
 def weighted_sum(rows, key): return sum(r[key] * row_w(r) for r in rows)
+def weighted_total_if(rows, pred): return sum(row_w(r) for r in rows if pred(r))
 def weighted_avg_rows(rows, key):
     tw = weighted_total(rows)
     return weighted_sum(rows, key) / tw if tw else 0
@@ -96,6 +135,17 @@ def weighted_rate(rows, pred):
     tw = weighted_total(rows)
     if not tw: return 0
     return sum(row_w(r) for r in rows if pred(r)) / tw
+def weighted_mean_std(rows, key):
+    tw = weighted_total(rows)
+    if tw <= 0:
+        return 0, 0
+    mean = weighted_sum(rows, key) / tw
+    var_num = 0.0
+    for r in rows:
+        d = r[key] - mean
+        var_num += row_w(r) * d * d
+    variance = var_num / tw if tw > 0 else 0.0
+    return mean, math.sqrt(max(0.0, variance))
 
 def parse_num(s):
     if not s: return 0
@@ -104,6 +154,14 @@ def parse_num(s):
 
 def clamp(v, lo, hi):
     return max(lo, min(hi, v))
+
+def normalize_store_name(store_name):
+    name = str(store_name or "").strip()
+    return STORE_NAME_ALIASES.get(name, name)
+
+def calc_ema_weight(dt, today):
+    days_ago = max(0, (today - dt.date()).days)
+    return math.exp(-math.log(2.0) * (days_ago / EMA_HALF_LIFE_DAYS))
 
 def stable_seed_int(*parts):
     raw = "|".join(str(p) for p in parts)
@@ -125,7 +183,8 @@ def calc_percentile(values, p):
     return arr[lo] * (1 - w) + arr[hi] * w
 
 def get_store_exchange_rate(store):
-    rate = STORE_EXCHANGE_RATE.get(store)
+    key = normalize_store_name(store)
+    rate = STORE_EXCHANGE_RATE.get(key)
     if isinstance(rate, (int, float)) and rate > 0:
         return float(rate)
     return DEFAULT_EXCHANGE_RATE
@@ -136,35 +195,35 @@ def build_high_setting_dist():
         return {4: 1/3, 5: 1/3, 6: 1/3}
     return {s: max(0, w) / total for s, w in HIGH_SETTING_WEIGHT.items()}
 
-def run_monte_carlo_simulation(store, model, p_setting4_plus, trials=MC_TRIALS):
+def run_monte_carlo_simulation(store, model, p_setting4_plus, is_special_day, trials=MC_TRIALS):
     if p_setting4_plus is None:
         return None
     p_high = clamp(p_setting4_plus / 100.0, 0.0, 1.0)
     exchange_rate = get_store_exchange_rate(store)
     yen_per_coin = 1000.0 / (exchange_rate * 10.0)
     chunks = max(1, int((MC_PLAY_HOURS * MC_GAMES_PER_HOUR) // 1000))
-    high_dist = build_high_setting_dist()
-    seed = stable_seed_int("mc", store, model, p_setting4_plus, exchange_rate, trials)
+    mc_params = get_monte_carlo_params(store, model, is_special_day)
+    mean_high = mc_params["meanHigh"]
+    sigma = mc_params["sigma"]
+    seed = stable_seed_int(
+        "mc",
+        store,
+        model,
+        bool(is_special_day),
+        p_setting4_plus,
+        exchange_rate,
+        mean_high,
+        sigma,
+        trials,
+    )
     rng = random.Random(seed)
     totals_yen = []
     hourly_yen = []
-    high_settings = [4, 5, 6]
     for _ in range(trials):
-        if rng.random() < p_high:
-            u = rng.random()
-            acc = 0
-            selected = 6
-            for s in high_settings:
-                acc += high_dist.get(s, 0)
-                if u <= acc:
-                    selected = s
-                    break
-            per_1000g_mean = MC_DIFF_PER_1000G[selected]
-        else:
-            per_1000g_mean = MC_LOW_SETTING_DIFF_PER_1000G
+        per_1000g_mean = mean_high if rng.random() < p_high else MC_LOW_SETTING_DIFF_PER_1000G
         total_coin = 0
         for _ in range(chunks):
-            total_coin += rng.gauss(per_1000g_mean, MC_SIGMA_PER_1000G)
+            total_coin += rng.gauss(per_1000g_mean, sigma)
         total_yen = total_coin * yen_per_coin
         totals_yen.append(total_yen)
         hourly_yen.append(total_yen / MC_PLAY_HOURS)
@@ -174,6 +233,11 @@ def run_monte_carlo_simulation(store, model, p_setting4_plus, trials=MC_TRIALS):
         "gamesPerHour": MC_GAMES_PER_HOUR,
         "exchangeRate": exchange_rate,
         "pSetting4Plus": r1(p_setting4_plus),
+        "dayType": "special" if is_special_day else "normal",
+        "paramSource": mc_params["source"],
+        "paramSampleCount": mc_params["count"],
+        "meanDiffPer1000G": r1(mean_high),
+        "sigmaPer1000G": r1(sigma),
         "expectedHourlyMedian": int(round(calc_percentile(hourly_yen, 0.5))),
         "worstCase5p": int(round(calc_percentile(totals_yen, 0.05))),
         "luckyCase95p": int(round(calc_percentile(totals_yen, 0.95))),
@@ -217,38 +281,206 @@ def is_good_result_model(model, g, bb, rb):
         return False
     return (g / rb) <= ms["rb"][4] and (g / bb) > ms["bb"][4]
 
+def get_holdover_syn_threshold(model):
+    name = str(model or "")
+    for token, threshold in MODEL_HOLDOVER_SYN_THRESHOLD.items():
+        if token in name:
+            return threshold
+    return None
+
+def is_high_setting_syn_model(model, g, bb, rb):
+    if g <= 0 or (bb + rb) <= 0:
+        return False
+    threshold = get_holdover_syn_threshold(model)
+    if threshold is None:
+        return False
+    return (g / (bb + rb)) <= threshold
+
+def extract_special_days(store_obj):
+    if not isinstance(store_obj, dict):
+        return None
+    candidates = [
+        "special_days", "specialDays", "special", "special_day",
+        "specialDay", "tokutei_days", "tokuteiDays"
+    ]
+    for key in candidates:
+        raw = store_obj.get(key)
+        if not isinstance(raw, list):
+            continue
+        values = []
+        for v in raw:
+            try:
+                i = int(v)
+            except Exception:
+                continue
+            if 1 <= i <= 31:
+                values.append(i)
+        values = sorted(set(values))
+        if values:
+            return values
+    return None
+
+def load_store_configs():
+    specials = {}
+    exchange_rates = {}
+    names = []
+    seen = set()
+    if os.path.exists(STORE_LIST_JSON):
+        try:
+            with open(STORE_LIST_JSON, encoding="utf-8-sig") as f:
+                payload = json.load(f)
+        except Exception:
+            payload = {}
+        stores = payload.get("stores", []) if isinstance(payload, dict) else []
+        for store_obj in stores:
+            if not isinstance(store_obj, dict):
+                continue
+            name = normalize_store_name(store_obj.get("name"))
+            if not name:
+                continue
+            if name not in seen:
+                names.append(name)
+                seen.add(name)
+            days = extract_special_days(store_obj)
+            if days:
+                specials[name] = days
+            rate = store_obj.get("exchange_rate")
+            if isinstance(rate, (int, float)) and rate > 0:
+                exchange_rates[name] = float(rate)
+    for fallback_name, fallback_days in STORE_SPECIAL.items():
+        key = normalize_store_name(fallback_name)
+        if key not in specials:
+            specials[key] = sorted(set(int(v) for v in fallback_days if 1 <= int(v) <= 31))
+    for store_name in names:
+        if store_name not in specials:
+            specials[store_name] = DEFAULT_SPECIAL_DAYS[:]
+    return {
+        "names": names,
+        "specialByStore": specials,
+        "exchangeRateByStore": exchange_rates,
+    }
+
+def build_analytics_cache(rows):
+    prior_l4 = defaultdict(lambda: {"plus": 0, "total": 0})
+    prior_l3 = defaultdict(lambda: {"plus": 0, "total": 0})
+    prior_l2 = defaultdict(lambda: {"plus": 0, "total": 0})
+    mc_acc = defaultdict(lambda: {"count": 0, "sum": 0.0, "sumSq": 0.0})
+    holdover = defaultdict(lambda: {"num": 0, "den": 0})
+    prev_by_tai = {}
+    for r in rows:
+        store = r["store"]
+        model = r["model"]
+        weekday = r["weekday"]
+        is_special = bool(r["isSpecialDay"])
+        is_plus = r["diff"] > 0
+        k4 = (store, model, weekday, is_special)
+        k3 = (store, model, is_special)
+        k2 = (store, is_special)
+        prior_l4[k4]["total"] += 1
+        prior_l3[k3]["total"] += 1
+        prior_l2[k2]["total"] += 1
+        if is_plus:
+            prior_l4[k4]["plus"] += 1
+            prior_l3[k3]["plus"] += 1
+            prior_l2[k2]["plus"] += 1
+
+        if r.get("hasDiff") and r["g"] > 0:
+            per_1000g = (r["diff"] * 1000.0) / r["g"]
+            mk = (store, model, is_special)
+            mc_acc[mk]["count"] += 1
+            mc_acc[mk]["sum"] += per_1000g
+            mc_acc[mk]["sumSq"] += per_1000g * per_1000g
+
+        tk = (store, r["tai"], model)
+        prev = prev_by_tai.get(tk)
+        if prev and (r["date"] - prev["date"]).days == 1 and prev["isHighSettingSyn"]:
+            holdover[store]["den"] += 1
+            if r["isHighSettingSyn"]:
+                holdover[store]["num"] += 1
+        prev_by_tai[tk] = r
+
+    mc_stats = {}
+    for key, stat in mc_acc.items():
+        n = stat["count"]
+        if n <= 0:
+            continue
+        mean = stat["sum"] / n
+        variance = max(0.0, (stat["sumSq"] / n) - (mean * mean))
+        mc_stats[key] = {
+            "count": n,
+            "mean": mean,
+            "std": math.sqrt(variance),
+        }
+    holdover_rate = {}
+    for store, stat in holdover.items():
+        den = stat["den"]
+        holdover_rate[store] = {
+            "numerator": stat["num"],
+            "denominator": den,
+            "rate": (stat["num"] / den) if den > 0 else 0.0,
+        }
+    return {
+        "prior_l4": dict(prior_l4),
+        "prior_l3": dict(prior_l3),
+        "prior_l2": dict(prior_l2),
+        "mc_stats": mc_stats,
+        "holdover_rate": holdover_rate,
+    }
+
+def get_dynamic_prior_high_prob(store, model, weekday, is_special):
+    cache = ANALYTICS_CACHE or {}
+    l4 = cache.get("prior_l4", {})
+    l3 = cache.get("prior_l3", {})
+    l2 = cache.get("prior_l2", {})
+    k4 = (store, model, weekday, bool(is_special))
+    stat = l4.get(k4)
+    if stat and stat["total"] >= PRIOR_DETAIL_MIN_SAMPLES:
+        return clamp(stat["plus"] / stat["total"], 0.01, 0.99), "store_model_weekday_daytype", stat["total"]
+    k3 = (store, model, bool(is_special))
+    stat = l3.get(k3)
+    if stat and stat["total"] >= PRIOR_MODEL_MIN_SAMPLES:
+        return clamp(stat["plus"] / stat["total"], 0.01, 0.99), "store_model_daytype", stat["total"]
+    k2 = (store, bool(is_special))
+    stat = l2.get(k2)
+    if stat and stat["total"] > 0:
+        return clamp(stat["plus"] / stat["total"], 0.01, 0.99), "store_daytype", stat["total"]
+    return 0.5, "default", 0
+
+def get_holdover_rate(store):
+    data = (ANALYTICS_CACHE or {}).get("holdover_rate", {}).get(store, {})
+    return float(data.get("rate", 0.0))
+
+def get_monte_carlo_params(store, model, is_special):
+    mc_stats = (ANALYTICS_CACHE or {}).get("mc_stats", {})
+    key = (store, model, bool(is_special))
+    stat = mc_stats.get(key)
+    if stat and stat.get("count", 0) >= MC_PARAM_MIN_SAMPLES:
+        return {
+            "source": "raw_data",
+            "count": stat["count"],
+            "meanHigh": float(stat["mean"]),
+            "sigma": max(200.0, float(stat["std"])),
+        }
+    fallback = MODEL_MC_FALLBACK.get(model, DEFAULT_MODEL_MC_FALLBACK)
+    return {
+        "source": "model_fallback",
+        "count": int(stat.get("count", 0)) if stat else 0,
+        "meanHigh": float(fallback["meanHigh"]),
+        "sigma": float(fallback["sigma"]),
+    }
+
 def load_store_freshness():
     if not os.path.exists(STORE_FRESHNESS_JSON):
         return {}
     try:
-        with open(STORE_FRESHNESS_JSON, encoding="utf-8") as f:
+        with open(STORE_FRESHNESS_JSON, encoding="utf-8-sig") as f:
             data = json.load(f)
             return data if isinstance(data, dict) else {}
     except Exception:
         return {}
 
 def load_store_list_names():
-    if not os.path.exists(STORE_LIST_JSON):
-        return []
-    try:
-        with open(STORE_LIST_JSON, encoding="utf-8") as f:
-            payload = json.load(f)
-    except Exception:
-        return []
-    stores = payload.get("stores", []) if isinstance(payload, dict) else []
-    if not isinstance(stores, list):
-        return []
-    names = []
-    seen = set()
-    for store in stores:
-        if not isinstance(store, dict):
-            continue
-        name = str(store.get("name", "")).strip()
-        if not name or name in seen:
-            continue
-        names.append(name)
-        seen.add(name)
-    return names
+    return load_store_configs().get("names", [])
 
 def build_store_display_order(stores_with_data):
     if not stores_with_data:
@@ -296,8 +528,8 @@ def load_feedback_prior():
         "source": "feedback_data.json",
     }
 
-def build_setting_priors(model):
-    high_prob = FEEDBACK_PRIOR.get("highProb", 0.5)
+def build_setting_priors(model, high_prob=0.5):
+    high_prob = clamp(float(high_prob), 0.01, 0.99)
     high_min = MODEL_HIGH_SETTING_MIN.get(model, 4)
     high_settings = [s for s in range(high_min, 7)]
     low_settings = [s for s in range(1, 7) if s < high_min]
@@ -360,18 +592,17 @@ def jst_today() -> date:
     return datetime.now(JST).date()
 
 
-def load_raw():
+def load_raw(special_by_store):
     seen = set()
     rows = []
     today = jst_today()
-    recent_cutoff = today - timedelta(days=90)
     if not os.path.exists(RAW_CSV):
         print(f"  ❌ CSVが見つかりません: {RAW_CSV}")
         return rows
     with open(RAW_CSV, encoding="utf-8-sig") as f:
         for row in csv.DictReader(f):
             date_str = str(row.get("日付", "")).strip()
-            store = str(row.get("店名", "")).strip()
+            store = normalize_store_name(row.get("店名", ""))
             tai = str(row.get("台番号", "")).strip()
             model_name = str(row.get("機種名", "")).strip()
             if not date_str or not store or not tai or not model_name:
@@ -386,34 +617,39 @@ def load_raw():
             except: continue
             g    = parse_num(row.get("G数"))
             diff = parse_num(row.get("差枚"))
+            diff_raw = str(row.get("差枚", "")).strip()
             bb   = parse_num(row.get("BB"))
             rb   = parse_num(row.get("RB"))
             tai_num = int(tai) if tai.isdigit() else 0
             s = str(tai_num)
             day = dt.day
             is_high_set_rb = is_good_result_model(model, g, bb, rb)
+            is_special_day = day in special_by_store.get(store, DEFAULT_SPECIAL_DAYS)
             rows.append({
                 "dateStr": date_str, "date": dt,
                 "store": store, "model": model,
                 "tai": tai, "taiNum": tai_num,
                 "g": g, "diff": diff, "bb": bb, "rb": rb,
-                "weight": 2 if dt.date() >= recent_cutoff else 1,
+                "weight": calc_ema_weight(dt, today),
                 "day": day, "weekday": (dt.weekday() + 1) % 7,
                 "suef": tai_num % 10,
                 "isZoro": day >= 11 and len(str(day)) == 2 and str(day)[0] == str(day)[1],
                 "isTaiZoro": len(s)>=2 and s[-1]==s[-2],
                 "isRBLead": rb > bb,
                 "isHighSetRBLead": is_high_set_rb,
+                "isSpecialDay": is_special_day,
+                "hasDiff": diff_raw != "",
+                "isHighSettingSyn": is_high_setting_syn_model(model, g, bb, rb),
             })
     rows.sort(key=lambda r: r["date"])
     print(f"合計 {len(rows)} 行読み込み完了")
     return rows
 
-def calc_setting_posterior(model, total_g, total_bb, total_rb):
+def calc_setting_posterior(model, total_g, total_bb, total_rb, prior_high_prob=0.5):
     ms = MODEL_SETTINGS.get(model)
     if not ms or total_g < 100:
         return None
-    priors = build_setting_priors(model)
+    priors = build_setting_priors(model, prior_high_prob)
     log_probs = []
     for s in [1,2,3,4,5,6]:
         log_l = 0
@@ -431,13 +667,21 @@ def calc_setting_posterior(model, total_g, total_bb, total_rb):
         return None
     return [p/total for p in probs]
 
-def calc_bayes_prob(model, total_g, total_bb, total_rb):
-    probs = calc_setting_posterior(model, total_g, total_bb, total_rb)
+def calc_bayes_prob(model, total_g, total_bb, total_rb, prior_high_prob=0.5, total_diff=None, diff_weighted_count=0):
+    probs = calc_setting_posterior(model, total_g, total_bb, total_rb, prior_high_prob=prior_high_prob)
     if not probs:
         return None
     high_min = MODEL_HIGH_SETTING_MIN.get(model, 4)
     start_idx = max(1, min(6, int(high_min))) - 1
-    return round(sum(probs[start_idx:]) * 100, 1)
+    base_prob = sum(probs[start_idx:]) * 100.0
+    if total_diff is None or diff_weighted_count <= 0 or total_g <= 0:
+        return round(base_prob, 1)
+    diff_per_1000g = (total_diff * 1000.0) / total_g
+    reliability = clamp(diff_weighted_count / 10.0, 0.0, 1.0)
+    diff_signal = math.tanh(diff_per_1000g / DIFF_AUXILIARY_SCALE_PER_1000G)
+    diff_delta = diff_signal * DIFF_AUXILIARY_MAX_DELTA * reliability
+    adjusted = clamp(base_prob + (diff_delta * DIFF_AUXILIARY_WEIGHT), 0.0, 100.0)
+    return round(adjusted, 1)
 
 def compute_day_stats(rows, special):
     by_day = defaultdict(lambda: {"rows":[], "plus":0, "total":0})
@@ -450,14 +694,10 @@ def compute_day_stats(rows, special):
         b = by_day[d]
         day_rows = b["rows"]
         if not day_rows: continue
-        m = weighted_avg_rows(day_rows, "diff")
-        expanded_diffs = []
-        for rr in day_rows:
-            expanded_diffs.extend([rr["diff"]] * int(row_w(rr)))
-        n = len(expanded_diffs)
-        if n > 1:
-            std = (sum((x-m)**2 for x in expanded_diffs)/(n-1))**0.5
-            se = std / (n**0.5)
+        m, std = weighted_mean_std(day_rows, "diff")
+        n_eff = weighted_total(day_rows)
+        if n_eff > 1:
+            se = std / (n_eff**0.5)
             ci_lower = round(m - 1.96*se, 1)
             ci_upper = round(m + 1.96*se, 1)
         else:
@@ -467,11 +707,11 @@ def compute_day_stats(rows, special):
             "day": d, "avg": r1(m), "total": b["total"],
             "plus": b["plus"], "plusRate": r1(plus_rate),
             "special": d in special, "ciLower": ci_lower, "ciUpper": ci_upper,
-            "reliable": n >= 10,
+            "reliable": n_eff >= 10,
         })
     return result
 
-def compute_tai_detail(rows, special):
+def compute_tai_detail(rows, special, context_weekday, context_is_special):
     by_tai = defaultdict(lambda: {
         "tai":None,"taiNum":0,"model":None,"store":None,
         "all":[], "sp":[], "nm":[],
@@ -502,16 +742,46 @@ def compute_tai_detail(rows, special):
         tg=weighted_sum(t["all"], "g"); tb=weighted_sum(t["all"], "bb"); tr=weighted_sum(t["all"], "rb")
         sg=weighted_sum(t["sp"], "g"); sb=weighted_sum(t["sp"], "bb"); sr=weighted_sum(t["sp"], "rb")
         ng=weighted_sum(t["nm"], "g"); nb=weighted_sum(t["nm"], "bb"); nr=weighted_sum(t["nm"], "rb")
+        td=weighted_sum(t["all"], "diff")
+        sd=weighted_sum(t["sp"], "diff")
+        nd=weighted_sum(t["nm"], "diff")
+        diff_n_all = weighted_total_if(t["all"], lambda x: x.get("hasDiff"))
+        diff_n_sp = weighted_total_if(t["sp"], lambda x: x.get("hasDiff"))
+        diff_n_nm = weighted_total_if(t["nm"], lambda x: x.get("hasDiff"))
         n = len(t["all"])
         wn = weighted_total(t["all"])
         wplus_rate = weighted_rate(t["all"], lambda x: x["diff"] > 0) * 100
         latest_key = f"{latest_date.strftime('%Y-%m-%d')}_{t['tai']}_{t['store']}"
         prev = prev_lookup.get(latest_key)
-        prev_row = {"dateStr":prev["dateStr"],"diff":prev["diff"],"bb":prev["bb"],"rb":prev["rb"],"g":prev["g"],"isRBLead":prev["isRBLead"],"isHighSetRBLead":prev["isHighSetRBLead"]} if prev else None
-        bayes_all = calc_bayes_prob(t["model"], tg, tb, tr)
-        bayes_sp = calc_bayes_prob(t["model"], sg, sb, sr)
-        bayes_nm = calc_bayes_prob(t["model"], ng, nb, nr)
-        monte_carlo = run_monte_carlo_simulation(t["store"], t["model"], bayes_all)
+        prev_row = {
+            "dateStr":prev["dateStr"],"diff":prev["diff"],"bb":prev["bb"],"rb":prev["rb"],
+            "g":prev["g"],"isRBLead":prev["isRBLead"],"isHighSetRBLead":prev["isHighSetRBLead"],
+            "isHighSettingSyn": prev["isHighSettingSyn"],
+        } if prev else None
+        prior_all, prior_all_source, prior_all_n = get_dynamic_prior_high_prob(
+            t["store"], t["model"], context_weekday, context_is_special
+        )
+        prior_sp, prior_sp_source, prior_sp_n = get_dynamic_prior_high_prob(
+            t["store"], t["model"], context_weekday, True
+        )
+        prior_nm, prior_nm_source, prior_nm_n = get_dynamic_prior_high_prob(
+            t["store"], t["model"], context_weekday, False
+        )
+        bayes_all = calc_bayes_prob(
+            t["model"], tg, tb, tr, prior_high_prob=prior_all,
+            total_diff=td, diff_weighted_count=diff_n_all
+        )
+        bayes_sp = calc_bayes_prob(
+            t["model"], sg, sb, sr, prior_high_prob=prior_sp,
+            total_diff=sd, diff_weighted_count=diff_n_sp
+        )
+        bayes_nm = calc_bayes_prob(
+            t["model"], ng, nb, nr, prior_high_prob=prior_nm,
+            total_diff=nd, diff_weighted_count=diff_n_nm
+        )
+        monte_carlo = run_monte_carlo_simulation(
+            t["store"], t["model"], bayes_all, context_is_special
+        )
         thompson = calc_thompson_metrics(t["store"], t["tai"], t["model"], bayes_all, wn, phase="all")
         result.append({
             "tai":t["tai"],"taiNum":t["taiNum"],"model":t["model"],"store":t["store"],
@@ -531,6 +801,11 @@ def compute_tai_detail(rows, special):
             "bayesProbAll":bayes_all,
             "bayesProbSp":bayes_sp,
             "bayesProbNm":bayes_nm,
+            "dynamicPrior": {
+                "all": {"highProb": r1(prior_all * 100), "source": prior_all_source, "samples": prior_all_n},
+                "special": {"highProb": r1(prior_sp * 100), "source": prior_sp_source, "samples": prior_sp_n},
+                "normal": {"highProb": r1(prior_nm * 100), "source": prior_nm_source, "samples": prior_nm_n},
+            },
             "monteCarlo": monte_carlo,
             "thompson": thompson,
             "finalScore": thompson["finalScore"] if thompson else None,
@@ -734,14 +1009,16 @@ def compute_day_wday_matrix(rows):
         }
     return result
 
-def compute_today_analysis(rows, special, today=None):
+def compute_today_analysis(rows, special, today=None, tai_detail=None):
     if today is None:
         today = jst_today()
-    day = today.day; weekday = today.weekday()
+    day = today.day
+    weekday = today.weekday()
+    weekday_data = (weekday + 1) % 7
     is_special = day in special
     day_stats = compute_day_stats(rows, special)
     day_info = next((d for d in day_stats if d["day"] == day), None)
-    wday_rows = [r for r in rows if r["weekday"] == weekday]
+    wday_rows = [r for r in rows if r["weekday"] == weekday_data]
     wday_avg = r1(weighted_avg_rows(wday_rows, "diff")) if wday_rows else None
     baseline = r1(weighted_avg_rows(rows, "diff")) if rows else 0
     if day_info:
@@ -758,7 +1035,9 @@ def compute_today_analysis(rows, special, today=None):
         "⬜ 普通・慎重に" if not is_special and day_score >= 1 else
         "❌ 見送りを推奨"
     )
-    tai_detail = compute_tai_detail(rows, special)
+    if tai_detail is None:
+        tai_detail = compute_tai_detail(rows, special, weekday_data, is_special)
+    holdover_rate = get_holdover_rate(rows[0]["store"]) if rows else 0.0
     by_model = defaultdict(lambda: {"sp":[],"nm":[]})
     for r in rows:
         if r["day"] in special: by_model[r["model"]]["sp"].append(r)
@@ -796,6 +1075,15 @@ def compute_today_analysis(rows, special, today=None):
                 lift = r1(ns["avg"]-bl_avg)
                 pts = 2 if lift>=150 else 1 if lift>=80 else 0 if lift>=-30 else -1
                 score += pts; reasons.append({"label":f"前日({ckey})","val":f"前日{diff:+}枚","pts":pts})
+            if prev.get("isHighSettingSyn"):
+                pts = 2 if holdover_rate >= 0.5 else 1 if holdover_rate >= 0.2 else 0
+                if pts > 0:
+                    score += pts
+                    reasons.append({
+                        "label": "据え置き補正",
+                        "val": f"据え置き率{r1(holdover_rate*100)}%",
+                        "pts": pts,
+                    })
         rank = "本命" if score>=4 else "対抗" if score>=2 else "保留" if score>=1 else "注意"
         scored_tais.append({**t,"totalScore":score,"rank":rank,"reasons":reasons})
     scored_tais.sort(key=lambda x: -x["totalScore"])
@@ -821,6 +1109,7 @@ def build_store_recommendations(store, store_rows, special, tai_detail, today=No
     if not (is_special or is_special_next_day):
         return []
 
+    holdover_rate = get_holdover_rate(store)
     recent_cutoff = today - timedelta(days=90)
     three_month_cutoff = today - timedelta(days=92)
     recent_counts = defaultdict(int)
@@ -856,14 +1145,21 @@ def build_store_recommendations(store, store_rows, special, tai_detail, today=No
             phase="special" if is_special else "normal",
         )
         final_score = thompson["finalScore"] if thompson else float(bayes)
+        holdover_bonus = 0.0
+        prev = t.get("prevRow") or {}
+        if prev.get("isHighSettingSyn"):
+            holdover_bonus = HOLDOVER_BONUS_MAX * holdover_rate
+            final_score = clamp(final_score + holdover_bonus, 0.0, 100.0)
         weighted_score = final_score * weekday_coeff * monthly_timing_coeff * store_coeff
-        monte_carlo = run_monte_carlo_simulation(store, t["model"], bayes)
+        monte_carlo = run_monte_carlo_simulation(store, t["model"], bayes, is_special)
         reasons = []
         if is_special:
             reasons.append("今日は特定日")
         if is_special_next_day:
             reasons.append("特定日翌日")
         reasons.append(f"Thompson最終スコア {final_score:.2f}")
+        if holdover_bonus > 0:
+            reasons.append(f"据え置き補正 +{holdover_bonus:.2f}(据え置き率{r1(holdover_rate*100)}%)")
         if t["taiNum"] > 0:
             tail_digit = t["taiNum"] % 10
             tail_rows = tail_rows_by_model.get((t["model"], tail_digit), [])
@@ -979,18 +1275,36 @@ if __name__ == "__main__":
         f" source={FEEDBACK_PRIOR.get('source')}"
         f" highProb={round(FEEDBACK_PRIOR.get('highProb', 0.5) * 100, 1)}%"
     )
+    store_cfg = load_store_configs()
+    for store_name, rate in store_cfg.get("exchangeRateByStore", {}).items():
+        STORE_EXCHANGE_RATE[normalize_store_name(store_name)] = rate
+    store_special_map = {
+        normalize_store_name(k): v[:] for k, v in store_cfg.get("specialByStore", {}).items()
+    }
     today = jst_today()
-    rows = load_raw()
+    rows = load_raw(store_special_map)
     if not rows:
         print("データがありません。終了します。")
         exit(1)
     all_stores = sorted(set(r["store"] for r in rows))
+    for store in all_stores:
+        if store not in store_special_map:
+            store_special_map[store] = DEFAULT_SPECIAL_DAYS[:]
+    ANALYTICS_CACHE = build_analytics_cache(rows)
+    holdover_summary = {
+        s: r1(v.get("rate", 0.0) * 100)
+        for s, v in ANALYTICS_CACHE.get("holdover_rate", {}).items()
+    }
+    print(f"据え置き率キャッシュ作成: {len(holdover_summary)}店舗")
+    rows_by_store = defaultdict(list)
+    for r in rows:
+        rows_by_store[r["store"]].append(r)
     display_stores = build_store_display_order(all_stores)
     output = {
         "updated_at": datetime.now(JST).date().strftime("%Y-%m-%d"),
         "store_freshness": load_store_freshness(),
         "stores": display_stores,
-        "specialByStore": STORE_SPECIAL,
+        "specialByStore": store_special_map,
         "score_coefficients": {
             "weekday": WEEKDAY_COEFF,
             "monthly_timing": MONTHLY_TIMING_COEFF,
@@ -1002,9 +1316,11 @@ if __name__ == "__main__":
     }
     recommendation_pool = []
     for store in all_stores:
-        special = STORE_SPECIAL.get(store, [1,11,21,31])
-        store_rows = [r for r in rows if r["store"]==store]
-        tai_detail = compute_tai_detail(store_rows, special)
+        special = store_special_map.get(store, DEFAULT_SPECIAL_DAYS)
+        store_rows = rows_by_store.get(store, [])
+        is_special_today = today.day in special
+        weekday_data = (today.weekday() + 1) % 7
+        tai_detail = compute_tai_detail(store_rows, special, weekday_data, is_special_today)
         print(f"集計中: {store} ({len(store_rows)}行) 特定日:{special}")
         output["byStore"][store] = {
             "special": special,
@@ -1018,7 +1334,11 @@ if __name__ == "__main__":
             "taiDetail": tai_detail,
             "dateSummary": compute_date_summary(store_rows, special),
             "weekdayStats": compute_weekday_stats(store_rows),
-            "todayAnalysis": compute_today_analysis(store_rows, special, today=today),
+            "todayAnalysis": compute_today_analysis(store_rows, special, today=today, tai_detail=tai_detail),
+            "holdoverRate": {
+                "rate": r1(get_holdover_rate(store) * 100),
+                "source": "auto",
+            },
         }
         try:
             recommendation_pool.extend(build_store_recommendations(store, store_rows, special, tai_detail, today=today))
@@ -1039,6 +1359,6 @@ if __name__ == "__main__":
         "byStore": output["store_accuracy"],
     }
     out_path = os.path.join(REPO_DIR, "data.json")
-    with open(out_path, "w", encoding="utf-8") as f:
+    with open(out_path, "w", encoding="utf-8-sig") as f:
         json.dump(output, f, ensure_ascii=False)
     print(f"✅ data.json出力完了: {out_path}")
