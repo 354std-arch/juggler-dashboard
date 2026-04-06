@@ -1798,13 +1798,26 @@ function getTomorrowLocalDate() {
   return addDaysLocal(getTodayLocalDate(), 1);
 }
 
+function getTargetModeBaseDate() {
+  const analysisYmd = getTodayAnalysisDateYmd();
+  const analysisDate = parseYmdLocal(analysisYmd || '');
+  if(analysisDate) return analysisDate;
+  return getTodayLocalDate();
+}
+
+function getDateForTargetMode(mode) {
+  const base = getTargetModeBaseDate();
+  if(mode === 'tomorrow') return addDaysLocal(base, 1) || base;
+  return base;
+}
+
 function getActiveTargetDate() {
   const input = document.getElementById('diagDate');
   if(input) {
     const parsed = parseYmdLocal(input.value);
     if(parsed) return parsed;
   }
-  const fallback = targetDayMode === 'tomorrow' ? getTomorrowLocalDate() : getTodayLocalDate();
+  const fallback = getDateForTargetMode(targetDayMode);
   if(input) input.value = toYmdLocal(fallback);
   return fallback;
 }
@@ -1831,7 +1844,7 @@ function isTodayAnalysisAvailableForSelectedDate() {
   const base = parseYmdLocal(baseYmd || '');
   if(!d || !base) return false;
   const selected = toYmdLocal(d);
-  const candidates = [base, addDaysLocal(base, 1)]
+  const candidates = [addDaysLocal(base, -1), base, addDaysLocal(base, 1)]
     .filter(Boolean)
     .map(toYmdLocal);
   return candidates.includes(selected);
@@ -1858,7 +1871,7 @@ function setTargetDayMode(mode) {
   targetDayMode = mode === 'tomorrow' ? 'tomorrow' : 'today';
   const input = document.getElementById('diagDate');
   if(input) {
-    const date = targetDayMode === 'tomorrow' ? getTomorrowLocalDate() : getTodayLocalDate();
+    const date = getDateForTargetMode(targetDayMode);
     input.value = toYmdLocal(date);
   }
   syncTargetModeUI();
@@ -1870,10 +1883,11 @@ function onDiagDateChange() {
   const parsed = parseYmdLocal(input?.value || '');
   if(!parsed) return;
   const ymd = toYmdLocal(parsed);
-  const today = toYmdLocal(getTodayLocalDate());
-  const tomorrow = toYmdLocal(getTomorrowLocalDate());
+  const base = getTargetModeBaseDate();
+  const today = toYmdLocal(base);
+  const tomorrow = toYmdLocal(addDaysLocal(base, 1));
   if(ymd === tomorrow) targetDayMode = 'tomorrow';
-  else targetDayMode = 'today';
+  else if(ymd === today) targetDayMode = 'today';
   syncTargetModeUI();
   renderLayer1();
 }
@@ -2213,11 +2227,21 @@ function parseFlexibleDate(v) {
   // ISO日時（タイムゾーン付き含む）はJSTへ正規化して日付を採用
   if(/[T\s]\d{1,2}:\d{2}/.test(s)) {
     const normalized = s.includes('T') ? s : s.replace(' ', 'T');
-    const parsed = new Date(normalized);
-    if(!isNaN(parsed)) {
-      const ymd = toYmdInTimeZone(parsed, JST_TIME_ZONE);
-      const dt = parseYmdLocal(ymd);
-      if(dt) return { date: dt, dateStr: ymd };
+    // タイムゾーン情報が無い日時はJST日付として扱い、日付ずれを防ぐ
+    const noTz = normalized.match(/^(\d{4})-(\d{1,2})-(\d{1,2})T\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/);
+    if(noTz) {
+      const y = Number(noTz[1]);
+      const mm = Number(noTz[2]);
+      const d = Number(noTz[3]);
+      const dt = buildLocalDateFromParts(y, mm, d);
+      if(dt) return { date: dt, dateStr: `${y}-${String(mm).padStart(2,'0')}-${String(d).padStart(2,'0')}` };
+    } else {
+      const parsed = new Date(normalized);
+      if(!isNaN(parsed)) {
+        const ymd = toYmdInTimeZone(parsed, JST_TIME_ZONE);
+        const dt = parseYmdLocal(ymd);
+        if(dt) return { date: dt, dateStr: ymd };
+      }
     }
   }
 
@@ -2437,6 +2461,11 @@ function loadFromPrecomputed(json) {
   document.querySelectorAll('#taiPeriodBtns .filter-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector('#taiPeriodBtns .filter-btn')?.classList.add('active');
   setStoreData('all');
+  const diagInput = document.getElementById('diagDate');
+  if(diagInput) {
+    const modeDate = getDateForTargetMode(targetDayMode);
+    diagInput.value = toYmdLocal(modeDate);
+  }
   document.getElementById('saveBtn').disabled = false;
   setTimeout(() => {
     renderStoreBar();
@@ -5883,14 +5912,34 @@ function selectModelSpFilter(key, btn) {
 function getModelFilteredRows() {
   const rows = filteredRows();
   const SP = getSpecial();
+  const resolveRowDay = (row) => {
+    const direct = Number(row?.day);
+    if(Number.isInteger(direct) && direct >= 1 && direct <= 31) return direct;
+    const ymd = normalizeDataDateValue(row?.dateStr || row?.date || row?.targetDate || row?.data_date);
+    if(!ymd) return null;
+    const dt = parseYmdLocal(ymd);
+    return dt ? dt.getDate() : null;
+  };
   if(currentModelSpFilter==='all') return rows;
-  if(currentModelSpFilter==='sp') return rows.filter(r=>SP.includes(r.day));
-  if(currentModelSpFilter==='nm') return rows.filter(r=>!SP.includes(r.day));
-  if(currentModelSpFilter==='zoro') return rows.filter(r=>isZoroDay(r.day));
+  if(currentModelSpFilter==='sp') return rows.filter(r=>{
+    const day = resolveRowDay(r);
+    return day !== null && SP.includes(day);
+  });
+  if(currentModelSpFilter==='nm') return rows.filter(r=>{
+    const day = resolveRowDay(r);
+    return day !== null && !SP.includes(day);
+  });
+  if(currentModelSpFilter==='zoro') return rows.filter(r=>{
+    const day = resolveRowDay(r);
+    return day !== null && isZoroDay(day);
+  });
   const digitMatch = currentModelSpFilter.match(/^digit_(\d)$/);
   if(digitMatch) {
     const digit = Number(digitMatch[1]);
-    return rows.filter(r=>Number(r.day) % 10 === digit);
+    return rows.filter(r=>{
+      const day = resolveRowDay(r);
+      return day !== null && day % 10 === digit;
+    });
   }
   return rows;
 }
@@ -5899,16 +5948,33 @@ function parseDayKey(value) {
   const direct = Number(value);
   if(Number.isInteger(direct) && direct >= 1 && direct <= 31) return direct;
   const text = String(value ?? '');
-  const m = text.match(/(\d{1,2})/);
-  if(!m) return null;
-  const parsed = Number(m[1]);
+  const ymd = text.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:$|[T\s])/);
+  if(ymd) {
+    const d = Number(ymd[3]);
+    if(Number.isInteger(d) && d >= 1 && d <= 31) return d;
+  }
+  const allDigits = text.match(/\d{1,2}/g);
+  if(!allDigits || !allDigits.length) return null;
+  const parsed = Number(allDigits[allDigits.length - 1]);
   if(!Number.isInteger(parsed) || parsed < 1 || parsed > 31) return null;
   return parsed;
 }
 
 function toDayDiffStat(value) {
   if(Array.isArray(value)) {
-    const nums = value.map(Number).filter(Number.isFinite);
+    const nums = value
+      .map((entry) => {
+        const direct = Number(entry);
+        if(Number.isFinite(direct)) return direct;
+        if(entry && typeof entry === 'object') {
+          const diff = Number(entry.diff ?? entry.sai);
+          if(Number.isFinite(diff)) return diff;
+          const avgVal = Number(entry.avg);
+          if(Number.isFinite(avgVal)) return avgVal;
+        }
+        return NaN;
+      })
+      .filter(Number.isFinite);
     return { sum: nums.reduce((a,b)=>a+b,0), count: nums.length };
   }
   const direct = Number(value);
@@ -5923,6 +5989,11 @@ function toDayDiffStat(value) {
     const countVal = Number(value.count);
     if(Number.isFinite(sumVal) && Number.isFinite(countVal) && countVal > 0) {
       return { sum: sumVal, count: countVal };
+    }
+    const totalVal = Number(value.total ?? value.totalDiff);
+    const totalCount = Number(value.totalCount ?? value.n ?? value.samples ?? value.sampleCount);
+    if(Number.isFinite(totalVal) && Number.isFinite(totalCount) && totalCount > 0) {
+      return { sum: totalVal, count: totalCount };
     }
     const avgVal = Number(value.avg);
     if(Number.isFinite(avgVal)) {
