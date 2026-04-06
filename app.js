@@ -1799,9 +1799,6 @@ function getTomorrowLocalDate() {
 }
 
 function getTargetModeBaseDate() {
-  const analysisYmd = getTodayAnalysisDateYmd();
-  const analysisDate = parseYmdLocal(analysisYmd || '');
-  if(analysisDate) return analysisDate;
   return getTodayLocalDate();
 }
 
@@ -1824,9 +1821,15 @@ function getActiveTargetDate() {
 
 function normalizeTodayAnalysisRecord(record) {
   if(!record || typeof record !== 'object') return null;
-  const normalizedDate = normalizeDataDateValue(record.date || record.targetDate || record.data_date);
+  const normalizedDate = normalizeDataDateValue(
+    record.date || record.dateStr || record.targetDate || record.target_date || record.data_date
+  );
   if(!normalizedDate) return { ...record };
-  return { ...record, date: normalizedDate };
+  return {
+    ...record,
+    date: normalizedDate,
+    targetDate: normalizedDate,
+  };
 }
 
 function getTodayAnalysisDateYmd() {
@@ -1843,11 +1846,10 @@ function isTodayAnalysisAvailableForSelectedDate() {
   const baseYmd = getTodayAnalysisDateYmd();
   const base = parseYmdLocal(baseYmd || '');
   if(!d || !base) return false;
-  const selected = toYmdLocal(d);
-  const candidates = [addDaysLocal(base, -1), base, addDaysLocal(base, 1)]
-    .filter(Boolean)
-    .map(toYmdLocal);
-  return candidates.includes(selected);
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const diffDays = Math.round((d.getTime() - base.getTime()) / msPerDay);
+  const maxForward = targetDayMode === 'tomorrow' ? 2 : 1;
+  return diffDays >= -1 && diffDays <= maxForward;
 }
 
 function syncTargetModeUI() {
@@ -1882,12 +1884,10 @@ function onDiagDateChange() {
   const input = document.getElementById('diagDate');
   const parsed = parseYmdLocal(input?.value || '');
   if(!parsed) return;
-  const ymd = toYmdLocal(parsed);
   const base = getTargetModeBaseDate();
-  const today = toYmdLocal(base);
-  const tomorrow = toYmdLocal(addDaysLocal(base, 1));
-  if(ymd === tomorrow) targetDayMode = 'tomorrow';
-  else if(ymd === today) targetDayMode = 'today';
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const diffDays = Math.round((parsed.getTime() - base.getTime()) / msPerDay);
+  targetDayMode = diffDays >= 1 ? 'tomorrow' : 'today';
   syncTargetModeUI();
   renderLayer1();
 }
@@ -5915,7 +5915,22 @@ function getModelFilteredRows() {
   const resolveRowDay = (row) => {
     const direct = Number(row?.day);
     if(Number.isInteger(direct) && direct >= 1 && direct <= 31) return direct;
-    const ymd = normalizeDataDateValue(row?.dateStr || row?.date || row?.targetDate || row?.data_date);
+
+    const dayText = String(row?.day ?? '').trim();
+    const dayDigits = dayText.match(/\d{1,2}/g);
+    if(dayDigits && dayDigits.length) {
+      const candidate = Number(dayDigits[dayDigits.length - 1]);
+      if(Number.isInteger(candidate) && candidate >= 1 && candidate <= 31) return candidate;
+    }
+
+    if(typeof row?.dateStr === 'string') {
+      const dt = parseYmdLocal(row.dateStr.trim());
+      if(dt) return dt.getDate();
+    }
+
+    if(row?.date instanceof Date && !isNaN(row.date)) return row.date.getDate();
+
+    const ymd = normalizeDataDateValue(row?.date || row?.targetDate || row?.data_date);
     if(!ymd) return null;
     const dt = parseYmdLocal(ymd);
     return dt ? dt.getDate() : null;
@@ -5962,20 +5977,24 @@ function parseDayKey(value) {
 
 function toDayDiffStat(value) {
   if(Array.isArray(value)) {
-    const nums = value
-      .map((entry) => {
-        const direct = Number(entry);
-        if(Number.isFinite(direct)) return direct;
-        if(entry && typeof entry === 'object') {
-          const diff = Number(entry.diff ?? entry.sai);
-          if(Number.isFinite(diff)) return diff;
-          const avgVal = Number(entry.avg);
-          if(Number.isFinite(avgVal)) return avgVal;
+    let sum = 0;
+    let count = 0;
+    value.forEach((entry) => {
+      const direct = Number(entry);
+      if(Number.isFinite(direct)) {
+        sum += direct;
+        count += 1;
+        return;
+      }
+      if(entry && typeof entry === 'object') {
+        const nested = toDayDiffStat(entry);
+        if(nested.count > 0) {
+          sum += Number(nested.sum || 0);
+          count += Number(nested.count || 0);
         }
-        return NaN;
-      })
-      .filter(Number.isFinite);
-    return { sum: nums.reduce((a,b)=>a+b,0), count: nums.length };
+      }
+    });
+    return { sum, count };
   }
   const direct = Number(value);
   if(Number.isFinite(direct)) return { sum: direct, count: 1 };
@@ -6019,6 +6038,7 @@ function getModelByDayStats(modelStat) {
     });
   };
   mergeStats(modelStat?.byDay);
+  mergeStats(modelStat?.by_day);
   mergeStats(modelStat?.byDayStats);
   Object.entries(modelStat?.byDayAvg || {}).forEach(([k, v]) => {
     const day = parseDayKey(k);

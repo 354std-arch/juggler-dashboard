@@ -1,5 +1,6 @@
 ﻿{
-  "updated_at": "2026-04-04",
+  "version": 2,
+  "updated_at": "2026-04-06",
   "threshold_p_high": 60.0,
   "ema_decay": 0.9,
   "base_alpha": 1.0,
@@ -9,6 +10,16 @@
   "posterior_mean": 0.5,
   "total_hits": 0,
   "total_misses": 0,
+  "g_weight_rules": {
+    "gte_3000": 1.0,
+    "gte_1500_lt_3000": 0.5,
+    "lt_1500": 0.0
+  },
+  "condition_priors": {
+    "store_model_tai_daytype": {},
+    "store_model_daytype": {},
+    "store_daytype": {}
+  },
   "processed_session_ids": [],
   "updates": [],
   "last_run": {
@@ -17,6 +28,7 @@
     "new_updates": 0,
     "pending_sessions": 0,
     "skipped_low_p": 0,
+    "skipped_low_games": 0,
     "skipped_unsupported_model": 0
   }
 }

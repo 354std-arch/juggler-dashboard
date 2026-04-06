@@ -91,6 +91,11 @@ PRIOR_MODEL_MIN_SAMPLES = 5
 MC_PARAM_MIN_SAMPLES = 10
 HOLDOVER_BONUS_MAX = 8.0
 DEFAULT_SPECIAL_DAYS = [1, 11, 21, 31]
+FEEDBACK_KEY_SEP = "||"
+G_WEIGHT_FULL_THRESHOLD = 3000
+G_WEIGHT_HALF_THRESHOLD = 1500
+G_WEIGHT_FULL = 1.0
+G_WEIGHT_HALF = 0.5
 
 MODEL_HOLDOVER_SYN_THRESHOLD = {
     "アイムジャグラー": 135,
@@ -128,6 +133,8 @@ def row_w(r): return r.get("weight", 1)
 def weighted_total(rows): return sum(row_w(r) for r in rows)
 def weighted_sum(rows, key): return sum(r[key] * row_w(r) for r in rows)
 def weighted_total_if(rows, pred): return sum(row_w(r) for r in rows if pred(r))
+def weighted_total_if_factor(rows, pred, factor_fn):
+    return sum(row_w(r) * factor_fn(r) for r in rows if pred(r))
 def weighted_avg_rows(rows, key):
     tw = weighted_total(rows)
     return weighted_sum(rows, key) / tw if tw else 0
@@ -146,6 +153,23 @@ def weighted_mean_std(rows, key):
         var_num += row_w(r) * d * d
     variance = var_num / tw if tw > 0 else 0.0
     return mean, math.sqrt(max(0.0, variance))
+
+def g_confidence_weight(g):
+    g_val = parse_num(g)
+    if g_val >= G_WEIGHT_FULL_THRESHOLD:
+        return G_WEIGHT_FULL
+    if g_val >= G_WEIGHT_HALF_THRESHOLD:
+        return G_WEIGHT_HALF
+    return 0.0
+
+def weighted_sum_with_factor(rows, key, factor_fn):
+    return sum(r[key] * row_w(r) * factor_fn(r) for r in rows)
+
+def weighted_total_with_factor(rows, factor_fn):
+    return sum(row_w(r) * factor_fn(r) for r in rows)
+
+def make_feedback_condition_key(*parts):
+    return FEEDBACK_KEY_SEP.join(str(p) for p in parts)
 
 def parse_num(s):
     if not s: return 0
@@ -427,24 +451,77 @@ def build_analytics_cache(rows):
         "holdover_rate": holdover_rate,
     }
 
-def get_dynamic_prior_high_prob(store, model, weekday, is_special):
+def get_daytype_token(is_special):
+    return "special" if bool(is_special) else "normal"
+
+def get_feedback_condition_prior(store, model, tai, is_special):
+    priors = FEEDBACK_PRIOR.get("condition_priors", {}) if isinstance(FEEDBACK_PRIOR, dict) else {}
+    by_tai = priors.get("store_model_tai_daytype", {}) if isinstance(priors, dict) else {}
+    by_model = priors.get("store_model_daytype", {}) if isinstance(priors, dict) else {}
+    by_store = priors.get("store_daytype", {}) if isinstance(priors, dict) else {}
+    day_type = get_daytype_token(is_special)
+    key_tai = make_feedback_condition_key(store, model, tai, day_type)
+    key_model = make_feedback_condition_key(store, model, day_type)
+    key_store = make_feedback_condition_key(store, day_type)
+    tai_prior = by_tai.get(key_tai) if isinstance(by_tai, dict) else None
+    if isinstance(tai_prior, dict) and int(tai_prior.get("samples", 0)) >= 20:
+        return tai_prior, "feedback_store_model_tai_daytype"
+    model_prior = by_model.get(key_model) if isinstance(by_model, dict) else None
+    if isinstance(model_prior, dict) and int(model_prior.get("samples", 0)) >= 5:
+        return model_prior, "feedback_store_model_daytype"
+    store_prior = by_store.get(key_store) if isinstance(by_store, dict) else None
+    if isinstance(store_prior, dict) and int(store_prior.get("samples", 0)) > 0:
+        return store_prior, "feedback_store_daytype"
+    return None, None
+
+def get_dynamic_prior_high_prob(store, model, weekday, is_special, tai=None):
     cache = ANALYTICS_CACHE or {}
     l4 = cache.get("prior_l4", {})
     l3 = cache.get("prior_l3", {})
     l2 = cache.get("prior_l2", {})
     k4 = (store, model, weekday, bool(is_special))
     stat = l4.get(k4)
+    raw_prob = 0.5
+    raw_source = "default"
+    raw_samples = 0
     if stat and stat["total"] >= PRIOR_DETAIL_MIN_SAMPLES:
-        return clamp(stat["plus"] / stat["total"], 0.01, 0.99), "store_model_weekday_daytype", stat["total"]
-    k3 = (store, model, bool(is_special))
-    stat = l3.get(k3)
-    if stat and stat["total"] >= PRIOR_MODEL_MIN_SAMPLES:
-        return clamp(stat["plus"] / stat["total"], 0.01, 0.99), "store_model_daytype", stat["total"]
-    k2 = (store, bool(is_special))
-    stat = l2.get(k2)
-    if stat and stat["total"] > 0:
-        return clamp(stat["plus"] / stat["total"], 0.01, 0.99), "store_daytype", stat["total"]
-    return 0.5, "default", 0
+        raw_prob = clamp(stat["plus"] / stat["total"], 0.01, 0.99)
+        raw_source = "store_model_weekday_daytype"
+        raw_samples = int(stat["total"])
+    else:
+        k3 = (store, model, bool(is_special))
+        stat = l3.get(k3)
+        if stat and stat["total"] >= PRIOR_MODEL_MIN_SAMPLES:
+            raw_prob = clamp(stat["plus"] / stat["total"], 0.01, 0.99)
+            raw_source = "store_model_daytype"
+            raw_samples = int(stat["total"])
+        else:
+            k2 = (store, bool(is_special))
+            stat = l2.get(k2)
+            if stat and stat["total"] > 0:
+                raw_prob = clamp(stat["plus"] / stat["total"], 0.01, 0.99)
+                raw_source = "store_daytype"
+                raw_samples = int(stat["total"])
+
+    feedback_prior, feedback_source = get_feedback_condition_prior(store, model, tai, is_special)
+    if not feedback_prior:
+        return raw_prob, raw_source, raw_samples
+
+    fb_alpha = max(0.0, parse_num(feedback_prior.get("alpha")) - parse_num(FEEDBACK_PRIOR.get("base_alpha", 1.0)))
+    fb_beta = max(0.0, parse_num(feedback_prior.get("beta")) - parse_num(FEEDBACK_PRIOR.get("base_beta", 1.0)))
+    dyn_alpha = raw_prob * raw_samples
+    dyn_beta = (1.0 - raw_prob) * raw_samples
+    total_alpha = dyn_alpha + fb_alpha
+    total_beta = dyn_beta + fb_beta
+    if total_alpha + total_beta <= 0:
+        return raw_prob, raw_source, raw_samples
+    combined_prob = clamp(total_alpha / (total_alpha + total_beta), 0.01, 0.99)
+    fb_weighted_samples = parse_num(feedback_prior.get("weighted_samples"))
+    combined_samples = raw_samples + (fb_weighted_samples if fb_weighted_samples > 0 else parse_num(feedback_prior.get("samples")))
+    source = raw_source if raw_samples > 0 else "default"
+    if feedback_source:
+        source = f"{source}+{feedback_source}" if source != "default" else feedback_source
+    return combined_prob, source, r1(combined_samples)
 
 def get_holdover_rate(store):
     data = (ANALYTICS_CACHE or {}).get("holdover_rate", {}).get(store, {})
@@ -504,6 +581,13 @@ def load_feedback_prior():
         "beta": 1.0,
         "highProb": 0.5,
         "source": "default",
+        "base_alpha": 1.0,
+        "base_beta": 1.0,
+        "condition_priors": {
+            "store_model_tai_daytype": {},
+            "store_model_daytype": {},
+            "store_daytype": {},
+        },
     }
     if not os.path.exists(FEEDBACK_JSON):
         return default
@@ -518,14 +602,44 @@ def load_feedback_prior():
     alpha = parse_num(data.get("alpha"))
     beta = parse_num(data.get("beta"))
     if alpha <= 0 or beta <= 0:
-        return default
+        alpha = default["alpha"]
+        beta = default["beta"]
     high_prob = alpha / (alpha + beta)
     high_prob = max(0.05, min(0.95, high_prob))
+    condition_priors = data.get("condition_priors", {})
+    if not isinstance(condition_priors, dict):
+        condition_priors = {}
+    normalized_condition_priors = {}
+    for key in ["store_model_tai_daytype", "store_model_daytype", "store_daytype"]:
+        src = condition_priors.get(key, {})
+        if not isinstance(src, dict):
+            src = {}
+        normalized = {}
+        for cond_key, payload in src.items():
+            if not isinstance(payload, dict):
+                continue
+            ca = parse_num(payload.get("alpha"))
+            cb = parse_num(payload.get("beta"))
+            cs = parse_num(payload.get("samples"))
+            cws = parse_num(payload.get("weighted_samples"))
+            if not ca or not cb or ca <= 0 or cb <= 0:
+                continue
+            normalized[str(cond_key)] = {
+                "alpha": ca,
+                "beta": cb,
+                "samples": int(cs) if cs > 0 else 0,
+                "weighted_samples": cws if cws > 0 else 0.0,
+                "posterior_mean": clamp(ca / (ca + cb), 0.0, 1.0),
+            }
+        normalized_condition_priors[key] = normalized
     return {
         "alpha": alpha,
         "beta": beta,
         "highProb": high_prob,
         "source": "feedback_data.json",
+        "base_alpha": parse_num(data.get("base_alpha")) or 1.0,
+        "base_beta": parse_num(data.get("base_beta")) or 1.0,
+        "condition_priors": normalized_condition_priors,
     }
 
 def build_setting_priors(model, high_prob=0.5):
@@ -742,12 +856,25 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
         tg=weighted_sum(t["all"], "g"); tb=weighted_sum(t["all"], "bb"); tr=weighted_sum(t["all"], "rb")
         sg=weighted_sum(t["sp"], "g"); sb=weighted_sum(t["sp"], "bb"); sr=weighted_sum(t["sp"], "rb")
         ng=weighted_sum(t["nm"], "g"); nb=weighted_sum(t["nm"], "bb"); nr=weighted_sum(t["nm"], "rb")
+        g_factor = lambda row: g_confidence_weight(row.get("g"))
+        bayes_tg_all = weighted_sum_with_factor(t["all"], "g", g_factor)
+        bayes_tb_all = weighted_sum_with_factor(t["all"], "bb", g_factor)
+        bayes_tr_all = weighted_sum_with_factor(t["all"], "rb", g_factor)
+        bayes_tg_sp = weighted_sum_with_factor(t["sp"], "g", g_factor)
+        bayes_tb_sp = weighted_sum_with_factor(t["sp"], "bb", g_factor)
+        bayes_tr_sp = weighted_sum_with_factor(t["sp"], "rb", g_factor)
+        bayes_tg_nm = weighted_sum_with_factor(t["nm"], "g", g_factor)
+        bayes_tb_nm = weighted_sum_with_factor(t["nm"], "bb", g_factor)
+        bayes_tr_nm = weighted_sum_with_factor(t["nm"], "rb", g_factor)
+        bayes_w_all = weighted_total_with_factor(t["all"], g_factor)
+        bayes_w_sp = weighted_total_with_factor(t["sp"], g_factor)
+        bayes_w_nm = weighted_total_with_factor(t["nm"], g_factor)
         td=weighted_sum(t["all"], "diff")
         sd=weighted_sum(t["sp"], "diff")
         nd=weighted_sum(t["nm"], "diff")
-        diff_n_all = weighted_total_if(t["all"], lambda x: x.get("hasDiff"))
-        diff_n_sp = weighted_total_if(t["sp"], lambda x: x.get("hasDiff"))
-        diff_n_nm = weighted_total_if(t["nm"], lambda x: x.get("hasDiff"))
+        diff_n_all = weighted_total_if_factor(t["all"], lambda x: x.get("hasDiff"), g_factor)
+        diff_n_sp = weighted_total_if_factor(t["sp"], lambda x: x.get("hasDiff"), g_factor)
+        diff_n_nm = weighted_total_if_factor(t["nm"], lambda x: x.get("hasDiff"), g_factor)
         n = len(t["all"])
         wn = weighted_total(t["all"])
         wplus_rate = weighted_rate(t["all"], lambda x: x["diff"] > 0) * 100
@@ -759,24 +886,24 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
             "isHighSettingSyn": prev["isHighSettingSyn"],
         } if prev else None
         prior_all, prior_all_source, prior_all_n = get_dynamic_prior_high_prob(
-            t["store"], t["model"], context_weekday, context_is_special
+            t["store"], t["model"], context_weekday, context_is_special, tai=t["tai"]
         )
         prior_sp, prior_sp_source, prior_sp_n = get_dynamic_prior_high_prob(
-            t["store"], t["model"], context_weekday, True
+            t["store"], t["model"], context_weekday, True, tai=t["tai"]
         )
         prior_nm, prior_nm_source, prior_nm_n = get_dynamic_prior_high_prob(
-            t["store"], t["model"], context_weekday, False
+            t["store"], t["model"], context_weekday, False, tai=t["tai"]
         )
         bayes_all = calc_bayes_prob(
-            t["model"], tg, tb, tr, prior_high_prob=prior_all,
+            t["model"], bayes_tg_all, bayes_tb_all, bayes_tr_all, prior_high_prob=prior_all,
             total_diff=td, diff_weighted_count=diff_n_all
         )
         bayes_sp = calc_bayes_prob(
-            t["model"], sg, sb, sr, prior_high_prob=prior_sp,
+            t["model"], bayes_tg_sp, bayes_tb_sp, bayes_tr_sp, prior_high_prob=prior_sp,
             total_diff=sd, diff_weighted_count=diff_n_sp
         )
         bayes_nm = calc_bayes_prob(
-            t["model"], ng, nb, nr, prior_high_prob=prior_nm,
+            t["model"], bayes_tg_nm, bayes_tb_nm, bayes_tr_nm, prior_high_prob=prior_nm,
             total_diff=nd, diff_weighted_count=diff_n_nm
         )
         monte_carlo = run_monte_carlo_simulation(
@@ -801,6 +928,23 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
             "bayesProbAll":bayes_all,
             "bayesProbSp":bayes_sp,
             "bayesProbNm":bayes_nm,
+            "bayesMeta": {
+                "all": {
+                    "effectiveGames": r1(bayes_tg_all),
+                    "confidenceWeight": r1(bayes_w_all),
+                    "eligible": bayes_all is not None,
+                },
+                "special": {
+                    "effectiveGames": r1(bayes_tg_sp),
+                    "confidenceWeight": r1(bayes_w_sp),
+                    "eligible": bayes_sp is not None,
+                },
+                "normal": {
+                    "effectiveGames": r1(bayes_tg_nm),
+                    "confidenceWeight": r1(bayes_w_nm),
+                    "eligible": bayes_nm is not None,
+                },
+            },
             "dynamicPrior": {
                 "all": {"highProb": r1(prior_all * 100), "source": prior_all_source, "samples": prior_all_n},
                 "special": {"highProb": r1(prior_sp * 100), "source": prior_sp_source, "samples": prior_sp_n},
@@ -1128,6 +1272,10 @@ def build_store_recommendations(store, store_rows, special, tai_detail, today=No
     for t in tai_detail:
         recent_count = recent_counts.get((t["tai"], t["model"]), 0)
         if recent_count < 3:
+            continue
+        phase_key = "special" if is_special else "normal"
+        phase_meta = ((t.get("bayesMeta") or {}).get(phase_key) or {})
+        if isinstance(phase_meta, dict) and phase_meta.get("eligible") is False:
             continue
         bayes = t.get("bayesProbSp") if is_special else t.get("bayesProbNm")
         if bayes is None:
