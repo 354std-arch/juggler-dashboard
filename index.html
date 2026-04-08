@@ -25,21 +25,21 @@
 
 <nav id="mainNav">
   <button class="active" onclick="showTab('tab-data',this)">📂 読込</button>
-  <button onclick="showTab('tab-answer',this)">✅ 答え合わせ</button>
   <button onclick="showTab('tab-target',this)">🎯 狙い台</button>
   <button onclick="showTab('tab-days',this)">📊 日にち</button>
   <button onclick="showTab('tab-tai',this)">🎰 台別</button>
+  <button onclick="showTab('tab-model',this)">🎮 機種分析</button>
+  <button onclick="showTab('tab-heat',this)">🗺️ 組合せ</button>
+  <button onclick="showTab('tab-period',this)">📈 期間分析</button>
   <button onclick="showTab('tab-calendar',this)">📅 予報</button>
   <button onclick="showTab('tab-settings',this)">⚙️ 設定</button>
   <button onclick="showTab('tab-layout',this)">🗂️ 席配置</button>
   <button id="detailMenuBtn" onclick="toggleDetailMenu(this)">🔍 詳細 ▾</button>
+  <button onclick="showTab('tab-answer',this)">✅ 答え合わせ</button>
 </nav>
 
 <!-- ドロップダウンメニュー：body直下に配置してnavのoverflowに隠されない -->
 <div id="detailMenu" style="display:none;position:fixed;background:var(--bg3);border:1px solid var(--border);border-radius:8px;min-width:150px;box-shadow:0 8px 24px rgba(0,0,0,.7);z-index:9999;">
-  <button onclick="showTabFromMenu('tab-model',this)">🎮 機種分析</button>
-  <button onclick="showTabFromMenu('tab-heat',this)">🗺️ 組合せ</button>
-  <button onclick="showTabFromMenu('tab-period',this)">📈 期間分析</button>
   <button onclick="showTabFromMenu('tab-setsuteii',this)">🔬 設定推測</button>
   <button onclick="showTabFromMenu('tab-next',this)">🔮 前日条件</button>
 </div>
