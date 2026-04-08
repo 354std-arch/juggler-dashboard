@@ -22,9 +22,6 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4
 
-      - name: Run minrepo scrape
-        run: python scrape_minrepo.py
-
       - name: Run new-store backfill
         run: python backfill_new_stores.py
 
