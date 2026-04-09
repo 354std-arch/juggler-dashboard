@@ -1,7 +1,8 @@
 // ====== グローバル ======
 let G = {
   raw:[], dayStats:[], taiDetail:[], dateSummary:[], modelStats:[], nextStats:{}, heatmap:{}, autoSpecial:[], weekMatrix:{}, dayWdayMatrix:{},
-  currentTargetContext: null, layer3Scored: [], layer3SelectionMeta: null, storeFreshness: {}, recommendations: [], dataUpdatedAt: null, dataDate: null
+  currentTargetContext: null, layer3Scored: [], layer3SelectionMeta: null, storeFreshness: {}, recommendations: [], dataUpdatedAt: null, dataDate: null,
+  morningData: null, morningDataError: ''
 };
 let chartInst = null;
 let currentStore = 'all';
@@ -2356,6 +2357,58 @@ function setJsonLoadButtonLoading(isLoading) {
   btn.textContent = isLoading ? '読込中...' : '📡 データを読み込む';
 }
 
+function loadMorningDataJSON() {
+  return fetch('./morning_data.json', { cache: 'no-store' })
+    .then((r) => {
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then((json) => {
+      G.morningData = json && typeof json === 'object' ? json : null;
+      G.morningDataError = '';
+      return G.morningData;
+    })
+    .catch((err) => {
+      G.morningData = null;
+      G.morningDataError = err && err.message ? err.message : String(err);
+      return null;
+    });
+}
+
+function getMorningStoreNames() {
+  const stores = (G.morningData && G.morningData.stores && typeof G.morningData.stores === 'object')
+    ? Object.keys(G.morningData.stores)
+    : [];
+  if(currentStore !== 'all') return stores.filter((s) => s === currentStore);
+  return stores;
+}
+
+function getMorningStoreData(storeName) {
+  if(!G.morningData || !G.morningData.stores) return null;
+  return G.morningData.stores[storeName] || null;
+}
+
+function getMorningTaiScoreMap(storeName) {
+  const storeData = getMorningStoreData(storeName);
+  const map = new Map();
+  const candidates = Array.isArray(storeData?.candidates) ? storeData.candidates : [];
+  candidates.forEach((c) => {
+    const tai = Number(c?.tai);
+    const score = Number(c?.score);
+    if(Number.isFinite(tai) && Number.isFinite(score)) {
+      map.set(tai, score);
+    }
+  });
+  return map;
+}
+
+function morningScoreColor(score) {
+  if(!Number.isFinite(score) || score < 0.2) return '#9ca3af';
+  if(score >= 0.6) return '#ef4444';
+  if(score >= 0.4) return '#f97316';
+  return '#eab308';
+}
+
 function resetGasUrl() {
   localStorage.removeItem('juggler_gas_url');
   const el = document.getElementById('gasUrlInput');
@@ -2368,6 +2421,7 @@ function resetGasUrl() {
 function loadFromJSON() {
   const status = document.getElementById('gasStatus');
   const emptyErrorCode = 'DATA_EMPTY';
+  const morningPromise = loadMorningDataJSON();
   setJsonLoadButtonLoading(true);
   setDataEmptyState(DATA_EMPTY_STATE.LOADING);
   setHeaderDataStatus('読込中...', 'loading');
@@ -2436,6 +2490,10 @@ function loadFromJSON() {
     })
     .finally(() => {
       setJsonLoadButtonLoading(false);
+      morningPromise.finally(() => {
+        const active = document.querySelector('.tab-content.active')?.id;
+        if(active === 'tab-calendar') renderCalendar();
+      });
     });
 }
 
@@ -3791,6 +3849,7 @@ function renderUnplacedTaiList() {
   const el = document.getElementById('lmUnplacedList');
   const countEl = document.getElementById('lmUnplacedCount');
   if(!el) return;
+  const scoreMap = L.store ? getMorningTaiScoreMap(L.store) : new Map();
   countEl.textContent = `(${L.unplaced.length})`;
   if(!L.unplaced.length) {
     el.innerHTML = '<div style="font-size:10px;color:var(--muted);padding:6px;text-align:center">全台配置済み</div>';
@@ -3798,10 +3857,12 @@ function renderUnplacedTaiList() {
   }
   el.innerHTML = L.unplaced.map(t => {
     const sel = L.selectedTai === t;
+    const score = Number(scoreMap.get(Number(t)));
+    const bgColor = sel ? 'var(--accent)' : morningScoreColor(score);
     return `<div onclick="selectUnplacedTai(${t})"
       style="padding:5px 8px;margin:2px;border-radius:4px;font-size:11px;cursor:pointer;text-align:center;
-      background:${sel?'var(--accent)':'var(--bg4)'};color:${sel?'#000':'var(--text)'};
-      border:1px solid ${sel?'var(--accent)':'var(--border)'}">
+      background:${bgColor};color:#111;
+      border:1px solid ${sel?'var(--accent)':'rgba(0,0,0,0.25)'}">
       ${t}
     </div>`;
   }).join('');
@@ -3812,6 +3873,7 @@ function renderLayoutGrid() {
   if(!el) return;
   const cols = L.gridCols, rows = L.gridRows;
   const CELL = 36;
+  const scoreMap = L.store ? getMorningTaiScoreMap(L.store) : new Map();
 
   // placedをマップに変換
   const placedMap = {};
@@ -3825,10 +3887,12 @@ function renderLayoutGrid() {
       const tai = placedMap[key];
       const isSelPlaced = tai !== undefined && L.selectedPlacedTai === tai;
       if(tai !== undefined) {
+        const score = Number(scoreMap.get(Number(tai)));
+        const taiBg = isSelPlaced ? 'var(--accent)' : morningScoreColor(score);
         html += `<td onclick="onGridCellClick(${x},${y})"
           style="width:${CELL}px;height:${CELL}px;text-align:center;vertical-align:middle;
           font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--border);
-          background:${isSelPlaced?'var(--accent)':'var(--plus)'};
+          background:${taiBg};
           color:${isSelPlaced?'#000':'#000'};border-radius:3px">${tai}</td>`;
       } else {
         const isHover = (L.selectedTai !== null || L.selectedPlacedTai !== null);
@@ -6881,6 +6945,10 @@ window.addEventListener('DOMContentLoaded',()=>{
   initDesignSystemObserver();
   initStoreBarEvents();
   restoreGasUrlInput();
+  loadMorningDataJSON().finally(() => {
+    const active = document.querySelector('.tab-content.active')?.id;
+    if(active === 'tab-calendar') renderCalendar();
+  });
   if(window._PRELOAD&&window._PRELOAD.length){
     if(window._SPECIAL_STORE) SPECIAL_BY_STORE=window._SPECIAL_STORE;
     G.raw=window._PRELOAD.map(r=>{
@@ -6912,18 +6980,144 @@ const CAL_MIN_SAMPLE = 3;
 const WDAY_LABELS = ['日','月','火','水','木','金','土'];
 
 function renderCalendar() {
-  if(!G.raw.length && !G._precomputed) {
-    document.getElementById('calMonthWrap').innerHTML = '<div class="empty-msg">データを読み込んでください</div>';
-    document.getElementById('calUpcomingWrap').innerHTML = '<div class="empty-msg">データを読み込んでください</div>';
+  const monthWrap = document.getElementById('calMonthWrap');
+  const upcomingWrap = document.getElementById('calUpcomingWrap');
+  if(!monthWrap || !upcomingWrap) return;
+
+  const stores = getMorningStoreNames();
+  if(!G.morningData || !G.morningData.stores || !stores.length) {
+    const reason = G.morningDataError
+      ? `morning_data.json の読込に失敗しました (${escapeHtml(G.morningDataError)})`
+      : 'morning_data.json が見つかりません';
+    const fallback = `<div class="empty-msg">${reason}</div>`;
+    monthWrap.innerHTML = fallback;
+    upcomingWrap.innerHTML = '<div class="empty-msg">朝イチ予報データがないため表示できません</div>';
     return;
   }
-  if(G_calYear === null) {
-    const now = getTodayLocalDate();
-    G_calYear = now.getFullYear();
-    G_calMonth = now.getMonth();
-  }
-  buildCalendarMonth();
-  buildUpcomingList();
+
+  const generatedAt = G.morningData.generated_at || '不明';
+  monthWrap.innerHTML = `
+    <div style="padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--text)">🕘 朝イチ判定データ</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">生成時刻: ${escapeHtml(generatedAt)}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px">表示店舗: ${stores.length}件</div>
+    </div>
+  `;
+
+  const cards = stores.map((store) => {
+    const data = getMorningStoreData(store) || {};
+    const todayLabel = data.today_label || '普通';
+    const labelColor = todayLabel === '強い' ? '#ef4444' : (todayLabel === '弱い' ? '#64748b' : '#f59e0b');
+    const todayScore = Number(data.today_score);
+    const todayScoreText = Number.isFinite(todayScore) ? `${Math.round(todayScore * 100)}%` : '0%';
+    const todayReason = Array.isArray(data.today_reason) ? data.today_reason.slice(0, 3) : [];
+
+    const modelRanking = Array.isArray(data.model_ranking) ? data.model_ranking.slice(0, 5) : [];
+    const tailMap = new Map();
+    (Array.isArray(data.tail_ranking) ? data.tail_ranking : []).forEach((x) => {
+      const tail = Number(x?.tail);
+      if(!Number.isFinite(tail)) return;
+      tailMap.set(tail, {
+        score: Number(x?.score) || 0,
+        sample: Number(x?.sample) || 0,
+      });
+    });
+    const candidates = Array.isArray(data.candidates) ? data.candidates : [];
+
+    const todayReasonHtml = todayReason.length
+      ? `<ul style="margin:6px 0 0 18px;padding:0;color:var(--text);font-size:11px;line-height:1.7">${todayReason.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>`
+      : '<div style="font-size:11px;color:var(--muted)">理由データなし</div>';
+
+    const modelHtml = modelRanking.length
+      ? modelRanking.map((m, idx) => {
+          const score = Number(m?.score) || 0;
+          const sample = Number(m?.sample) || 0;
+          return `
+            <div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+              <div style="min-width:0">
+                <div style="font-weight:700;color:var(--text)">${idx+1}. ${escapeHtml(m?.model || '不明')}</div>
+                <div style="color:var(--muted);font-size:10px">${escapeHtml(m?.reason || '')}</div>
+              </div>
+              <div style="text-align:right;white-space:nowrap">
+                <div style="color:var(--accent);font-weight:700">${Math.round(score * 100)}%</div>
+                <div style="color:var(--muted);font-size:10px">${sample}件</div>
+              </div>
+            </div>
+          `;
+        }).join('')
+      : '<div style="font-size:11px;color:var(--muted)">該当なし</div>';
+
+    const tailHtml = Array.from({ length: 10 }, (_, tail) => {
+      const rec = tailMap.get(tail) || { score: 0, sample: 0 };
+      const score = Number(rec.score) || 0;
+      const width = Math.max(0, Math.min(100, Math.round(score * 100)));
+      const color = morningScoreColor(score);
+      return `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <div style="width:22px;font-size:11px;color:var(--muted);text-align:right">末尾${tail}</div>
+          <div style="flex:1;height:8px;background:var(--bg4);border-radius:4px;overflow:hidden">
+            <div style="width:${width}%;height:100%;background:${color}"></div>
+          </div>
+          <div style="width:68px;text-align:right;font-size:10px;color:var(--muted)">${Math.round(score * 100)}% (${rec.sample})</div>
+        </div>
+      `;
+    }).join('');
+
+    const candidateHtml = candidates.length
+      ? candidates.map((c, idx) => {
+          const score = Number(c?.score) || 0;
+          const reasons = (Array.isArray(c?.reasons) ? c.reasons : []).slice(0, 3);
+          const warnings = (Array.isArray(c?.warnings) ? c.warnings : []).slice(0, 2);
+          const warningsHtml = warnings.length
+            ? `<div style="font-size:10px;color:#f97316;margin-top:4px">⚠ ${warnings.map((w) => escapeHtml(w)).join(' / ')}</div>`
+            : '';
+          return `
+            <div style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                <div style="font-size:12px;color:var(--text);font-weight:700">${idx+1}. ${escapeHtml(String(c?.tai ?? '-'))}番台 / ${escapeHtml(c?.model || '不明')}</div>
+                <div style="font-size:12px;color:${morningScoreColor(score)};font-weight:800">${Math.round(score * 100)}%</div>
+              </div>
+              <div style="font-size:10px;color:var(--muted);margin-top:4px">${reasons.map((r) => escapeHtml(r)).join(' / ') || '根拠なし'}</div>
+              ${warningsHtml}
+            </div>
+          `;
+        }).join('')
+      : '<div style="font-size:11px;color:var(--muted)">候補台なし</div>';
+
+    return `
+      <div class="card" style="margin:0 0 12px 0">
+        <div class="card-title">🏪 ${escapeHtml(store)}</div>
+
+        <div style="margin-bottom:12px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3)">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="font-size:12px;font-weight:700;color:var(--text)">1. 店日判定</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;color:#111;background:${labelColor};padding:2px 8px;border-radius:999px;font-weight:800">${escapeHtml(todayLabel)}</span>
+              <span style="font-size:11px;color:var(--muted)">上候補率 ${todayScoreText}</span>
+            </div>
+          </div>
+          ${todayReasonHtml}
+        </div>
+
+        <div style="margin-bottom:12px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3)">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">2. 狙い機種ランキング</div>
+          ${modelHtml}
+        </div>
+
+        <div style="margin-bottom:12px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3)">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">3. 末尾ランキング</div>
+          ${tailHtml}
+        </div>
+
+        <div style="padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3)">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">4. 候補台ランキング</div>
+          ${candidateHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  upcomingWrap.innerHTML = cards || '<div class="empty-msg">表示できる店舗データがありません</div>';
 }
 
 function getCalDateMeta(year, month, day) {
