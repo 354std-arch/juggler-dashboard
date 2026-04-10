@@ -1,6 +1,6 @@
 ﻿{
   "version": 2,
-  "updated_at": "2026-04-10",
+  "updated_at": "2026-04-11",
   "threshold_p_high": 60.0,
   "ema_decay": 0.9,
   "base_alpha": 1.0,
