@@ -2409,6 +2409,17 @@ function morningScoreColor(score) {
   return '#eab308';
 }
 
+function toMorningScoreUnit(score) {
+  const raw = Number(score);
+  if(!Number.isFinite(raw)) return 0;
+  if(raw > 1 && raw <= 100) return Math.max(0, Math.min(1, raw / 100));
+  return Math.max(0, Math.min(1, raw));
+}
+
+function formatMorningScorePercent(score) {
+  return `${Math.round(toMorningScoreUnit(score) * 100)}%`;
+}
+
 function resetGasUrl() {
   localStorage.removeItem('juggler_gas_url');
   const el = document.getElementById('gasUrlInput');
@@ -6980,144 +6991,141 @@ const CAL_MIN_SAMPLE = 3;
 const WDAY_LABELS = ['日','月','火','水','木','金','土'];
 
 function renderCalendar() {
-  const monthWrap = document.getElementById('calMonthWrap');
-  const upcomingWrap = document.getElementById('calUpcomingWrap');
-  if(!monthWrap || !upcomingWrap) return;
+  renderMorningSummaryForCalendar();
+  if(!Number.isInteger(G_calYear) || !Number.isInteger(G_calMonth)) {
+    const today = getTodayLocalDate();
+    G_calYear = today.getFullYear();
+    G_calMonth = today.getMonth();
+  }
+  buildCalendarMonth();
+  buildUpcomingList();
+}
+
+function renderMorningSummaryForCalendar() {
+  const wrap = document.getElementById('calMorningSummaryWrap');
+  if(!wrap) return;
 
   const stores = getMorningStoreNames();
   if(!G.morningData || !G.morningData.stores || !stores.length) {
-    const reason = G.morningDataError
-      ? `morning_data.json の読込に失敗しました (${escapeHtml(G.morningDataError)})`
-      : 'morning_data.json が見つかりません';
-    const fallback = `<div class="empty-msg">${reason}</div>`;
-    monthWrap.innerHTML = fallback;
-    upcomingWrap.innerHTML = '<div class="empty-msg">朝イチ予報データがないため表示できません</div>';
+    wrap.innerHTML = '<div class="empty-msg">本日の予報データがありません。GitHub Actionsの実行をお待ちください。</div>';
     return;
   }
 
-  const generatedAt = G.morningData.generated_at || '不明';
-  monthWrap.innerHTML = `
-    <div style="padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);margin-bottom:10px">
-      <div style="font-size:12px;font-weight:700;color:var(--text)">🕘 朝イチ判定データ</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">生成時刻: ${escapeHtml(generatedAt)}</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:6px">表示店舗: ${stores.length}件</div>
-    </div>
-  `;
-
+  const generatedAt = escapeHtml(G.morningData.generated_at || '不明');
   const cards = stores.map((store) => {
     const data = getMorningStoreData(store) || {};
-    const todayLabel = data.today_label || '普通';
-    const labelColor = todayLabel === '強い' ? '#ef4444' : (todayLabel === '弱い' ? '#64748b' : '#f59e0b');
-    const todayScore = Number(data.today_score);
-    const todayScoreText = Number.isFinite(todayScore) ? `${Math.round(todayScore * 100)}%` : '0%';
-    const todayReason = Array.isArray(data.today_reason) ? data.today_reason.slice(0, 3) : [];
+    const todayLabel = String(data.today_label || '判定なし');
+    const todayScoreText = formatMorningScorePercent(data.today_score);
+    const todayReasons = Array.isArray(data.today_reason)
+      ? data.today_reason.filter(Boolean).slice(0, 3)
+      : (data.today_reason ? [String(data.today_reason)] : []);
+    const todayReasonText = todayReasons.length ? todayReasons.join(' / ') : '根拠データなし';
+    const todayLabelClass = todayLabel.includes('強')
+      ? 'is-strong'
+      : (todayLabel.includes('弱') ? 'is-weak' : 'is-normal');
 
-    const modelRanking = Array.isArray(data.model_ranking) ? data.model_ranking.slice(0, 5) : [];
-    const tailMap = new Map();
-    (Array.isArray(data.tail_ranking) ? data.tail_ranking : []).forEach((x) => {
-      const tail = Number(x?.tail);
-      if(!Number.isFinite(tail)) return;
-      tailMap.set(tail, {
-        score: Number(x?.score) || 0,
-        sample: Number(x?.sample) || 0,
-      });
+    const modelRanking = (Array.isArray(data.model_ranking) ? data.model_ranking.slice() : [])
+      .sort((a, b) => toMorningScoreUnit(b?.score) - toMorningScoreUnit(a?.score));
+    const modelMap = new Map();
+    modelRanking.forEach((m) => {
+      const key = String(m?.model || '');
+      if(key) modelMap.set(key, m);
     });
-    const candidates = Array.isArray(data.candidates) ? data.candidates : [];
 
-    const todayReasonHtml = todayReason.length
-      ? `<ul style="margin:6px 0 0 18px;padding:0;color:var(--text);font-size:11px;line-height:1.7">${todayReason.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>`
-      : '<div style="font-size:11px;color:var(--muted)">理由データなし</div>';
+    const tailRanking = (Array.isArray(data.tail_ranking) ? data.tail_ranking.slice() : [])
+      .filter((t) => Number.isFinite(Number(t?.tail)))
+      .sort((a, b) => toMorningScoreUnit(b?.score) - toMorningScoreUnit(a?.score));
+
+    const candidates = (Array.isArray(data.candidates) ? data.candidates.slice() : [])
+      .sort((a, b) => toMorningScoreUnit(b?.score) - toMorningScoreUnit(a?.score));
 
     const modelHtml = modelRanking.length
-      ? modelRanking.map((m, idx) => {
-          const score = Number(m?.score) || 0;
-          const sample = Number(m?.sample) || 0;
-          return `
-            <div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
-              <div style="min-width:0">
-                <div style="font-weight:700;color:var(--text)">${idx+1}. ${escapeHtml(m?.model || '不明')}</div>
-                <div style="color:var(--muted);font-size:10px">${escapeHtml(m?.reason || '')}</div>
-              </div>
-              <div style="text-align:right;white-space:nowrap">
-                <div style="color:var(--accent);font-weight:700">${Math.round(score * 100)}%</div>
-                <div style="color:var(--muted);font-size:10px">${sample}件</div>
-              </div>
-            </div>
-          `;
+      ? modelRanking.slice(0, 5).map((m, idx) => {
+          const sample = Number(m?.sample);
+          const sampleText = Number.isFinite(sample) ? `${Math.round(sample)}件` : '0件';
+          return `<div class="morning-rank-row">
+            <div class="morning-rank-main">${idx + 1}. ${escapeHtml(m?.model || '不明')}</div>
+            <div class="morning-rank-sub">${escapeHtml(m?.reason || '理由データなし')}</div>
+            <div class="morning-rank-meta">${formatMorningScorePercent(m?.score)} / ${sampleText}</div>
+          </div>`;
         }).join('')
-      : '<div style="font-size:11px;color:var(--muted)">該当なし</div>';
+      : '<div class="morning-empty">機種データなし</div>';
 
-    const tailHtml = Array.from({ length: 10 }, (_, tail) => {
-      const rec = tailMap.get(tail) || { score: 0, sample: 0 };
-      const score = Number(rec.score) || 0;
-      const width = Math.max(0, Math.min(100, Math.round(score * 100)));
-      const color = morningScoreColor(score);
-      return `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-          <div style="width:22px;font-size:11px;color:var(--muted);text-align:right">末尾${tail}</div>
-          <div style="flex:1;height:8px;background:var(--bg4);border-radius:4px;overflow:hidden">
-            <div style="width:${width}%;height:100%;background:${color}"></div>
-          </div>
-          <div style="width:68px;text-align:right;font-size:10px;color:var(--muted)">${Math.round(score * 100)}% (${rec.sample})</div>
-        </div>
-      `;
-    }).join('');
+    const tailHtml = tailRanking.length
+      ? tailRanking.slice(0, 10).map((t, idx) => {
+          const tail = Number(t?.tail);
+          const sample = Number(t?.sample);
+          const sampleText = Number.isFinite(sample) ? `${Math.round(sample)}件` : '0件';
+          return `<div class="morning-rank-row">
+            <div class="morning-rank-main">${idx + 1}. 末尾${tail}</div>
+            <div class="morning-rank-meta">${formatMorningScorePercent(t?.score)} / ${sampleText}</div>
+          </div>`;
+        }).join('')
+      : '<div class="morning-empty">末尾データなし</div>';
 
     const candidateHtml = candidates.length
-      ? candidates.map((c, idx) => {
-          const score = Number(c?.score) || 0;
-          const reasons = (Array.isArray(c?.reasons) ? c.reasons : []).slice(0, 3);
-          const warnings = (Array.isArray(c?.warnings) ? c.warnings : []).slice(0, 2);
-          const warningsHtml = warnings.length
-            ? `<div style="font-size:10px;color:#f97316;margin-top:4px">⚠ ${warnings.map((w) => escapeHtml(w)).join(' / ')}</div>`
-            : '';
-          return `
-            <div style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3);margin-bottom:6px">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-                <div style="font-size:12px;color:var(--text);font-weight:700">${idx+1}. ${escapeHtml(String(c?.tai ?? '-'))}番台 / ${escapeHtml(c?.model || '不明')}</div>
-                <div style="font-size:12px;color:${morningScoreColor(score)};font-weight:800">${Math.round(score * 100)}%</div>
-              </div>
-              <div style="font-size:10px;color:var(--muted);margin-top:4px">${reasons.map((r) => escapeHtml(r)).join(' / ') || '根拠なし'}</div>
-              ${warningsHtml}
+      ? candidates.slice(0, 8).map((c, idx) => {
+          const modelName = String(c?.model || '不明');
+          const matchModel = modelMap.get(modelName) || null;
+          const modelSample = Number(matchModel?.sample);
+          const modelSampleText = Number.isFinite(modelSample) ? `${Math.round(modelSample)}件` : '0件';
+          const modelCondition = matchModel
+            ? `${matchModel.reason || '機種傾向あり'} / スコア${formatMorningScorePercent(matchModel.score)} / サンプル${modelSampleText}`
+            : '機種ランキング情報なし';
+
+          const taiReasons = Array.isArray(c?.reasons) ? c.reasons.filter(Boolean).slice(0, 3) : [];
+          while(taiReasons.length < 3) taiReasons.push('根拠データなし');
+
+          const warnings = Array.isArray(c?.warnings) ? c.warnings.filter(Boolean).slice(0, 2) : [];
+          while(warnings.length < 2) warnings.push('特記事項なし');
+
+          return `<div class="morning-candidate-card">
+            <div class="morning-candidate-head">
+              <div class="morning-candidate-name">${idx + 1}. ${escapeHtml(String(c?.tai ?? '-'))}番台 / ${escapeHtml(modelName)}</div>
+              <div class="morning-candidate-score">${formatMorningScorePercent(c?.score)}</div>
             </div>
-          `;
+            <div class="morning-candidate-layer">
+              <div class="morning-layer-label">店条件</div>
+              <div class="morning-layer-text">判定 ${escapeHtml(todayLabel)} / スコア ${todayScoreText} / ${escapeHtml(todayReasonText)}</div>
+            </div>
+            <div class="morning-candidate-layer">
+              <div class="morning-layer-label">機種条件</div>
+              <div class="morning-layer-text">${escapeHtml(modelCondition)}</div>
+            </div>
+            <div class="morning-candidate-layer">
+              <div class="morning-layer-label">台番号条件</div>
+              <ul class="morning-inline-list">${taiReasons.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ul>
+            </div>
+            <div class="morning-candidate-note">
+              <div class="morning-layer-label">注意点</div>
+              <ul class="morning-inline-list">${warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join('')}</ul>
+            </div>
+          </div>`;
         }).join('')
-      : '<div style="font-size:11px;color:var(--muted)">候補台なし</div>';
+      : '<div class="morning-empty">候補台データなし</div>';
 
-    return `
-      <div class="card" style="margin:0 0 12px 0">
-        <div class="card-title">🏪 ${escapeHtml(store)}</div>
-
-        <div style="margin-bottom:12px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3)">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-            <div style="font-size:12px;font-weight:700;color:var(--text)">1. 店日判定</div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:11px;color:#111;background:${labelColor};padding:2px 8px;border-radius:999px;font-weight:800">${escapeHtml(todayLabel)}</span>
-              <span style="font-size:11px;color:var(--muted)">上候補率 ${todayScoreText}</span>
-            </div>
-          </div>
-          ${todayReasonHtml}
-        </div>
-
-        <div style="margin-bottom:12px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3)">
-          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">2. 狙い機種ランキング</div>
-          ${modelHtml}
-        </div>
-
-        <div style="margin-bottom:12px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3)">
-          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">3. 末尾ランキング</div>
-          ${tailHtml}
-        </div>
-
-        <div style="padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg3)">
-          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">4. 候補台ランキング</div>
-          ${candidateHtml}
-        </div>
+    return `<section class="morning-store-card">
+      <div class="morning-store-head">
+        <div class="morning-store-name">🏪 ${escapeHtml(store)}</div>
+        <span class="morning-label ${todayLabelClass}">${escapeHtml(todayLabel)} / ${todayScoreText}</span>
       </div>
-    `;
+      <div class="morning-store-reason">${escapeHtml(todayReasonText)}</div>
+      <div class="morning-block">
+        <div class="morning-block-title">狙い機種ランキング</div>
+        ${modelHtml}
+      </div>
+      <div class="morning-block">
+        <div class="morning-block-title">末尾ランキング</div>
+        ${tailHtml}
+      </div>
+      <div class="morning-block">
+        <div class="morning-block-title">候補台ランキング</div>
+        ${candidateHtml}
+      </div>
+    </section>`;
   }).join('');
 
-  upcomingWrap.innerHTML = cards || '<div class="empty-msg">表示できる店舗データがありません</div>';
+  wrap.innerHTML = `<div class="morning-summary-meta">更新: ${generatedAt} / 表示店舗: ${stores.length}件</div>${cards}`;
 }
 
 function getCalDateMeta(year, month, day) {

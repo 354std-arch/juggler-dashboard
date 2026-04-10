@@ -103,6 +103,33 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .recommendation-reasons{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5;}
 .cal-nav-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 16px;cursor:pointer;font-size:15px;font-weight:700;}
 .cal-nav-btn:active{background:var(--bg4);}
+.morning-summary-meta{font-size:11px;color:var(--muted);margin-bottom:10px;}
+.morning-store-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px;}
+.morning-store-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+.morning-store-name{font-size:13px;font-weight:800;color:var(--text);}
+.morning-label{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:800;border:1px solid transparent;}
+.morning-label.is-strong{background:rgba(57,255,20,.14);color:var(--plus);border-color:rgba(57,255,20,.35);}
+.morning-label.is-normal{background:rgba(255,159,0,.14);color:var(--accent4);border-color:rgba(255,159,0,.35);}
+.morning-label.is-weak{background:rgba(255,77,109,.14);color:var(--minus);border-color:rgba(255,77,109,.35);}
+.morning-store-reason{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:8px;}
+.morning-block{border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:8px;background:var(--bg2);}
+.morning-block:last-child{margin-bottom:0;}
+.morning-block-title{font-size:11px;font-weight:800;color:var(--accent3);margin-bottom:6px;}
+.morning-rank-row{display:grid;grid-template-columns:1fr auto;gap:6px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+.morning-rank-row:last-child{border-bottom:none;}
+.morning-rank-main{font-size:12px;color:var(--text);font-weight:700;}
+.morning-rank-sub{grid-column:1/-1;font-size:10px;color:var(--muted);}
+.morning-rank-meta{font-size:11px;color:var(--accent);font-family:'Share Tech Mono',monospace;white-space:nowrap;}
+.morning-empty{font-size:11px;color:var(--muted);}
+.morning-candidate-card{border:1px solid rgba(0,229,255,.2);border-radius:8px;padding:8px;margin-bottom:8px;background:var(--bg3);}
+.morning-candidate-card:last-child{margin-bottom:0;}
+.morning-candidate-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+.morning-candidate-name{font-size:12px;color:var(--text);font-weight:800;}
+.morning-candidate-score{font-size:12px;font-weight:800;color:var(--accent);}
+.morning-candidate-layer,.morning-candidate-note{display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:flex-start;margin-top:5px;}
+.morning-layer-label{font-size:10px;color:var(--muted);font-weight:700;}
+.morning-layer-text{font-size:11px;color:var(--text);line-height:1.5;}
+.morning-inline-list{margin:0;padding-left:16px;font-size:11px;color:var(--text);line-height:1.5;}
 .drop-zone{border:2px dashed var(--border);border-radius:8px;padding:18px;text-align:center;cursor:pointer;background:var(--bg3);margin-bottom:10px;}
 .drop-zone p{color:var(--muted);font-size:13px;margin-bottom:6px;}
 .drop-zone .hint{font-size:11px;color:var(--muted);opacity:.6;}
@@ -276,6 +303,7 @@ main{padding:12px;max-width:760px;margin:0 auto;}
   .st-grid-3{grid-template-columns:1fr !important;}
   .st-grid-2{grid-template-columns:1fr !important;}
   .period-split{grid-template-columns:1fr !important;}
+  .morning-candidate-layer,.morning-candidate-note{grid-template-columns:1fr;}
 }
 
 /* ====== 撤退判断フローティングUI ====== */
