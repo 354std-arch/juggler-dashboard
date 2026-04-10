@@ -251,6 +251,114 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .empty-msg{text-align:center;color:var(--muted);padding:24px;font-size:13px;}
 .section-note{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.6;}
 
+/* 席配置ヒートマップ */
+.seat-layout-card{padding:12px;}
+.seat-layout-toolbar{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-bottom:10px;
+}
+.seat-layout-toolbar select,
+.seat-layout-toolbar input{
+  background:var(--bg3);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:8px;
+  min-height:40px;
+  padding:8px 10px;
+  font-size:13px;
+  font-family:'Zen Kaku Gothic New',sans-serif;
+}
+.seat-layout-status{
+  margin-bottom:10px;
+  font-size:12px;
+  color:var(--muted);
+}
+.seat-layout-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:8px;
+}
+.seat-layout-item{
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.2);
+  padding:9px;
+  cursor:grab;
+  user-select:none;
+  transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.seat-layout-item:active{cursor:grabbing;}
+.seat-layout-item:hover{
+  transform:translateY(-1px);
+  box-shadow:0 8px 20px rgba(0,0,0,.25);
+}
+.seat-layout-item.dragging{
+  opacity:.35;
+  transform:scale(.98);
+}
+.seat-layout-item.drag-over{
+  border-color:var(--accent3);
+  box-shadow:0 0 0 2px rgba(64,224,208,.28) inset;
+}
+.seat-layout-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:6px;
+  margin-bottom:5px;
+}
+.seat-layout-tai{
+  font-size:14px;
+  font-weight:900;
+  color:#111;
+  font-family:'Share Tech Mono',monospace;
+}
+.seat-layout-score{
+  font-size:11px;
+  color:#111;
+  font-family:'Share Tech Mono',monospace;
+}
+.seat-layout-model{
+  font-size:11px;
+  color:#111;
+  line-height:1.5;
+  word-break:break-word;
+}
+.seat-layout-score-high{background:linear-gradient(135deg,#fca5a5,#ef4444);}
+.seat-layout-score-mid{background:linear-gradient(135deg,#fdba74,#f97316);}
+.seat-layout-score-low{background:linear-gradient(135deg,#d1d5db,#9ca3af);}
+.seat-layout-item.is-selected{
+  border-color:#111;
+  box-shadow:0 0 0 2px rgba(17,17,17,.28) inset;
+}
+.seat-layout-detail{
+  margin-top:12px;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px;
+}
+.seat-layout-detail-title{
+  font-size:13px;
+  font-weight:800;
+  color:var(--accent3);
+  margin-bottom:8px;
+}
+.seat-layout-detail-list{
+  margin:0;
+  padding-left:17px;
+  color:var(--text);
+  font-size:12px;
+  line-height:1.7;
+}
+.seat-layout-detail-meta{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+
 /* ヒートマップ */
 .heat-table{border-collapse:collapse;font-size:11px;min-width:360px;}
 .heat-table th{background:var(--bg3);color:var(--muted);padding:5px 7px;text-align:center;border:1px solid var(--bg4);font-size:10px;white-space:nowrap;}
@@ -304,6 +412,10 @@ main{padding:12px;max-width:760px;margin:0 auto;}
   .st-grid-2{grid-template-columns:1fr !important;}
   .period-split{grid-template-columns:1fr !important;}
   .morning-candidate-layer,.morning-candidate-note{grid-template-columns:1fr;}
+  .seat-layout-toolbar{gap:6px;}
+  .seat-layout-toolbar select{flex:1 1 100%;}
+  .seat-layout-toolbar input{flex:1 1 140px;}
+  .seat-layout-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
 
 /* ====== 撤退判断フローティングUI ====== */

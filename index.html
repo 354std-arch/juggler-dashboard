@@ -750,51 +750,24 @@
 </div>
 
 <div id="tab-layout" class="tab-content">
-  <div class="card" style="padding:12px">
-    <div class="card-title">🗂️ 席配置マスター</div>
-    <p class="section-note">台番号を置いて、店舗・フロアごとの位置関係を保存します。並び・角・島端の分析精度向上に使用します。</p>
-
-    <!-- 操作バー -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <select id="lmStore" onchange="onLayoutStoreChange()" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px">
+  <div class="card seat-layout-card">
+    <div class="card-title">🗂️ 席配置ヒートマップ</div>
+    <p class="section-note">台番号カードを実際の配置順に並べて保存し、日付ごとの朝イチスコアを色で確認します。</p>
+    <div class="seat-layout-toolbar">
+      <select id="seatLayoutStore" onchange="onSeatLayoutStoreChange()">
         <option value="">店舗を選択</option>
       </select>
-      <select id="lmFloor" onchange="onLayoutFloorChange()" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px">
-        <option value="">フロア</option>
-      </select>
-      <input id="lmNewFloor" placeholder="新フロア名" style="background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;width:90px">
-      <button class="btn" onclick="addNewFloor()" style="padding:6px 10px;font-size:12px">＋フロア追加</button>
-      <button class="btn" onclick="saveLayoutMaster()" style="padding:6px 10px;font-size:12px;background:var(--plus);color:#000">💾 保存</button>
-      <button class="btn" onclick="resetLayoutMaster()" style="padding:6px 10px;font-size:12px;background:var(--bg4);color:var(--muted)">🔄 リセット</button>
+      <button class="btn btn-secondary" onclick="shiftSeatLayoutDate(-1)">◀ 前日</button>
+      <input type="date" id="seatLayoutDate" onchange="onSeatLayoutDateInputChange()">
+      <button class="btn btn-secondary" onclick="shiftSeatLayoutDate(1)">翌日 ▶</button>
+      <button class="btn" onclick="resetSeatLayoutOrder()">配置をリセット</button>
     </div>
-
-    <!-- グリッドサイズ調整 -->
-    <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;font-size:11px;color:var(--muted)">
-      <span>グリッド幅:</span>
-      <input type="number" id="lmCols" value="20" min="5" max="50" onchange="resizeLayoutGrid()" style="width:50px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-size:11px">
-      <span>高さ:</span>
-      <input type="number" id="lmRows" value="12" min="3" max="30" onchange="resizeLayoutGrid()" style="width:50px;background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-size:11px">
+    <div id="seatLayoutStatus" class="seat-layout-status">店舗を選択してください</div>
+    <div id="seatLayoutGrid" class="seat-layout-grid">
+      <div class="empty-msg">店舗を選択してください</div>
     </div>
-
-    <!-- 本体レイアウト -->
-    <div style="display:flex;gap:10px;align-items:flex-start">
-      <!-- 左：未配置一覧 -->
-      <div style="width:90px;flex-shrink:0">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">未配置台 <span id="lmUnplacedCount"></span></div>
-        <div id="lmUnplacedList" style="height:400px;overflow-y:auto;background:var(--bg3);border-radius:6px;padding:4px;border:1px solid var(--border)"></div>
-      </div>
-      <!-- 右：グリッド -->
-      <div style="flex:1;overflow-x:auto">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">📍 マップ（クリックで配置）</div>
-        <div id="lmGrid" style="display:inline-block;border:1px solid var(--border);border-radius:6px;padding:4px;background:var(--bg3)"></div>
-      </div>
-    </div>
-
-    <!-- ステータスバー -->
-    <div style="margin-top:10px;display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg3);border-radius:6px;font-size:12px">
-      <span id="lmStatusText" style="color:var(--muted)">台を選択してマップに配置してください</span>
-      <button id="lmDeleteBtn" onclick="removeSelectedPlacedTai()" style="display:none;background:var(--minus);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer">🗑 削除</button>
-      <button id="lmClearSelBtn" onclick="clearLayoutSelection()" style="display:none;background:var(--bg4);color:var(--muted);border:none;border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer">選択解除</button>
+    <div id="seatLayoutDetail" class="seat-layout-detail">
+      <div class="empty-msg">カードをタップ/クリックすると詳細を表示します</div>
     </div>
   </div>
 </div>

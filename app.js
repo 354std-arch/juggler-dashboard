@@ -22,6 +22,7 @@ const GITHUB_SESSIONS_REPO = '354std-arch/juggler-dashboard';
 const GITHUB_SESSIONS_BRANCH = 'main';
 const GITHUB_SESSIONS_PATH = 'sessions.json';
 const RECOMMENDATION_EXPANDED_STORAGE_KEY = 'juggler_recommendation_expanded';
+const SEAT_LAYOUT_STORAGE_PREFIX = 'juggler_seat_layout_';
 const DATA_EMPTY_STATE = {
   UNLOADED: 'unloaded',
   LOADING: 'loading',
@@ -38,6 +39,19 @@ const DATA_EMPTY_STATE_TEXT = {
 const JST_TIME_ZONE = 'Asia/Tokyo';
 let errorToastTimer = null;
 let recommendationExpanded = false;
+let seatLayoutState = {
+  dateYmd: '',
+  loadedDateYmd: '',
+  store: '',
+  morningData: null,
+  loading: false,
+  missing: false,
+  error: '',
+  cards: [],
+  selectedTai: null,
+  dragTai: null,
+  requestId: 0,
+};
 const DESIGN_SYSTEM_SELECTORS = {
   buttons: 'button.btn,button.btn-primary,button.btn-secondary,button.btn-filter,button.filter-btn,button.period-btn,button.cal-nav-btn,button.target-day-btn,button.store-btn,button.save-btn,button.model-chip,button.session-btn-sub,button.recommendation-toggle',
   badges: '.badge,.prediction-badge,.summary-badge,.store-freshness-badge,.answer-judge',
@@ -2418,6 +2432,385 @@ function toMorningScoreUnit(score) {
 
 function formatMorningScorePercent(score) {
   return `${Math.round(toMorningScoreUnit(score) * 100)}%`;
+}
+
+function getSeatLayoutStorageKey(store) {
+  return `${SEAT_LAYOUT_STORAGE_PREFIX}${encodeURIComponent(String(store || ''))}`;
+}
+
+function loadSeatLayoutOrder(store) {
+  if(!store) return [];
+  try {
+    const raw = localStorage.getItem(getSeatLayoutStorageKey(store));
+    const parsed = raw ? JSON.parse(raw) : [];
+    if(!Array.isArray(parsed)) return [];
+    return parsed
+      .map((v) => Number(v))
+      .filter((v, idx, arr) => Number.isFinite(v) && arr.indexOf(v) === idx);
+  } catch(_) {
+    return [];
+  }
+}
+
+function saveSeatLayoutOrder(store, cards) {
+  if(!store) return;
+  const order = Array.isArray(cards) ? cards.map((c) => Number(c?.tai)).filter(Number.isFinite) : [];
+  try {
+    localStorage.setItem(getSeatLayoutStorageKey(store), JSON.stringify(order));
+  } catch(_) {}
+}
+
+function getSeatLayoutStoreNames() {
+  if(!seatLayoutState.morningData || !seatLayoutState.morningData.stores) return [];
+  return Object.keys(seatLayoutState.morningData.stores).sort((a, b) => a.localeCompare(b, 'ja'));
+}
+
+function getSeatLayoutScoreClass(score) {
+  const unit = toMorningScoreUnit(score);
+  if(unit >= 0.3) return 'seat-layout-score-high';
+  if(unit >= 0.15) return 'seat-layout-score-mid';
+  return 'seat-layout-score-low';
+}
+
+function normalizeSeatLayoutCandidates(candidates) {
+  return (Array.isArray(candidates) ? candidates : [])
+    .map((c) => {
+      const tai = Number(c?.tai);
+      if(!Number.isFinite(tai)) return null;
+      const reasons = Array.isArray(c?.reasons) ? c.reasons.filter(Boolean).map(String) : [];
+      const warnings = Array.isArray(c?.warnings) ? c.warnings.filter(Boolean).map(String) : [];
+      return {
+        tai,
+        model: String(c?.model || '不明'),
+        score: toMorningScoreUnit(c?.score),
+        reasons,
+        warnings,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.tai - b.tai);
+}
+
+function applySeatLayoutOrder(candidates, order) {
+  if(!Array.isArray(candidates) || !candidates.length) return [];
+  const byTai = new Map(candidates.map((c) => [c.tai, c]));
+  const arranged = [];
+  (Array.isArray(order) ? order : []).forEach((tai) => {
+    const hit = byTai.get(Number(tai));
+    if(hit) {
+      arranged.push(hit);
+      byTai.delete(Number(tai));
+    }
+  });
+  arranged.push(...Array.from(byTai.values()).sort((a, b) => a.tai - b.tai));
+  return arranged;
+}
+
+function rebuildSeatLayoutCards() {
+  const store = seatLayoutState.store;
+  const storeData = seatLayoutState.morningData?.stores?.[store] || null;
+  const candidates = normalizeSeatLayoutCandidates(storeData?.candidates);
+  const savedOrder = loadSeatLayoutOrder(store);
+  seatLayoutState.cards = applySeatLayoutOrder(candidates, savedOrder);
+  if(!seatLayoutState.cards.some((c) => c.tai === seatLayoutState.selectedTai)) {
+    seatLayoutState.selectedTai = null;
+  }
+}
+
+function updateSeatLayoutStoreSelect() {
+  const select = document.getElementById('seatLayoutStore');
+  if(!select) return;
+
+  const stores = getSeatLayoutStoreNames();
+  const options = ['<option value="">店舗を選択</option>']
+    .concat(stores.map((store) => `<option value="${escapeHtml(store)}">${escapeHtml(store)}</option>`))
+    .join('');
+  select.innerHTML = options;
+
+  let nextStore = seatLayoutState.store;
+  if(!stores.includes(nextStore)) {
+    if(currentStore !== 'all' && stores.includes(currentStore)) nextStore = currentStore;
+    else nextStore = stores[0] || '';
+  }
+  seatLayoutState.store = nextStore;
+  select.value = nextStore;
+}
+
+function renderSeatLayoutDetail() {
+  const detailEl = document.getElementById('seatLayoutDetail');
+  if(!detailEl) return;
+
+  const selected = seatLayoutState.cards.find((c) => c.tai === seatLayoutState.selectedTai) || null;
+  if(!selected) {
+    detailEl.innerHTML = '<div class="empty-msg">カードをタップ/クリックすると詳細を表示します</div>';
+    return;
+  }
+
+  const reasons = selected.reasons.slice(0, 3);
+  const warnings = selected.warnings.slice(0, 2);
+  while(reasons.length < 3) reasons.push('根拠データなし');
+  while(warnings.length < 2) warnings.push('注意点なし');
+
+  detailEl.innerHTML = `
+    <div class="seat-layout-detail-title">${selected.tai}番台 / ${escapeHtml(selected.model)}</div>
+    <div class="seat-layout-detail-meta">スコア: ${formatMorningScorePercent(selected.score)}</div>
+    <div class="seat-layout-detail-meta">根拠</div>
+    <ol class="seat-layout-detail-list">${reasons.map((r) => `<li>${escapeHtml(r)}</li>`).join('')}</ol>
+    <div class="seat-layout-detail-meta" style="margin-top:8px">注意点</div>
+    <ol class="seat-layout-detail-list">${warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join('')}</ol>
+  `;
+}
+
+function renderSeatLayoutTab() {
+  const statusEl = document.getElementById('seatLayoutStatus');
+  const gridEl = document.getElementById('seatLayoutGrid');
+  if(!statusEl || !gridEl) return;
+
+  if(seatLayoutState.loading) {
+    statusEl.textContent = `${seatLayoutState.dateYmd || '選択日'} のデータを読み込み中...`;
+    statusEl.style.color = 'var(--accent3)';
+    gridEl.innerHTML = '<div class="empty-msg">読み込み中...</div>';
+    renderSeatLayoutDetail();
+    return;
+  }
+
+  if(seatLayoutState.error) {
+    statusEl.textContent = `読込エラー: ${seatLayoutState.error}`;
+    statusEl.style.color = 'var(--minus)';
+    gridEl.innerHTML = '<div class="empty-msg">読み込みに失敗しました</div>';
+    renderSeatLayoutDetail();
+    return;
+  }
+
+  if(seatLayoutState.missing) {
+    const ymd = seatLayoutState.dateYmd;
+    const compact = (ymd || '').replace(/-/g, '');
+    statusEl.textContent = `${ymd} はデータなし（morning_data_${compact}.json がありません）`;
+    statusEl.style.color = 'var(--accent4)';
+    gridEl.innerHTML = '<div class="empty-msg">データなし</div>';
+    renderSeatLayoutDetail();
+    return;
+  }
+
+  if(!seatLayoutState.store) {
+    statusEl.textContent = '店舗を選択してください';
+    statusEl.style.color = 'var(--muted)';
+    gridEl.innerHTML = '<div class="empty-msg">店舗を選択してください</div>';
+    renderSeatLayoutDetail();
+    return;
+  }
+
+  if(!seatLayoutState.cards.length) {
+    statusEl.textContent = `${seatLayoutState.store} / ${seatLayoutState.dateYmd} は候補台データなし`;
+    statusEl.style.color = 'var(--muted)';
+    gridEl.innerHTML = '<div class="empty-msg">候補台データなし</div>';
+    renderSeatLayoutDetail();
+    return;
+  }
+
+  statusEl.textContent = `${seatLayoutState.store} / ${seatLayoutState.dateYmd} / ${seatLayoutState.cards.length}台（ドラッグ&ドロップで並び替え）`;
+  statusEl.style.color = 'var(--text)';
+  gridEl.innerHTML = seatLayoutState.cards.map((card) => {
+    const selectedClass = seatLayoutState.selectedTai === card.tai ? ' is-selected' : '';
+    const scoreClass = getSeatLayoutScoreClass(card.score);
+    return `<div class="seat-layout-item ${scoreClass}${selectedClass}"
+      draggable="true"
+      ondragstart="onSeatLayoutDragStart(event, ${card.tai})"
+      ondragover="onSeatLayoutDragOver(event, ${card.tai})"
+      ondragenter="onSeatLayoutDragEnter(event, ${card.tai})"
+      ondragleave="onSeatLayoutDragLeave(event)"
+      ondrop="onSeatLayoutDrop(event, ${card.tai})"
+      ondragend="onSeatLayoutDragEnd(event)"
+      onclick="selectSeatLayoutCard(${card.tai})">
+      <div class="seat-layout-head">
+        <div class="seat-layout-tai">${card.tai}</div>
+        <div class="seat-layout-score">${formatMorningScorePercent(card.score)}</div>
+      </div>
+      <div class="seat-layout-model">${escapeHtml(card.model)}</div>
+    </div>`;
+  }).join('');
+
+  renderSeatLayoutDetail();
+}
+
+function loadSeatLayoutDataForDate(ymd) {
+  seatLayoutState.dateYmd = ymd;
+  seatLayoutState.loading = true;
+  seatLayoutState.error = '';
+  seatLayoutState.missing = false;
+  seatLayoutState.morningData = null;
+  seatLayoutState.cards = [];
+  seatLayoutState.selectedTai = null;
+  renderSeatLayoutTab();
+
+  const requestId = ++seatLayoutState.requestId;
+  const compact = String(ymd || '').replace(/-/g, '');
+  const path = `./morning_data_${compact}.json`;
+  fetch(path, { cache: 'no-store' })
+    .then((res) => {
+      if(res.status === 404) return null;
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then((json) => {
+      if(requestId !== seatLayoutState.requestId) return;
+      seatLayoutState.loading = false;
+      seatLayoutState.loadedDateYmd = ymd;
+
+      if(!json) {
+        seatLayoutState.morningData = null;
+        seatLayoutState.missing = true;
+        seatLayoutState.error = '';
+        updateSeatLayoutStoreSelect();
+        renderSeatLayoutTab();
+        return;
+      }
+
+      seatLayoutState.morningData = (json && typeof json === 'object') ? json : null;
+      seatLayoutState.missing = false;
+      seatLayoutState.error = '';
+      updateSeatLayoutStoreSelect();
+      rebuildSeatLayoutCards();
+      renderSeatLayoutTab();
+    })
+    .catch((err) => {
+      if(requestId !== seatLayoutState.requestId) return;
+      seatLayoutState.loading = false;
+      seatLayoutState.loadedDateYmd = ymd;
+      seatLayoutState.morningData = null;
+      seatLayoutState.missing = false;
+      seatLayoutState.error = err && err.message ? err.message : String(err);
+      seatLayoutState.cards = [];
+      seatLayoutState.selectedTai = null;
+      updateSeatLayoutStoreSelect();
+      renderSeatLayoutTab();
+    });
+}
+
+function initSeatLayoutTab() {
+  if(!seatLayoutState.dateYmd) {
+    const defaultDate = toYmdLocal(getTodayLocalDate()) || normalizeDataDateValue(G.dataDate);
+    seatLayoutState.dateYmd = defaultDate;
+  }
+
+  const dateInput = document.getElementById('seatLayoutDate');
+  if(dateInput && dateInput.value !== seatLayoutState.dateYmd) {
+    dateInput.value = seatLayoutState.dateYmd;
+  }
+
+  if(seatLayoutState.loadedDateYmd !== seatLayoutState.dateYmd) {
+    loadSeatLayoutDataForDate(seatLayoutState.dateYmd);
+    return;
+  }
+
+  updateSeatLayoutStoreSelect();
+  rebuildSeatLayoutCards();
+  renderSeatLayoutTab();
+}
+
+function onSeatLayoutStoreChange() {
+  const select = document.getElementById('seatLayoutStore');
+  seatLayoutState.store = select ? select.value : '';
+  seatLayoutState.selectedTai = null;
+  rebuildSeatLayoutCards();
+  renderSeatLayoutTab();
+}
+
+function onSeatLayoutDateInputChange() {
+  const input = document.getElementById('seatLayoutDate');
+  const parsed = parseYmdLocal(input?.value || '');
+  if(!parsed) {
+    if(input) input.value = seatLayoutState.dateYmd || toYmdLocal(getTodayLocalDate());
+    return;
+  }
+  const ymd = toYmdLocal(parsed);
+  if(ymd === seatLayoutState.dateYmd && seatLayoutState.loadedDateYmd === ymd) return;
+  loadSeatLayoutDataForDate(ymd);
+}
+
+function shiftSeatLayoutDate(diffDays) {
+  const input = document.getElementById('seatLayoutDate');
+  const base = parseYmdLocal(input?.value || '') || parseYmdLocal(seatLayoutState.dateYmd || '') || getTodayLocalDate();
+  const shifted = addDaysLocal(base, Number(diffDays) || 0) || base;
+  const ymd = toYmdLocal(shifted);
+  if(input) input.value = ymd;
+  if(ymd === seatLayoutState.dateYmd && seatLayoutState.loadedDateYmd === ymd) return;
+  loadSeatLayoutDataForDate(ymd);
+}
+
+function selectSeatLayoutCard(tai) {
+  const t = Number(tai);
+  if(!Number.isFinite(t)) return;
+  seatLayoutState.selectedTai = t;
+  renderSeatLayoutTab();
+}
+
+function moveSeatLayoutCard(fromTai, toTai) {
+  const cards = seatLayoutState.cards.slice();
+  const fromIdx = cards.findIndex((c) => c.tai === fromTai);
+  const toIdx = cards.findIndex((c) => c.tai === toTai);
+  if(fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
+  const [moved] = cards.splice(fromIdx, 1);
+  let insertIdx = toIdx;
+  if(fromIdx < toIdx) insertIdx -= 1;
+  cards.splice(insertIdx, 0, moved);
+  seatLayoutState.cards = cards;
+  saveSeatLayoutOrder(seatLayoutState.store, cards);
+}
+
+function onSeatLayoutDragStart(event, tai) {
+  const t = Number(tai);
+  if(!Number.isFinite(t)) return;
+  seatLayoutState.dragTai = t;
+  if(event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(t));
+  }
+  event.currentTarget?.classList?.add('dragging');
+}
+
+function onSeatLayoutDragOver(event, tai) {
+  const dragTai = Number(seatLayoutState.dragTai);
+  const dropTai = Number(tai);
+  if(!Number.isFinite(dragTai) || !Number.isFinite(dropTai) || dragTai === dropTai) return;
+  event.preventDefault();
+  if(event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+}
+
+function onSeatLayoutDragEnter(event, tai) {
+  const dragTai = Number(seatLayoutState.dragTai);
+  const dropTai = Number(tai);
+  if(!Number.isFinite(dragTai) || !Number.isFinite(dropTai) || dragTai === dropTai) return;
+  event.currentTarget?.classList?.add('drag-over');
+}
+
+function onSeatLayoutDragLeave(event) {
+  event.currentTarget?.classList?.remove('drag-over');
+}
+
+function onSeatLayoutDrop(event, tai) {
+  event.preventDefault();
+  event.currentTarget?.classList?.remove('drag-over');
+  const fromTai = Number(event.dataTransfer?.getData('text/plain') || seatLayoutState.dragTai);
+  const toTai = Number(tai);
+  if(!Number.isFinite(fromTai) || !Number.isFinite(toTai) || fromTai === toTai) return;
+  moveSeatLayoutCard(fromTai, toTai);
+  renderSeatLayoutTab();
+}
+
+function onSeatLayoutDragEnd(event) {
+  seatLayoutState.dragTai = null;
+  event.currentTarget?.classList?.remove('dragging');
+  document.querySelectorAll('#seatLayoutGrid .seat-layout-item.drag-over')
+    .forEach((el) => el.classList.remove('drag-over'));
+}
+
+function resetSeatLayoutOrder() {
+  if(!seatLayoutState.store) return;
+  const sorted = seatLayoutState.cards.slice().sort((a, b) => a.tai - b.tai);
+  seatLayoutState.cards = sorted;
+  saveSeatLayoutOrder(seatLayoutState.store, sorted);
+  renderSeatLayoutTab();
 }
 
 function resetGasUrl() {
@@ -6817,7 +7210,7 @@ const TAB_RENDER_MAP = {
   'tab-period':   () => { renderPeriod(); },
   'tab-next':     () => { renderNextAnalysis(); },
   'tab-setsuteii':() => { renderCurrentTargetContextComparison(); },
-  'tab-layout':   () => { initLayoutMasterTab(); },
+  'tab-layout':   () => { initSeatLayoutTab(); },
 };
 
 function renderAll() {

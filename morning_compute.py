@@ -349,6 +349,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
     if not rows:
         return {
             "generated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
+            "data_date": now_jst.strftime("%Y-%m-%d"),
             "normalized_models": dict(sorted(normalized_models.items())),
             "unsupported_models": sorted(unsupported_models),
             "stores": {},
@@ -535,6 +536,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
 
     return {
         "generated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
+        "data_date": now_jst.strftime("%Y-%m-%d"),
         "normalized_models": dict(sorted(normalized_models.items())),
         "unsupported_models": sorted(unsupported_models),
         "stores": stores_payload,
@@ -550,6 +552,7 @@ def build_payload(df, normalized_models, unsupported_models):
     if df.empty:
         return {
             "generated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
+            "data_date": now_jst.strftime("%Y-%m-%d"),
             "normalized_models": dict(sorted(normalized_models.items())),
             "unsupported_models": unsupported_models,
             "stores": {},
@@ -746,6 +749,7 @@ def build_payload(df, normalized_models, unsupported_models):
 
     return {
         "generated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
+        "data_date": now_jst.strftime("%Y-%m-%d"),
         "normalized_models": dict(sorted(normalized_models.items())),
         "unsupported_models": sorted(unsupported_models),
         "stores": stores_payload,
@@ -758,9 +762,16 @@ def main():
         payload = build_payload_fallback(data, normalized_models, unsupported_models)
     else:
         payload = build_payload(data, normalized_models, unsupported_models)
-    with open(OUT_JSON, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+    data_date = str(payload.get("data_date") or datetime.now(JST).strftime("%Y-%m-%d"))
+    archive_suffix = data_date.replace("-", "")
+    out_archive_json = os.path.join(REPO_DIR, f"morning_data_{archive_suffix}.json")
+
+    for path in (OUT_JSON, out_archive_json):
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+
     print(f"generated: {OUT_JSON}")
+    print(f"generated: {out_archive_json}")
     print(f"stores: {len(payload.get('stores', {}))}")
 
 
