@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_CSV  = os.path.join(REPO_DIR, "raw_data.csv")
+STORE_MODEL_SUMMARY_CSV = os.path.join(REPO_DIR, "store_model_summary.csv")
 STORE_FRESHNESS_JSON = os.path.join(REPO_DIR, "store_freshness.json")
 STORE_LIST_JSON = os.path.join(REPO_DIR, "store_list.json")
 JST = timezone(timedelta(hours=9))
@@ -53,6 +54,7 @@ HEADERS = {
 }
 
 CSV_HEADER = ['日付','店名','機種名','台番号','G数','差枚','BB','RB','合成確率','BB確率','RB確率']
+STORE_MODEL_SUMMARY_HEADER = ['date', 'store', 'model', 'total_diff', 'avg_diff', 'avg_g', 'win_rate']
 
 
 def slug_from_store_name(store_name):
@@ -148,12 +150,14 @@ def scrape(target_date, store_name, slug, target_models=None):
             time.sleep(2 * attempt)
     if res is None or res.status_code != 200:
         print(f'  ❌ {store_name} {target_date}: {last_err or "request failed"}')
-        return [], False
+        return [], [], False
     soup = BeautifulSoup(res.text, 'html.parser')
+    model_summary_rows = extract_model_summary_rows(soup, target_date, store_name, target_models=target_models)
+
     table = soup.find('table', id='all_data_table')
     if not table:
         print(f'  ⚠️  {store_name} {target_date}: テーブルなし')
-        return [], False
+        return [], model_summary_rows, False
     rows = []
     for tr in table.find_all('tr')[1:]:
         cols = [td.get_text(strip=True) for td in tr.find_all('td')]
@@ -203,11 +207,90 @@ def scrape(target_date, store_name, slug, target_models=None):
             'BB': cols[4],'RB': cols[5],
             '合成確率': cols[7],'BB確率': cols[8],'RB確率': cols[9],
         })
-    print(f'  ✅ {store_name} {target_date}: {len(rows)}行取得')
-    return rows, True
+    print(f'  ✅ {store_name} {target_date}: 台別{len(rows)}行 / 機種別{len(model_summary_rows)}行取得')
+    return rows, model_summary_rows, True
 
 def _dedup_key(row):
     return (row.get('日付', ''), row.get('店名', ''), row.get('台番号', ''))
+
+
+def _model_summary_key(row):
+    return (row.get('date', ''), row.get('store', ''), row.get('model', ''))
+
+
+def normalize_header(text):
+    return ''.join(str(text or '').replace('\u3000', ' ').split()).lower()
+
+
+def resolve_header_index(headers, candidates):
+    for idx, header in enumerate(headers):
+        if any(all(token in header for token in required_tokens) for required_tokens in candidates):
+            return idx
+    return None
+
+
+def extract_model_summary_rows(soup, target_date, store_name, target_models=None):
+    section = soup.find(id='kishu_section')
+    table = section.find('table') if section else None
+    if table is None:
+        for table_id in ('kishu_table', 'model_table', 'all_kishu_table'):
+            table = soup.find('table', id=table_id)
+            if table is not None:
+                break
+    if table is None:
+        for candidate in soup.find_all('table'):
+            cid = (candidate.get('id') or '').lower()
+            if 'kishu' in cid or 'model' in cid:
+                table = candidate
+                break
+    if table is None:
+        return []
+
+    trs = table.find_all('tr')
+    if len(trs) <= 1:
+        return []
+
+    header_cells = trs[0].find_all(['th', 'td'])
+    headers = [normalize_header(cell.get_text(' ', strip=True)) for cell in header_cells]
+    model_idx = resolve_header_index(headers, [(('機種', '名')), (('機種',)), (('model',))])
+    total_diff_idx = resolve_header_index(headers, [(('差枚', '合計')), (('合計', '差枚')), (('total', 'diff'))])
+    avg_diff_idx = resolve_header_index(headers, [(('平均', '差枚')), (('avg', 'diff'))])
+    avg_g_idx = resolve_header_index(headers, [(('平均', 'g')), (('平均', 'ゲーム')), (('avg', 'g'))])
+    win_rate_idx = resolve_header_index(headers, [(('勝率',)), (('win', 'rate'))])
+    if model_idx is None:
+        return []
+
+    out = []
+    for tr in trs[1:]:
+        tds = tr.find_all('td')
+        if not tds:
+            continue
+        cols = [td.get_text(strip=True) for td in tds]
+        if model_idx >= len(cols):
+            continue
+        model_name = normalize_machine_name(cols[model_idx])
+        if not model_name:
+            continue
+        if '合計' in model_name or '総合計' in model_name:
+            continue
+        if target_models and model_name not in target_models:
+            continue
+
+        def pick(idx):
+            if idx is None or idx >= len(cols):
+                return ''
+            return cols[idx]
+
+        out.append({
+            'date': target_date,
+            'store': store_name,
+            'model': model_name,
+            'total_diff': pick(total_diff_idx),
+            'avg_diff': pick(avg_diff_idx),
+            'avg_g': pick(avg_g_idx),
+            'win_rate': pick(win_rate_idx),
+        })
+    return out
 
 def save_to_csv(rows):
     if not rows:
@@ -249,6 +332,48 @@ def save_to_csv(rows):
 
     os.replace(tmp_csv, RAW_CSV)
     print(f'  📝 {replaced}行を上書き / {appended}行を追加')
+    return replaced + appended
+
+
+def save_model_summary_to_csv(rows):
+    if not rows:
+        return 0
+
+    updates = {}
+    for row in rows:
+        updates[_model_summary_key(row)] = row
+
+    if not os.path.exists(STORE_MODEL_SUMMARY_CSV):
+        with open(STORE_MODEL_SUMMARY_CSV, 'w', encoding='utf-8-sig', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=STORE_MODEL_SUMMARY_HEADER)
+            writer.writeheader()
+            writer.writerows(updates.values())
+        print(f'  📝 機種別集計 新規作成: {len(updates)}行')
+        return len(updates)
+
+    tmp_csv = STORE_MODEL_SUMMARY_CSV + '.tmp'
+    replaced = 0
+    with open(STORE_MODEL_SUMMARY_CSV, encoding='utf-8-sig', newline='') as src, \
+         open(tmp_csv, 'w', encoding='utf-8-sig', newline='') as dst:
+        reader = csv.DictReader(src)
+        fieldnames = reader.fieldnames or STORE_MODEL_SUMMARY_HEADER
+        writer = csv.DictWriter(dst, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for row in reader:
+            key = _model_summary_key(row)
+            if key in updates:
+                writer.writerow(updates.pop(key))
+                replaced += 1
+            else:
+                writer.writerow(row)
+
+        appended = len(updates)
+        for row in updates.values():
+            writer.writerow({key: row.get(key, '') for key in fieldnames})
+
+    os.replace(tmp_csv, STORE_MODEL_SUMMARY_CSV)
+    print(f'  📝 機種別集計 {replaced}行を上書き / {appended}行を追加')
     return replaced + appended
 
 def parse_args():
@@ -313,14 +438,16 @@ if __name__ == '__main__':
     print(f'=== 取得期間: {target_dates[0]} 〜 {target_dates[-1]} ({len(target_dates)}日) ===')
     print(f'=== 対象店舗: {len(stores)}件 / 対象機種: {model_desc} ===')
     all_rows = []
+    all_model_summary_rows = []
     latest_by_store = {}
     scraped_store_count = set()
 
     for day_idx, target_date in enumerate(target_dates, start=1):
         print(f'\n--- {target_date} ({day_idx}/{len(target_dates)}) ---')
         for store_idx, (store_name, slug) in enumerate(stores, start=1):
-            rows, ok = scrape(target_date, store_name, slug, target_models=target_models)
+            rows, model_summary_rows, ok = scrape(target_date, store_name, slug, target_models=target_models)
             all_rows.extend(rows)
+            all_model_summary_rows.extend(model_summary_rows)
             if ok:
                 latest_data_date = get_latest_data_date(rows) or target_date
                 prev_latest = latest_by_store.get(store_name)
@@ -337,4 +464,5 @@ if __name__ == '__main__':
 
     print(f'\n合計 {len(all_rows)} 行取得')
     saved = save_to_csv(all_rows)
-    print(f'✅ 完了（更新/追加: {saved}行, freshness更新: {len(scraped_store_count)}店舗）')
+    model_saved = save_model_summary_to_csv(all_model_summary_rows)
+    print(f'✅ 完了（台別更新/追加: {saved}行, 機種別更新/追加: {model_saved}行, freshness更新: {len(scraped_store_count)}店舗）')

@@ -40,12 +40,17 @@ jobs:
       - name: Run morning compute
         run: python morning_compute.py
 
+      - name: Run candidate compute
+        run: python candidate_compute.py
+
       - name: Push data.json
         run: |
           git config user.email "action@github.com"
           git config user.name "GitHub Actions"
-          git add data.json morning_data.json raw_data.csv store_list.json feedback_data.json
+          git add data.json morning_data.json candidate_data.json raw_data.csv store_list.json feedback_data.json
+          [ -f store_model_summary.csv ] && git add store_model_summary.csv || true
           ls morning_data_*.json >/dev/null 2>&1 && git add morning_data_*.json || true
+          ls candidate_data_*.json >/dev/null 2>&1 && git add candidate_data_*.json || true
           [ -f store_freshness.json ] && git add store_freshness.json || true
           git diff --cached --quiet || git commit -m "auto: update data.json $(date +'%Y-%m-%d')"
           git push
