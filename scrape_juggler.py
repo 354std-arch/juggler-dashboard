@@ -229,67 +229,158 @@ def resolve_header_index(headers, candidates):
     return None
 
 
-def extract_model_summary_rows(soup, target_date, store_name, target_models=None):
-    section = soup.find(id='kishu_section')
-    table = section.find('table') if section else None
-    if table is None:
-        for table_id in ('kishu_table', 'model_table', 'all_kishu_table'):
-            table = soup.find('table', id=table_id)
-            if table is not None:
-                break
-    if table is None:
-        for candidate in soup.find_all('table'):
-            cid = (candidate.get('id') or '').lower()
-            if 'kishu' in cid or 'model' in cid:
-                table = candidate
-                break
-    if table is None:
-        return []
-
+def _is_summary_table(table):
+    """ヘッダーに 機種別差枚/平均差枚/平均G数/勝率 のいずれかを含むテーブルか判定する"""
     trs = table.find_all('tr')
-    if len(trs) <= 1:
-        return []
-
+    if not trs:
+        return False
     header_cells = trs[0].find_all(['th', 'td'])
+    if not header_cells:
+        return False
     headers = [normalize_header(cell.get_text(' ', strip=True)) for cell in header_cells]
-    model_idx = resolve_header_index(headers, [(('機種', '名')), (('機種',)), (('model',))])
-    total_diff_idx = resolve_header_index(headers, [(('差枚', '合計')), (('合計', '差枚')), (('total', 'diff'))])
-    avg_diff_idx = resolve_header_index(headers, [(('平均', '差枚')), (('avg', 'diff'))])
-    avg_g_idx = resolve_header_index(headers, [(('平均', 'g')), (('平均', 'ゲーム')), (('avg', 'g'))])
-    win_rate_idx = resolve_header_index(headers, [(('勝率',)), (('win', 'rate'))])
-    if model_idx is None:
-        return []
+    keywords = ['機種別差枚', '平均差枚', '平均g数', '勝率', '平均ゲーム数']
+    joined = ' '.join(headers)
+    return any(kw in joined for kw in keywords)
 
+
+def _get_preceding_model_name(table):
+    """テーブル直前の要素から機種名を取得する"""
+    import re as _re
+    from bs4 import NavigableString as _NS
+    _rank_prefix = _re.compile(r'^\d+位[：:]\s*')
+
+    def _clean(text):
+        return _rank_prefix.sub('', text).strip()
+
+    for sibling in table.previous_siblings:
+        if isinstance(sibling, _NS):
+            text = sibling.strip()
+            if text:
+                return _clean(text)
+        elif hasattr(sibling, 'get_text'):
+            text = sibling.get_text(strip=True)
+            if text:
+                return _clean(text)
+    # 直前兄弟に無ければ親の直前兄弟を辿る
+    parent = table.parent
+    if parent:
+        for sibling in parent.previous_siblings:
+            if hasattr(sibling, 'get_text'):
+                text = sibling.get_text(strip=True)
+                if text:
+                    return _clean(text)
+    return ''
+
+
+def extract_model_summary_rows(soup, target_date, store_name, target_models=None):
+    """
+    ページ上の全テーブルを走査し、ヘッダーが機種別集計テーブルと判定されるもの全てからデータを取得する。
+    鶴見UNOのように機種ごとに1テーブル＋直前に機種名が書かれているページ構造に対応する。
+    """
+    main_table_id = 'all_data_table'
     out = []
-    for tr in trs[1:]:
-        tds = tr.find_all('td')
-        if not tds:
+
+    for table in soup.find_all('table'):
+        # メインの台別データテーブルはスキップ
+        if table.get('id') == main_table_id:
             continue
-        cols = [td.get_text(strip=True) for td in tds]
-        if model_idx >= len(cols):
-            continue
-        model_name = normalize_machine_name(cols[model_idx])
-        if not model_name:
-            continue
-        if '合計' in model_name or '総合計' in model_name:
-            continue
-        if target_models and model_name not in target_models:
+        if not _is_summary_table(table):
             continue
 
-        def pick(idx):
-            if idx is None or idx >= len(cols):
-                return ''
-            return cols[idx]
+        trs = table.find_all('tr')
+        if len(trs) < 1:
+            continue
 
-        out.append({
-            'date': target_date,
-            'store': store_name,
-            'model': model_name,
-            'total_diff': pick(total_diff_idx),
-            'avg_diff': pick(avg_diff_idx),
-            'avg_g': pick(avg_g_idx),
-            'win_rate': pick(win_rate_idx),
-        })
+        header_cells = trs[0].find_all(['th', 'td'])
+        headers = [normalize_header(cell.get_text(' ', strip=True)) for cell in header_cells]
+
+        total_diff_idx = resolve_header_index(headers, [('機種別差枚',), ('差枚合計',), ('合計差枚',)])
+        avg_diff_idx = resolve_header_index(headers, [('平均差枚',), ('平均差',)])
+        avg_g_idx = resolve_header_index(headers, [('平均g数',), ('平均ゲーム',), ('平均g',)])
+        win_rate_idx = resolve_header_index(headers, [('勝率',)])
+
+        # 機種名が列にある場合（複数機種をまとめたテーブル）
+        # 注意: ('機種',) だと '機種別差枚' にもマッチするため除外する
+        model_col_idx = resolve_header_index(headers, [('機種名',), ('model',)])
+
+        if model_col_idx is not None:
+            # テーブル内に機種名列がある → 複数機種まとめ型
+            for tr in trs[1:]:
+                tds = tr.find_all('td')
+                if not tds:
+                    continue
+                cols = [td.get_text(strip=True) for td in tds]
+                if model_col_idx >= len(cols):
+                    continue
+                model_name = normalize_machine_name(cols[model_col_idx])
+                if not model_name or '合計' in model_name:
+                    continue
+                if target_models and model_name not in target_models:
+                    continue
+
+                def pick(idx, cols=cols):
+                    if idx is None or idx >= len(cols):
+                        return ''
+                    return cols[idx]
+
+                out.append({
+                    'date': target_date,
+                    'store': store_name,
+                    'model': model_name,
+                    'total_diff': pick(total_diff_idx),
+                    'avg_diff': pick(avg_diff_idx),
+                    'avg_g': pick(avg_g_idx),
+                    'win_rate': pick(win_rate_idx),
+                })
+        else:
+            # 機種名列がない → テーブル1つ＝機種1つ型（鶴見UNO方式）
+            # テーブルの直前要素から機種名を取得
+            raw_model = _get_preceding_model_name(table)
+            model_name = normalize_machine_name(raw_model)
+            if not model_name:
+                continue
+            # 特殊セクション名はスキップ
+            if any(kw in model_name for kw in ('末尾別', '合計', '総合', 'データ一覧')):
+                continue
+            if target_models and model_name not in target_models:
+                continue
+
+            # データ行（ヘッダー行除く）の集計値を取得
+            # 通常は1行のみ（合計行）
+            for tr in trs[1:]:
+                tds = tr.find_all('td')
+                if not tds:
+                    continue
+                cols = [td.get_text(strip=True) for td in tds]
+
+                def pick(idx, cols=cols):
+                    if idx is None or idx >= len(cols):
+                        return ''
+                    return cols[idx]
+
+                total_diff = pick(total_diff_idx)
+                avg_diff = pick(avg_diff_idx)
+                avg_g = pick(avg_g_idx)
+                win_rate = pick(win_rate_idx)
+
+                # 空行・フッター行はスキップ
+                if not any([total_diff, avg_diff, avg_g, win_rate]):
+                    continue
+                # 末尾別データ等の特殊行はスキップ（実データが欠落している）
+                if not total_diff and not avg_diff:
+                    continue
+
+                out.append({
+                    'date': target_date,
+                    'store': store_name,
+                    'model': model_name,
+                    'total_diff': total_diff,
+                    'avg_diff': avg_diff,
+                    'avg_g': avg_g,
+                    'win_rate': win_rate,
+                })
+                break  # 最初の有効データ行のみ取得
+
     return out
 
 def save_to_csv(rows):
