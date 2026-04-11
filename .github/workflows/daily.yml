@@ -28,6 +28,9 @@ jobs:
       - name: Run juggler scrape
         run: python scrape_juggler.py
 
+      - name: Run missing-data backfill check
+        run: python backfill_check.py
+
       - name: Run feedback
         run: python feedback.py
 
