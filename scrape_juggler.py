@@ -25,9 +25,13 @@ HARDCODED_STORES = [
 KNOWN_SLUG_BY_NAME = {
     '鶴見UNO': '%e9%b6%b4%e8%a6%8buno-data',
     'マルハン都筑': '%e3%83%9e%e3%83%ab%e3%83%8f%e3%83%b3%e9%83%bd%e7%ad%9c%e5%ba%97-data',
+    'マルハン都築': '%e3%83%9e%e3%83%ab%e3%83%8f%e3%83%b3%e9%83%bd%e7%ad%91%e5%ba%97-data',
     '中山UNO': '%e4%b8%ad%e5%b1%b1uno-data',
     'エスパス新宿': '%e3%82%a8%e3%82%b9%e3%83%91%e3%82%b9%e6%97%a5%e6%8b%93%e6%96%b0%e5%ae%bf%e6%ad%8c%e8%88%9e%e4%bc%8e%e7%94%ba%e5%ba%97-data',
     'エスパス日拓新宿歌舞伎町': '%e3%82%a8%e3%82%b9%e3%83%91%e3%82%b9%e6%97%a5%e6%8b%93%e6%96%b0%e5%ae%bf%e6%ad%8c%e8%88%9e%e4%bc%8e%e7%94%ba%e5%ba%97-data',
+    'SKIP関内店': 'skip%e3%82%b9%e3%83%ad%e3%83%83%e3%83%88%e3%82%af%e3%83%a9%e3%83%96%e9%96%a2%e5%86%85%e5%ba%97-data',
+    'マルハンメガシティ横浜町田': '%e3%83%9e%e3%83%ab%e3%83%8f%e3%83%b3%e3%83%a1%e3%82%ac%e3%82%b7%e3%83%86%e3%82%a3%e6%a8%aa%e6%b5%9c%e7%94%ba%e7%94%b0-data',
+    'ギンザホール707': '%e3%82%ae%e3%83%b3%e3%82%b6%e3%83%9b%e3%83%bc%e3%83%ab707-data',
 }
 
 MODEL_NAME_MAP = {
@@ -152,6 +156,22 @@ def scrape(target_date, store_name, slug, target_models=None):
     rows = []
     for tr in table.find_all('tr')[1:]:
         cols = [td.get_text(strip=True) for td in tr.find_all('td')]
+        # 8列フォーマット: 機種名,台番号,G数,BB,RB,合成確率,BB確率,RB確率（差枚なし）
+        # 11列フォーマット: 機種名,台番号,G数,差枚,BB,RB,?,合成確率,BB確率,RB確率,...
+        if len(cols) == 8:
+            model_name = normalize_machine_name(cols[0])
+            if not is_normal_type(model_name):
+                continue
+            if target_models and model_name not in target_models:
+                continue
+            rows.append({
+                '日付': target_date,'店名': store_name,
+                '機種名': model_name,'台番号': cols[1],
+                'G数': cols[2],'差枚': '',
+                'BB': cols[3],'RB': cols[4],
+                '合成確率': cols[5],'BB確率': cols[6],'RB確率': cols[7],
+            })
+            continue
         if len(cols) < 11:
             continue
         model_name = normalize_machine_name(cols[0])
