@@ -46,9 +46,10 @@ NORMAL_TYPE_KEYWORDS = [
 ]
 
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    'Referer': 'https://ana-slo.com/',
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
+    'Referer': 'https://ana-slo.com/',
 }
 
 CSV_HEADER = ['日付','店名','機種名','台番号','G数','差枚','BB','RB','合成確率','BB確率','RB確率']
@@ -156,8 +157,10 @@ def scrape(target_date, store_name, slug, target_models=None):
     rows = []
     for tr in table.find_all('tr')[1:]:
         cols = [td.get_text(strip=True) for td in tr.find_all('td')]
-        # 8列フォーマット: 機種名,台番号,G数,BB,RB,合成確率,BB確率,RB確率（差枚なし）
-        # 11列フォーマット: 機種名,台番号,G数,差枚,BB,RB,?,合成確率,BB確率,RB確率,...
+        # フォーマット別対応:
+        # 8列: 機種名,台番号,G数,BB,RB,合成確率,BB確率,RB確率（差枚なし）
+        # 9列: 機種名,台番号,G数,差枚,BB,RB,合成確率,BB確率,RB確率
+        # 11列+: 機種名,台番号,G数,差枚,BB,RB,?,合成確率,BB確率,RB確率,...
         if len(cols) == 8:
             model_name = normalize_machine_name(cols[0])
             if not is_normal_type(model_name):
@@ -170,6 +173,20 @@ def scrape(target_date, store_name, slug, target_models=None):
                 'G数': cols[2],'差枚': '',
                 'BB': cols[3],'RB': cols[4],
                 '合成確率': cols[5],'BB確率': cols[6],'RB確率': cols[7],
+            })
+            continue
+        if len(cols) == 9:
+            model_name = normalize_machine_name(cols[0])
+            if not is_normal_type(model_name):
+                continue
+            if target_models and model_name not in target_models:
+                continue
+            rows.append({
+                '日付': target_date,'店名': store_name,
+                '機種名': model_name,'台番号': cols[1],
+                'G数': cols[2],'差枚': cols[3],
+                'BB': cols[4],'RB': cols[5],
+                '合成確率': cols[6],'BB確率': cols[7],'RB確率': cols[8],
             })
             continue
         if len(cols) < 11:
