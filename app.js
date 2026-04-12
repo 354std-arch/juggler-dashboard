@@ -3202,12 +3202,12 @@ function loadFromPrecomputed(json) {
     : ((json.storeFreshness && typeof json.storeFreshness === 'object') ? json.storeFreshness : {});
   G.recommendations = Array.isArray(json.recommendations) ? json.recommendations : [];
   const stores = Array.isArray(json.stores) ? json.stores : storesFromByStore;
-  G.stores = ['all', ...stores];
+  G.stores = [...stores];
   const specialByStore = (json.specialByStore && typeof json.specialByStore === 'object') ? json.specialByStore : {};
   Object.entries(specialByStore).forEach(([store, days]) => {
     SPECIAL_BY_STORE[store] = days;
   });
-  currentStore = 'all';
+  currentStore = stores[0] || 'all';
   currentTaiFilter = 'all';
   currentTaiPeriod = 0;
   document.querySelectorAll('#taiPeriodBtns .filter-btn').forEach(b=>b.classList.remove('active'));
@@ -3842,8 +3842,8 @@ function finishLoad() {
   currentTaiPeriod = 0;
   document.querySelectorAll('#taiPeriodBtns .filter-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector('#taiPeriodBtns .filter-btn')?.classList.add('active');
-  G.stores = ['all', ...new Set(G.raw.map(r => r.store))];
-  currentStore = 'all';
+  G.stores = [...new Set(G.raw.map(r => r.store))];
+  currentStore = G.stores[0] || 'all';
   loadSpecialDaysFromStorage();
   const storeList = [...new Set(G.raw.map(r => r.store))];
   storeList.forEach(s => {
@@ -7545,7 +7545,7 @@ function renderStoreFreshnessBadge(storeName) {
 function renderStoreBar() {
   document.getElementById('storeBar').innerHTML=
     '<span class="store-label">店舗：</span>'+
-    G.stores.map(s=>`<button type="button" class="store-btn ${s===currentStore?'active':''}" data-store="${escapeHtml(s)}"><span>${s==='all'?'全店舗':s}</span>${s==='all'?'':renderStoreFreshnessBadge(s)}</button>`).join('');
+    G.stores.map(s=>`<button type="button" class="store-btn ${s===currentStore?'active':''}" data-store="${escapeHtml(s)}"><span>${s}</span>${renderStoreFreshnessBadge(s)}</button>`).join('');
 }
 
 function initStoreBarEvents() {
@@ -7659,7 +7659,7 @@ window.addEventListener('DOMContentLoaded',()=>{
         isHighSetRBLead: isHighSetRBLead(r.model, r.g, r.bb, r.rb),
       };
     });
-    G.stores=['all',...new Set(G.raw.map(r=>r.store))];
+    G.stores=[...new Set(G.raw.map(r=>r.store))];
     setTimeout(() => { compute(); renderStoreBar(); renderAll(); showStatus(); }, 0);
   }
   loadSpecialDaysFromStorage();
