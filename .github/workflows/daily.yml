@@ -22,9 +22,6 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4 pandas
 
-      - name: Run new-store backfill
-        run: python backfill_new_stores.py
-
       - name: Run juggler scrape
         run: python scrape_juggler.py
 
