@@ -48,6 +48,7 @@ jobs:
           [ -f store_model_summary.csv ] && git add store_model_summary.csv || true
           ls morning_data_*.json >/dev/null 2>&1 && git add morning_data_*.json || true
           ls candidate_data_*.json >/dev/null 2>&1 && git add candidate_data_*.json || true
+          ls seat_data_*.json >/dev/null 2>&1 && git add seat_data_*.json || true
           [ -f store_freshness.json ] && git add store_freshness.json || true
           git diff --cached --quiet || git commit -m "auto: update data.json $(date +'%Y-%m-%d')"
           git push

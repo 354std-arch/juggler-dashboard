@@ -10,6 +10,7 @@ import morning_compute as morning
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 COMPUTE_PY = os.path.join(REPO_DIR, "compute.py")
 STORE_MODEL_SUMMARY_CSV = os.path.join(REPO_DIR, "store_model_summary.csv")
+RAW_DATA_CSV = os.path.join(REPO_DIR, "raw_data.csv")
 OUT_JSON = os.path.join(REPO_DIR, "candidate_data.json")
 JST = timezone(timedelta(hours=9))
 
@@ -167,6 +168,62 @@ def run_compute():
     subprocess.run([sys.executable, COMPUTE_PY], check=True, cwd=REPO_DIR)
 
 
+def normalize_tai_key(value):
+    num = parse_number(value)
+    if num is None:
+        return ""
+    if float(num).is_integer():
+        return str(int(num))
+    return str(num)
+
+
+def normalize_diff_value(value):
+    if float(value).is_integer():
+        return int(value)
+    return round(float(value), 1)
+
+
+def build_seat_diff_by_date():
+    by_date = {}
+    if not os.path.exists(RAW_DATA_CSV):
+        return by_date
+
+    with open(RAW_DATA_CSV, "r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            dt = parse_date(row.get("日付"))
+            store = str(row.get("店名", "")).strip()
+            tai = normalize_tai_key(row.get("台番号"))
+            diff = parse_number(row.get("差枚"))
+            if dt is None or not store or not tai or diff is None:
+                continue
+
+            ymd = dt.strftime("%Y%m%d")
+            store_bucket = by_date.setdefault(ymd, {}).setdefault(store, {})
+            store_bucket[tai] = normalize_diff_value(diff)
+
+    return by_date
+
+
+def write_seat_data_json(date_suffix, payload):
+    out_path = os.path.join(REPO_DIR, f"seat_data_{date_suffix}.json")
+    sorted_payload = {}
+    for store in sorted(payload.keys(), key=lambda v: str(v)):
+        tai_map = payload.get(store, {})
+        if not isinstance(tai_map, dict):
+            continue
+        sorted_tai = sorted(
+            tai_map.items(),
+            key=lambda item: (int(item[0]) if str(item[0]).isdigit() else 10**9, str(item[0])),
+        )
+        sorted_payload[store] = {str(tai): diff for tai, diff in sorted_tai}
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(sorted_payload, f, ensure_ascii=False, indent=2)
+
+    return out_path
+
+
 def main():
     run_compute()
 
@@ -174,6 +231,9 @@ def main():
     data_date = str(payload.get("data_date") or datetime.now(JST).strftime("%Y-%m-%d"))
     archive_suffix = data_date.replace("-", "")
     out_archive_json = os.path.join(REPO_DIR, f"candidate_data_{archive_suffix}.json")
+    seat_by_date = build_seat_diff_by_date()
+    seat_payload = seat_by_date.get(archive_suffix, {})
+    seat_out_json = write_seat_data_json(archive_suffix, seat_payload)
 
     for path in (OUT_JSON, out_archive_json):
         with open(path, "w", encoding="utf-8") as f:
@@ -181,6 +241,7 @@ def main():
 
     print(f"generated: {OUT_JSON}")
     print(f"generated: {out_archive_json}")
+    print(f"generated: {seat_out_json}")
     print(f"stores: {len(payload.get('stores', {}))}")
 
 

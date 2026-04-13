@@ -43,7 +43,7 @@ let seatLayoutState = {
   dateYmd: '',
   loadedDateYmd: '',
   store: '',
-  candidateData: null,
+  seatData: null,
   loading: false,
   missing: false,
   error: '',
@@ -2458,9 +2458,9 @@ function getSeatLayoutStoreNames() {
       if(store) names.add(store);
     });
   }
-  const storesInCandidate = seatLayoutState.candidateData?.stores;
-  if(storesInCandidate && typeof storesInCandidate === 'object') {
-    Object.keys(storesInCandidate).forEach((store) => {
+  const storesInSeatData = seatLayoutState.seatData;
+  if(storesInSeatData && typeof storesInSeatData === 'object') {
+    Object.keys(storesInSeatData).forEach((store) => {
       if(store) names.add(store);
     });
   }
@@ -2539,13 +2539,13 @@ function buildSeatLayoutCards(store) {
   }
 
   if(!map.size) {
-    const fallbackCandidates = seatLayoutState.candidateData?.stores?.[store]?.candidates;
-    (Array.isArray(fallbackCandidates) ? fallbackCandidates : []).forEach((candidate) => {
-      const tai = Number(candidate?.tai);
+    const fallbackTaiMap = seatLayoutState.seatData?.[store];
+    Object.keys((fallbackTaiMap && typeof fallbackTaiMap === 'object') ? fallbackTaiMap : {}).forEach((taiRaw) => {
+      const tai = Number(taiRaw);
       if(!Number.isFinite(tai) || map.has(tai)) return;
       map.set(tai, {
         tai,
-        model: String(candidate?.model || '不明'),
+        model: '不明',
       });
     });
   }
@@ -2736,36 +2736,14 @@ function bindSeatLayoutPickerEvents() {
   seatLayoutState.pickerBound = true;
 }
 
-function extractSeatLayoutAverageDiff(candidate) {
-  if(!candidate || typeof candidate !== 'object') return null;
-  const numericKeys = [
-    'avg_diff', 'avgDiff', 'average_diff', 'averageDiff',
-    'same_condition_avg_diff', 'sameConditionAvgDiff',
-    'avg', 'diff_avg', 'diff',
-  ];
-  for(const key of numericKeys) {
-    const v = Number(candidate[key]);
-    if(Number.isFinite(v)) return v;
-  }
-  const reasons = Array.isArray(candidate.reasons) ? candidate.reasons : [];
-  for(const rawReason of reasons) {
-    const reason = String(rawReason || '');
-    if(!reason.includes('差枚')) continue;
-    const match = reason.match(/([+\-]?\d[\d,]*)\s*枚/);
-    if(!match) continue;
-    const parsed = Number(match[1].replace(/,/g, ''));
-    if(Number.isFinite(parsed)) return parsed;
-  }
-  return null;
-}
-
 function getSeatLayoutDiffMap(store) {
   const map = new Map();
-  const candidates = seatLayoutState.candidateData?.stores?.[store]?.candidates;
-  (Array.isArray(candidates) ? candidates : []).forEach((candidate) => {
-    const tai = Number(candidate?.tai);
+  const seatMap = seatLayoutState.seatData?.[store];
+  Object.entries((seatMap && typeof seatMap === 'object') ? seatMap : {}).forEach(([taiRaw, diffRaw]) => {
+    const tai = Number(taiRaw);
+    const diff = Number(diffRaw);
     if(!Number.isFinite(tai)) return;
-    map.set(tai, extractSeatLayoutAverageDiff(candidate));
+    map.set(tai, Number.isFinite(diff) ? diff : null);
   });
   return map;
 }
@@ -2967,7 +2945,7 @@ function renderSeatLayoutTab() {
     statusEl.textContent = `${seatLayoutState.dateYmd} のデータを読み込み中...${notice}`;
     statusEl.style.color = 'var(--accent3)';
   } else if(seatLayoutState.missing) {
-    statusEl.textContent = `${seatLayoutState.dateYmd} はデータなし（candidate_data_${compact}.json）${notice}`;
+    statusEl.textContent = `${seatLayoutState.dateYmd} はデータなし（seat_data_${compact}.json）${notice}`;
     statusEl.style.color = 'var(--accent4)';
   } else {
     statusEl.textContent = `${seatLayoutState.store} / ${seatLayoutState.dateYmd} / 配置 ${placedCount}台 / 未配置 ${unplacedCards.length}台${notice}`;
@@ -2987,7 +2965,7 @@ function loadSeatLayoutDataForDate(ymd) {
 
   const requestId = ++seatLayoutState.requestId;
   const compact = String(normalizedYmd || '').replace(/-/g, '');
-  const path = `./candidate_data_${compact}.json`;
+  const path = `./seat_data_${compact}.json`;
   fetch(path, { cache: 'no-store' })
     .then((res) => {
       if(res.status === 404) return null;
@@ -3000,7 +2978,7 @@ function loadSeatLayoutDataForDate(ymd) {
       seatLayoutState.loadedDateYmd = normalizedYmd;
 
       if(!json) {
-        seatLayoutState.candidateData = null;
+        seatLayoutState.seatData = null;
         seatLayoutState.missing = true;
         seatLayoutState.error = '';
         const changed = updateSeatLayoutStoreSelect();
@@ -3009,7 +2987,7 @@ function loadSeatLayoutDataForDate(ymd) {
         return;
       }
 
-      seatLayoutState.candidateData = (json && typeof json === 'object') ? json : null;
+      seatLayoutState.seatData = (json && typeof json === 'object') ? json : null;
       seatLayoutState.missing = false;
       seatLayoutState.error = '';
       const changed = updateSeatLayoutStoreSelect();
@@ -3020,7 +2998,7 @@ function loadSeatLayoutDataForDate(ymd) {
       if(requestId !== seatLayoutState.requestId) return;
       seatLayoutState.loading = false;
       seatLayoutState.loadedDateYmd = normalizedYmd;
-      seatLayoutState.candidateData = null;
+      seatLayoutState.seatData = null;
       seatLayoutState.missing = false;
       seatLayoutState.error = err && err.message ? err.message : String(err);
       const changed = updateSeatLayoutStoreSelect();
