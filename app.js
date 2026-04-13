@@ -2941,6 +2941,7 @@ function renderSeatLayoutTab() {
 
   const cellCount = getSeatLayoutCellCount();
   gridEl.style.setProperty('--seat-grid-cols', String(seatLayoutState.cols));
+  gridEl.style.setProperty('--seat-grid-rows', String(seatLayoutState.rows));
   gridEl.innerHTML = Array.from({ length: cellCount }, (_, idx) => {
     const tai = Number(seatLayoutState.placements[String(idx)]);
     const card = seatLayoutState.cards.find((c) => c.tai === tai) || null;
