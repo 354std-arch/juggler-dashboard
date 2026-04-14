@@ -44,6 +44,8 @@ let seatLayoutState = {
   loadedDateYmd: '',
   store: '',
   seatData: null,
+  seatDataBundle: null,
+  storeList: [],
   loading: false,
   missing: false,
   error: '',
@@ -63,6 +65,7 @@ let seatLayoutState = {
   dateOptions: [],
   notice: '',
   requestId: 0,
+  bundleLoaded: false,
 };
 const DESIGN_SYSTEM_SELECTORS = {
   buttons: 'button.btn,button.btn-primary,button.btn-secondary,button.btn-filter,button.filter-btn,button.period-btn,button.cal-nav-btn,button.target-day-btn,button.store-btn,button.save-btn,button.model-chip,button.session-btn-sub,button.recommendation-toggle',
@@ -2451,6 +2454,9 @@ function getSeatLayoutStorageKey(store) {
 }
 
 function getSeatLayoutStoreNames() {
+  if(Array.isArray(seatLayoutState.storeList) && seatLayoutState.storeList.length) {
+    return seatLayoutState.storeList.slice();
+  }
   const names = new Set();
   if(Array.isArray(G.taiDetail)) {
     G.taiDetail.forEach((row) => {
@@ -2539,15 +2545,26 @@ function buildSeatLayoutCards(store) {
   }
 
   if(!map.size) {
-    const fallbackTaiMap = seatLayoutState.seatData?.[store];
-    Object.keys((fallbackTaiMap && typeof fallbackTaiMap === 'object') ? fallbackTaiMap : {}).forEach((taiRaw) => {
-      const tai = Number(taiRaw);
-      if(!Number.isFinite(tai) || map.has(tai)) return;
-      map.set(tai, {
-        tai,
-        model: '不明',
+    const fallbackSeats = seatLayoutState.seatData?.[store];
+    if(Array.isArray(fallbackSeats)) {
+      fallbackSeats.forEach((row) => {
+        const tai = Number(row?.machine_no);
+        if(!Number.isFinite(tai) || map.has(tai)) return;
+        map.set(tai, {
+          tai,
+          model: String(row?.model || '不明'),
+        });
       });
-    });
+    } else {
+      Object.keys((fallbackSeats && typeof fallbackSeats === 'object') ? fallbackSeats : {}).forEach((taiRaw) => {
+        const tai = Number(taiRaw);
+        if(!Number.isFinite(tai) || map.has(tai)) return;
+        map.set(tai, {
+          tai,
+          model: '不明',
+        });
+      });
+    }
   }
 
   return Array.from(map.values()).sort((a, b) => a.tai - b.tai);
@@ -2646,7 +2663,17 @@ function syncSeatLayoutCards(forceReloadStorePlacement = false) {
   if(!exists || isPlaced) seatLayoutState.selectedTai = null;
 }
 
+function getSeatLayoutDatesFromBundle() {
+  const dates = seatLayoutState.seatDataBundle?.dates;
+  if(!Array.isArray(dates)) return [];
+  return dates
+    .map((v) => normalizeDataDateValue(v))
+    .filter((v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')));
+}
+
 function buildSeatLayoutDateOptions(anchorYmd) {
+  const bundleDates = getSeatLayoutDatesFromBundle();
+  if(bundleDates.length) return bundleDates;
   const anchor = parseYmdLocal(anchorYmd || '') || getTodayLocalDate();
   const list = [];
   for(let i = 0; i < 120; i += 1) {
@@ -2657,14 +2684,13 @@ function buildSeatLayoutDateOptions(anchorYmd) {
 }
 
 function ensureSeatLayoutDateState() {
-  if(!seatLayoutState.dateYmd) {
-    seatLayoutState.dateYmd = normalizeDataDateValue(G.dataDate) || toYmdLocal(getTodayLocalDate());
-  }
   if(!Array.isArray(seatLayoutState.dateOptions) || !seatLayoutState.dateOptions.length) {
-    seatLayoutState.dateOptions = buildSeatLayoutDateOptions(seatLayoutState.dateYmd);
+    seatLayoutState.dateOptions = buildSeatLayoutDateOptions(seatLayoutState.dateYmd || '');
   }
-  if(!seatLayoutState.dateOptions.includes(seatLayoutState.dateYmd)) {
-    seatLayoutState.dateOptions = buildSeatLayoutDateOptions(seatLayoutState.dateYmd);
+  if(!seatLayoutState.dateYmd || !seatLayoutState.dateOptions.includes(seatLayoutState.dateYmd)) {
+    seatLayoutState.dateYmd = seatLayoutState.dateOptions[0]
+      || normalizeDataDateValue(G.dataDate)
+      || toYmdLocal(getTodayLocalDate());
   }
 }
 
@@ -2736,10 +2762,84 @@ function bindSeatLayoutPickerEvents() {
   seatLayoutState.pickerBound = true;
 }
 
+function getSeatLayoutDataByDate(ymd) {
+  const allData = seatLayoutState.seatDataBundle?.data;
+  if(!allData || typeof allData !== 'object') return null;
+  const byDate = allData[ymd];
+  return (byDate && typeof byDate === 'object') ? byDate : null;
+}
+
+function parseSeatLayoutStoreListNames(payload) {
+  const rows = Array.isArray(payload?.stores) ? payload.stores : [];
+  const names = [];
+  rows.forEach((row) => {
+    const name = String(row?.name || '').trim();
+    if(name && !names.includes(name)) names.push(name);
+  });
+  return names;
+}
+
+function loadSeatLayoutBundle() {
+  seatLayoutState.loading = true;
+  seatLayoutState.error = '';
+  renderSeatLayoutTab();
+
+  const requestId = ++seatLayoutState.requestId;
+  const seatPromise = fetch('./seat_data.json', { cache: 'no-store' })
+    .then((res) => {
+      if(res.status === 404) return null;
+      if(!res.ok) throw new Error(`seat_data.json HTTP ${res.status}`);
+      return res.json();
+    });
+  const storePromise = fetch('./store_list.json', { cache: 'no-store' })
+    .then((res) => {
+      if(res.status === 404) return null;
+      if(!res.ok) throw new Error(`store_list.json HTTP ${res.status}`);
+      return res.json();
+    })
+    .catch(() => null);
+
+  return Promise.all([seatPromise, storePromise])
+    .then(([seatJson, storeJson]) => {
+      if(requestId !== seatLayoutState.requestId) return;
+      seatLayoutState.seatDataBundle = (seatJson && typeof seatJson === 'object') ? seatJson : null;
+      seatLayoutState.storeList = parseSeatLayoutStoreListNames(storeJson);
+      seatLayoutState.dateOptions = buildSeatLayoutDateOptions(seatLayoutState.dateYmd || '');
+      ensureSeatLayoutDateState();
+      seatLayoutState.bundleLoaded = true;
+      seatLayoutState.error = '';
+      loadSeatLayoutDataForDate(seatLayoutState.dateYmd);
+    })
+    .catch((err) => {
+      if(requestId !== seatLayoutState.requestId) return;
+      seatLayoutState.loading = false;
+      seatLayoutState.bundleLoaded = false;
+      seatLayoutState.seatDataBundle = null;
+      seatLayoutState.seatData = null;
+      seatLayoutState.storeList = [];
+      seatLayoutState.missing = true;
+      seatLayoutState.error = err && err.message ? err.message : String(err);
+      seatLayoutState.dateOptions = buildSeatLayoutDateOptions('');
+      ensureSeatLayoutDateState();
+      const changed = updateSeatLayoutStoreSelect();
+      syncSeatLayoutCards(changed);
+      renderSeatLayoutTab();
+    });
+}
+
 function getSeatLayoutDiffMap(store) {
   const map = new Map();
-  const seatMap = seatLayoutState.seatData?.[store];
-  Object.entries((seatMap && typeof seatMap === 'object') ? seatMap : {}).forEach(([taiRaw, diffRaw]) => {
+  const seatRows = seatLayoutState.seatData?.[store];
+  if(Array.isArray(seatRows)) {
+    seatRows.forEach((row) => {
+      const tai = Number(row?.machine_no);
+      const diff = Number(row?.diff);
+      if(!Number.isFinite(tai)) return;
+      map.set(tai, Number.isFinite(diff) ? diff : null);
+    });
+    return map;
+  }
+  Object.entries((seatRows && typeof seatRows === 'object') ? seatRows : {}).forEach(([taiRaw, diffRaw]) => {
     const tai = Number(taiRaw);
     const diff = Number(diffRaw);
     if(!Number.isFinite(tai)) return;
@@ -2754,6 +2854,63 @@ function getSeatLayoutColorClass(avgDiff) {
   if(avgDiff >= 1500) return 'seat-layout-color-mid';
   if(avgDiff >= 750) return 'seat-layout-color-low';
   return 'seat-layout-color-none';
+}
+
+function getSeatHeatmapColorClass(diff) {
+  if(!Number.isFinite(diff)) return 'seat-heatmap-cell is-missing';
+  if(diff >= 3000) return 'seat-heatmap-cell is-high';
+  if(diff >= 1500) return 'seat-heatmap-cell is-mid';
+  if(diff >= 750) return 'seat-heatmap-cell is-low';
+  return 'seat-heatmap-cell is-flat';
+}
+
+function formatSeatHeatmapDiff(diff) {
+  if(!Number.isFinite(diff)) return 'データなし';
+  return `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()}枚`;
+}
+
+function renderSeatHeatmap(store) {
+  const wrap = document.getElementById('seatHeatmapGrid');
+  if(!wrap) return;
+  if(!store) {
+    wrap.innerHTML = '<div class="empty-msg">店舗を選択してください</div>';
+    return;
+  }
+
+  const diffMap = getSeatLayoutDiffMap(store);
+  const modelMap = new Map();
+  const rows = seatLayoutState.seatData?.[store];
+  if(Array.isArray(rows)) {
+    rows.forEach((row) => {
+      const tai = Number(row?.machine_no);
+      if(!Number.isFinite(tai)) return;
+      const model = String(row?.model || '不明');
+      modelMap.set(tai, model);
+    });
+  }
+
+  const machineSet = new Set();
+  seatLayoutState.cards.forEach((card) => {
+    const tai = Number(card?.tai);
+    if(Number.isFinite(tai)) machineSet.add(tai);
+  });
+  diffMap.forEach((_, tai) => machineSet.add(tai));
+
+  const machines = Array.from(machineSet).sort((a, b) => a - b);
+  if(!machines.length) {
+    wrap.innerHTML = '<div class="empty-msg">ヒートマップデータなし</div>';
+    return;
+  }
+
+  wrap.innerHTML = machines.map((tai) => {
+    const diff = diffMap.get(tai);
+    const colorClass = getSeatHeatmapColorClass(diff);
+    const model = modelMap.get(tai) || (seatLayoutState.cards.find((card) => card.tai === tai)?.model || '不明');
+    return `<div class="${colorClass}" title="${escapeHtml(`${store} ${tai}番台 ${model}`)}">
+      <div class="seat-heatmap-tai">${tai}番台</div>
+      <div class="seat-heatmap-diff">${escapeHtml(formatSeatHeatmapDiff(diff))}</div>
+    </div>`;
+  }).join('');
 }
 
 function flashSeatLayoutNotice(message) {
@@ -2884,6 +3041,7 @@ function renderSeatLayoutTab() {
     statusEl.style.color = 'var(--muted)';
     poolEl.innerHTML = '<div class="empty-msg">店舗を選択してください</div>';
     gridEl.innerHTML = '<div class="empty-msg">店舗を選択してください</div>';
+    renderSeatHeatmap('');
     return;
   }
 
@@ -2892,6 +3050,7 @@ function renderSeatLayoutTab() {
     statusEl.style.color = 'var(--muted)';
     poolEl.innerHTML = '<div class="empty-msg">台データなし</div>';
     gridEl.innerHTML = '<div class="empty-msg">台データなし</div>';
+    renderSeatHeatmap(seatLayoutState.store);
     return;
   }
 
@@ -2934,9 +3093,9 @@ function renderSeatLayoutTab() {
       </button>
     </div>`;
   }).join('');
+  renderSeatHeatmap(seatLayoutState.store);
 
   const placedCount = placedTaiSet.size;
-  const compact = (seatLayoutState.dateYmd || '').replace(/-/g, '');
   const notice = seatLayoutState.notice ? ` / ${seatLayoutState.notice}` : '';
   if(seatLayoutState.error) {
     statusEl.textContent = `読込エラー: ${seatLayoutState.error}${notice}`;
@@ -2945,7 +3104,7 @@ function renderSeatLayoutTab() {
     statusEl.textContent = `${seatLayoutState.dateYmd} のデータを読み込み中...${notice}`;
     statusEl.style.color = 'var(--accent3)';
   } else if(seatLayoutState.missing) {
-    statusEl.textContent = `${seatLayoutState.dateYmd} はデータなし（seat_data_${compact}.json）${notice}`;
+    statusEl.textContent = `${seatLayoutState.dateYmd} はデータなし（seat_data.json）${notice}`;
     statusEl.style.color = 'var(--accent4)';
   } else {
     statusEl.textContent = `${seatLayoutState.store} / ${seatLayoutState.dateYmd} / 配置 ${placedCount}台 / 未配置 ${unplacedCards.length}台${notice}`;
@@ -2964,57 +3123,46 @@ function loadSeatLayoutDataForDate(ymd) {
   renderSeatLayoutTab();
 
   const requestId = ++seatLayoutState.requestId;
-  const compact = String(normalizedYmd || '').replace(/-/g, '');
-  const path = `./seat_data_${compact}.json`;
-  fetch(path, { cache: 'no-store' })
-    .then((res) => {
-      if(res.status === 404) return null;
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    })
-    .then((json) => {
-      if(requestId !== seatLayoutState.requestId) return;
-      seatLayoutState.loading = false;
-      seatLayoutState.loadedDateYmd = normalizedYmd;
-
-      if(!json) {
-        seatLayoutState.seatData = null;
-        seatLayoutState.missing = true;
-        seatLayoutState.error = '';
-        const changed = updateSeatLayoutStoreSelect();
-        syncSeatLayoutCards(changed);
-        renderSeatLayoutTab();
-        return;
-      }
-
-      seatLayoutState.seatData = (json && typeof json === 'object') ? json : null;
-      seatLayoutState.missing = false;
-      seatLayoutState.error = '';
-      const changed = updateSeatLayoutStoreSelect();
-      syncSeatLayoutCards(changed);
-      renderSeatLayoutTab();
-    })
-    .catch((err) => {
-      if(requestId !== seatLayoutState.requestId) return;
-      seatLayoutState.loading = false;
-      seatLayoutState.loadedDateYmd = normalizedYmd;
-      seatLayoutState.seatData = null;
-      seatLayoutState.missing = false;
-      seatLayoutState.error = err && err.message ? err.message : String(err);
-      const changed = updateSeatLayoutStoreSelect();
-      syncSeatLayoutCards(changed);
-      renderSeatLayoutTab();
-    });
+  Promise.resolve().then(() => {
+    if(requestId !== seatLayoutState.requestId) return;
+    const byDate = getSeatLayoutDataByDate(normalizedYmd);
+    seatLayoutState.loading = false;
+    seatLayoutState.loadedDateYmd = normalizedYmd;
+    seatLayoutState.seatData = (byDate && typeof byDate === 'object') ? byDate : null;
+    seatLayoutState.missing = !seatLayoutState.seatData;
+    seatLayoutState.error = '';
+    const changed = updateSeatLayoutStoreSelect();
+    syncSeatLayoutCards(changed);
+    renderSeatLayoutTab();
+  }).catch((err) => {
+    if(requestId !== seatLayoutState.requestId) return;
+    seatLayoutState.loading = false;
+    seatLayoutState.loadedDateYmd = normalizedYmd;
+    seatLayoutState.seatData = null;
+    seatLayoutState.missing = false;
+    seatLayoutState.error = err && err.message ? err.message : String(err);
+    const changed = updateSeatLayoutStoreSelect();
+    syncSeatLayoutCards(changed);
+    renderSeatLayoutTab();
+  });
 }
 
 function initSeatLayoutTab() {
-  ensureSeatLayoutDateState();
   bindSeatLayoutPickerEvents();
   bindSeatLayoutTouchEvents();
+  if(!seatLayoutState.bundleLoaded) {
+    loadSeatLayoutBundle();
+    return;
+  }
 
+  ensureSeatLayoutDateState();
   const storeChanged = updateSeatLayoutStoreSelect();
   syncSeatLayoutCards(storeChanged);
-  if(seatLayoutState.loadedDateYmd !== seatLayoutState.dateYmd) {
+  if(
+    seatLayoutState.loadedDateYmd !== seatLayoutState.dateYmd
+    || seatLayoutState.error
+    || seatLayoutState.missing
+  ) {
     loadSeatLayoutDataForDate(seatLayoutState.dateYmd);
     return;
   }

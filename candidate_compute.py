@@ -10,8 +10,10 @@ import morning_compute as morning
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 COMPUTE_PY = os.path.join(REPO_DIR, "compute.py")
 STORE_MODEL_SUMMARY_CSV = os.path.join(REPO_DIR, "store_model_summary.csv")
+STORE_LIST_JSON = os.path.join(REPO_DIR, "store_list.json")
 RAW_DATA_CSV = os.path.join(REPO_DIR, "raw_data.csv")
 OUT_JSON = os.path.join(REPO_DIR, "candidate_data.json")
+SEAT_DATA_JSON = os.path.join(REPO_DIR, "seat_data.json")
 JST = timezone(timedelta(hours=9))
 
 
@@ -168,60 +170,138 @@ def run_compute():
     subprocess.run([sys.executable, COMPUTE_PY], check=True, cwd=REPO_DIR)
 
 
-def normalize_tai_key(value):
-    num = parse_number(value)
-    if num is None:
-        return ""
-    if float(num).is_integer():
-        return str(int(num))
-    return str(num)
-
-
 def normalize_diff_value(value):
     if float(value).is_integer():
         return int(value)
     return round(float(value), 1)
 
 
-def build_seat_diff_by_date():
-    by_date = {}
+def load_store_list_names():
+    if not os.path.exists(STORE_LIST_JSON):
+        return []
+    try:
+        with open(STORE_LIST_JSON, "r", encoding="utf-8-sig") as f:
+            payload = json.load(f)
+    except Exception:
+        return []
+
+    stores = payload.get("stores", []) if isinstance(payload, dict) else []
+    names = []
+    seen = set()
+    for row in stores:
+        if not isinstance(row, dict):
+            continue
+        name = str(row.get("name", "")).strip()
+        if not name or name in seen:
+            continue
+        names.append(name)
+        seen.add(name)
+    return names
+
+
+def parse_machine_no(value):
+    num = parse_number(value)
+    if num is None:
+        return None
+    if not float(num).is_integer():
+        return None
+    tai = int(num)
+    if tai <= 0:
+        return None
+    return tai
+
+
+def detect_latest_data_date():
+    latest_dt = None
     if not os.path.exists(RAW_DATA_CSV):
-        return by_date
+        return None
+    with open(RAW_DATA_CSV, "r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            dt = parse_date(row.get("日付"))
+            if dt is None:
+                continue
+            if latest_dt is None or dt > latest_dt:
+                latest_dt = dt
+    return latest_dt
+
+
+def build_recent_seat_data_payload(day_window=30):
+    store_order = load_store_list_names()
+    payload = {"dates": [], "stores": store_order[:], "data": {}}
+    if not os.path.exists(RAW_DATA_CSV):
+        return payload
+
+    latest_dt = detect_latest_data_date()
+    if latest_dt is None:
+        return payload
+
+    end_date = latest_dt.date()
+    start_date = end_date - timedelta(days=max(0, int(day_window) - 1))
+    by_date = {}
+    stores_with_data = set()
 
     with open(RAW_DATA_CSV, "r", encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             dt = parse_date(row.get("日付"))
-            store = str(row.get("店名", "")).strip()
-            tai = normalize_tai_key(row.get("台番号"))
-            diff = parse_number(row.get("差枚"))
-            if dt is None or not store or not tai or diff is None:
+            if dt is None:
+                continue
+            d = dt.date()
+            if d < start_date or d > end_date:
                 continue
 
-            ymd = dt.strftime("%Y%m%d")
-            store_bucket = by_date.setdefault(ymd, {}).setdefault(store, {})
-            store_bucket[tai] = normalize_diff_value(diff)
+            store = str(row.get("店名", "")).strip()
+            model = str(row.get("機種名", "")).strip()
+            machine_no = parse_machine_no(row.get("台番号"))
+            diff = parse_number(row.get("差枚"))
+            if not store or machine_no is None or diff is None:
+                continue
 
-    return by_date
+            ymd = d.strftime("%Y-%m-%d")
+            machine_map = by_date.setdefault(ymd, {}).setdefault(store, {})
+            machine_map[machine_no] = {
+                "machine_no": machine_no,
+                "model": model,
+                "diff": normalize_diff_value(diff),
+            }
+            stores_with_data.add(store)
 
+    date_keys = sorted(by_date.keys(), reverse=True)
+    store_set = set(store_order)
+    extra_stores = sorted(stores_with_data - store_set, key=lambda s: s)
+    if extra_stores:
+        payload["stores"] = store_order + extra_stores
 
-def write_seat_data_json(date_suffix, payload):
-    out_path = os.path.join(REPO_DIR, f"seat_data_{date_suffix}.json")
-    sorted_payload = {}
-    for store in sorted(payload.keys(), key=lambda v: str(v)):
-        tai_map = payload.get(store, {})
-        if not isinstance(tai_map, dict):
+    ranked_stores = {name: i for i, name in enumerate(payload["stores"])}
+    data_out = {}
+    for ymd in date_keys:
+        store_map = by_date.get(ymd, {})
+        if not isinstance(store_map, dict):
             continue
-        sorted_tai = sorted(
-            tai_map.items(),
-            key=lambda item: (int(item[0]) if str(item[0]).isdigit() else 10**9, str(item[0])),
+        sorted_store_items = sorted(
+            store_map.items(),
+            key=lambda item: (ranked_stores.get(item[0], 10**9), item[0]),
         )
-        sorted_payload[store] = {str(tai): diff for tai, diff in sorted_tai}
+        day_out = {}
+        for store, machine_map in sorted_store_items:
+            if not isinstance(machine_map, dict) or not machine_map:
+                continue
+            machines = sorted(machine_map.values(), key=lambda row: (row.get("machine_no", 10**9)))
+            if machines:
+                day_out[store] = machines
+        if day_out:
+            data_out[ymd] = day_out
 
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(sorted_payload, f, ensure_ascii=False, indent=2)
+    payload["dates"] = date_keys
+    payload["data"] = data_out
+    return payload
 
-    return out_path
+
+def write_recent_seat_data_json(payload):
+    with open(SEAT_DATA_JSON, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    return SEAT_DATA_JSON
 
 
 def main():
@@ -231,9 +311,8 @@ def main():
     data_date = str(payload.get("data_date") or datetime.now(JST).strftime("%Y-%m-%d"))
     archive_suffix = data_date.replace("-", "")
     out_archive_json = os.path.join(REPO_DIR, f"candidate_data_{archive_suffix}.json")
-    seat_by_date = build_seat_diff_by_date()
-    seat_payload = seat_by_date.get(archive_suffix, {})
-    seat_out_json = write_seat_data_json(archive_suffix, seat_payload)
+    seat_payload = build_recent_seat_data_payload(day_window=30)
+    seat_out_json = write_recent_seat_data_json(seat_payload)
 
     for path in (OUT_JSON, out_archive_json):
         with open(path, "w", encoding="utf-8") as f:
@@ -242,6 +321,7 @@ def main():
     print(f"generated: {OUT_JSON}")
     print(f"generated: {out_archive_json}")
     print(f"generated: {seat_out_json}")
+    print(f"seat_dates: {len(seat_payload.get('dates', []))}")
     print(f"stores: {len(payload.get('stores', {}))}")
 
 

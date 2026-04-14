@@ -752,7 +752,7 @@
 <div id="tab-layout" class="tab-content">
   <div class="card seat-layout-card">
     <div class="card-title">🗂️ 席配置</div>
-    <p class="section-note">未配置カードをグリッドへ配置し、日付ごとの平均差枚で色分け表示します。</p>
+    <p class="section-note">未配置カードをグリッドへ配置し、日付ごとの差枚を色分け表示します。</p>
     <div class="seat-layout-toolbar">
       <select id="seatLayoutStore" onchange="onSeatLayoutStoreChange()">
         <option value="">店舗を選択</option>
@@ -790,6 +790,12 @@
         <div id="seatLayoutGrid" class="seat-layout-grid">
           <div class="empty-msg">店舗を選択してください</div>
         </div>
+      </div>
+    </div>
+    <div class="seat-heatmap-wrap">
+      <div class="seat-layout-subtitle">差枚ヒートマップ</div>
+      <div id="seatHeatmapGrid" class="seat-heatmap-grid">
+        <div class="empty-msg">店舗を選択してください</div>
       </div>
     </div>
   </div>
