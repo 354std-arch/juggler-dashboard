@@ -9,6 +9,7 @@ from scrape_juggler import (
     build_target_dates,
     get_target_date,
     parse_date_str,
+    save_model_summary_to_csv,
     save_to_csv,
     scrape,
     slug_from_store_name,
@@ -88,14 +89,19 @@ def main():
         return
 
     fetched_rows = []
+    fetched_model_summary_rows = []
     for store_name, slug, target_date in missing_targets:
-        rows, _ = scrape(target_date, store_name, slug)
+        rows, model_summary_rows, ok = scrape(target_date, store_name, slug)
         fetched_rows.extend(rows)
-        print(f'店舗名: {store_name} / 欠損日付: {target_date} / 取得行数: {len(rows)}')
+        fetched_model_summary_rows.extend(model_summary_rows)
+        status = '✅' if ok else '⚠️'
+        print(f'{status} 店舗名: {store_name} / 欠損日付: {target_date} / 取得行数: {len(rows)}')
 
     saved = save_to_csv(fetched_rows)
+    model_saved = save_model_summary_to_csv(fetched_model_summary_rows)
     print(
-        f'✅ backfill 完了: 欠損 {len(missing_targets)}件 / 取得 {len(fetched_rows)}行 / 更新・追加 {saved}行'
+        f'✅ backfill 完了: 欠損 {len(missing_targets)}件 / 取得 {len(fetched_rows)}行 / '
+        f'更新・追加 {saved}行 / 機種別 {model_saved}行'
     )
 
 
