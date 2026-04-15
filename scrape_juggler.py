@@ -143,13 +143,18 @@ def scrape(target_date, store_name, slug, target_models=None):
             res = requests.get(url, headers=HEADERS, timeout=15)
             if res.status_code == 200:
                 break
+            print(f'  ❌ {store_name} {target_date}: HTTP {res.status_code}')
+            print(f'    request headers: {dict(res.request.headers)}')
+            print(f'    response headers: {dict(res.headers)}')
+            print(f'    response body (first 500 chars): {res.text[:500]}')
             last_err = f'HTTP {res.status_code}'
         except Exception as e:
             last_err = str(e)
         if attempt < 3:
             time.sleep(2 * attempt)
     if res is None or res.status_code != 200:
-        print(f'  ❌ {store_name} {target_date}: {last_err or "request failed"}')
+        if res is None:
+            print(f'  ❌ {store_name} {target_date}: {last_err or "request failed"}')
         return [], [], False
     soup = BeautifulSoup(res.text, 'html.parser')
     model_summary_rows = extract_model_summary_rows(soup, target_date, store_name, target_models=target_models)
