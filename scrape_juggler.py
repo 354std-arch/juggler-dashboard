@@ -6,7 +6,7 @@ import time
 from datetime import date, timedelta, datetime, timezone
 from urllib.parse import quote
 
-import requests
+from curl_cffi import requests
 from bs4 import BeautifulSoup
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -140,7 +140,7 @@ def scrape(target_date, store_name, slug, target_models=None):
     last_err = ''
     for attempt in range(1, 4):
         try:
-            res = requests.get(url, headers=HEADERS, timeout=15)
+            res = requests.get(url, headers=HEADERS, timeout=15, impersonate="chrome120")
             if res.status_code == 200:
                 break
             print(f'  ❌ {store_name} {target_date}: HTTP {res.status_code}')
