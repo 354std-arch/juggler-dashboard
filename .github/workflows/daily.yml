@@ -20,7 +20,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests beautifulsoup4 pandas
+        run: pip install -r requirements.txt pandas
 
       - name: Run juggler scrape
         run: python scrape_juggler.py
