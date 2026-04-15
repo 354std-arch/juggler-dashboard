@@ -2,6 +2,7 @@ import csv
 import json
 import math
 import os
+import argparse
 from datetime import datetime, timedelta, timezone
 from collections import Counter, defaultdict
 
@@ -757,21 +758,31 @@ def build_payload(df, normalized_models, unsupported_models):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="morning_data.json を生成します。")
+    parser.add_argument(
+        "--archive",
+        action="store_true",
+        help="日付付きのアーカイブJSON（morning_data_YYYYMMDD.json）も生成する",
+    )
+    args = parser.parse_args()
+
     data, normalized_models, unsupported_models = read_labeled_rows()
     if pd is None:
         payload = build_payload_fallback(data, normalized_models, unsupported_models)
     else:
         payload = build_payload(data, normalized_models, unsupported_models)
-    data_date = str(payload.get("data_date") or datetime.now(JST).strftime("%Y-%m-%d"))
-    archive_suffix = data_date.replace("-", "")
-    out_archive_json = os.path.join(REPO_DIR, f"morning_data_{archive_suffix}.json")
+    with open(OUT_JSON, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
 
-    for path in (OUT_JSON, out_archive_json):
-        with open(path, "w", encoding="utf-8") as f:
+    if args.archive:
+        data_date = str(payload.get("data_date") or datetime.now(JST).strftime("%Y-%m-%d"))
+        archive_suffix = data_date.replace("-", "")
+        out_archive_json = os.path.join(REPO_DIR, f"morning_data_{archive_suffix}.json")
+        with open(out_archive_json, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
+        print(f"generated: {out_archive_json}")
 
     print(f"generated: {OUT_JSON}")
-    print(f"generated: {out_archive_json}")
     print(f"stores: {len(payload.get('stores', {}))}")
 
 

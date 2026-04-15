@@ -5,3 +5,8 @@ __pycache__/
 
 # Claude Code 個人設定（コミット不要）
 .claude/settings.local.json
+
+# 生成アーカイブ（通常運用では未使用）
+morning_data_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].json
+candidate_data_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].json
+seat_data_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].json

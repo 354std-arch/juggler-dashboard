@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys
+import argparse
 from datetime import datetime, timedelta, timezone
 
 import morning_compute as morning
@@ -305,21 +306,32 @@ def write_recent_seat_data_json(payload):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="candidate_data.json と seat_data.json を生成します。")
+    parser.add_argument(
+        "--archive",
+        action="store_true",
+        help="日付付きのアーカイブJSON（candidate_data_YYYYMMDD.json）も生成する",
+    )
+    args = parser.parse_args()
+
     run_compute()
 
     payload = build_candidate_payload()
-    data_date = str(payload.get("data_date") or datetime.now(JST).strftime("%Y-%m-%d"))
-    archive_suffix = data_date.replace("-", "")
-    out_archive_json = os.path.join(REPO_DIR, f"candidate_data_{archive_suffix}.json")
     seat_payload = build_recent_seat_data_payload(day_window=30)
     seat_out_json = write_recent_seat_data_json(seat_payload)
 
-    for path in (OUT_JSON, out_archive_json):
-        with open(path, "w", encoding="utf-8") as f:
+    with open(OUT_JSON, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+    if args.archive:
+        data_date = str(payload.get("data_date") or datetime.now(JST).strftime("%Y-%m-%d"))
+        archive_suffix = data_date.replace("-", "")
+        out_archive_json = os.path.join(REPO_DIR, f"candidate_data_{archive_suffix}.json")
+        with open(out_archive_json, "w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
+        print(f"generated: {out_archive_json}")
 
     print(f"generated: {OUT_JSON}")
-    print(f"generated: {out_archive_json}")
     print(f"generated: {seat_out_json}")
     print(f"seat_dates: {len(seat_payload.get('dates', []))}")
     print(f"stores: {len(payload.get('stores', {}))}")

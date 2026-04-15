@@ -3,6 +3,7 @@ import csv
 import json
 import os
 import time
+import tempfile
 from datetime import date, timedelta, datetime, timezone
 from urllib.parse import quote
 
@@ -161,6 +162,8 @@ def scrape(target_date, store_name, slug, target_models=None):
 
     table = soup.find('table', id='all_data_table')
     if not table:
+        table = find_fallback_detail_table(soup)
+    if not table:
         print(f'  ⚠️  {store_name} {target_date}: テーブルなし')
         return [], model_summary_rows, False
     rows = []
@@ -221,6 +224,41 @@ def _dedup_key(row):
 
 def _model_summary_key(row):
     return (row.get('date', ''), row.get('store', ''), row.get('model', ''))
+
+
+def find_fallback_detail_table(soup):
+    candidates = []
+    for table in soup.find_all('table'):
+        trs = table.find_all('tr')
+        if len(trs) < 2:
+            continue
+        header_cells = trs[0].find_all(['th', 'td'])
+        if not header_cells:
+            continue
+        headers = [normalize_header(cell.get_text(' ', strip=True)) for cell in header_cells]
+        required = ['機種', '台番号', 'g', 'bb', 'rb']
+        hit_count = 0
+        for key in required:
+            if any(key in header for header in headers):
+                hit_count += 1
+        if hit_count < 4:
+            continue
+        row_count = sum(1 for tr in trs[1:] if tr.find_all('td'))
+        if row_count <= 0:
+            continue
+        candidates.append((row_count, table))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    return candidates[0][1]
+
+
+def _make_tmp_path(base_path):
+    directory = os.path.dirname(base_path) or '.'
+    prefix = f".{os.path.basename(base_path)}."
+    fd, tmp_path = tempfile.mkstemp(prefix=prefix, suffix=".tmp", dir=directory)
+    os.close(fd)
+    return tmp_path
 
 
 def normalize_header(text):
@@ -405,28 +443,32 @@ def save_to_csv(rows):
         print(f'  📝 新規作成: {len(updates)}行')
         return len(updates)
 
-    tmp_csv = RAW_CSV + '.tmp'
+    tmp_csv = _make_tmp_path(RAW_CSV)
     replaced = 0
-    with open(RAW_CSV, encoding='utf-8-sig', newline='') as src, \
-         open(tmp_csv, 'w', encoding='utf-8-sig', newline='') as dst:
-        reader = csv.DictReader(src)
-        fieldnames = reader.fieldnames or CSV_HEADER
-        writer = csv.DictWriter(dst, fieldnames=fieldnames)
-        writer.writeheader()
+    try:
+        with open(RAW_CSV, encoding='utf-8-sig', newline='') as src, \
+             open(tmp_csv, 'w', encoding='utf-8-sig', newline='') as dst:
+            reader = csv.DictReader(src)
+            fieldnames = reader.fieldnames or CSV_HEADER
+            writer = csv.DictWriter(dst, fieldnames=fieldnames)
+            writer.writeheader()
 
-        for row in reader:
-            key = _dedup_key(row)
-            if key in updates:
-                writer.writerow(updates.pop(key))
-                replaced += 1
-            else:
+            for row in reader:
+                key = _dedup_key(row)
+                if key in updates:
+                    writer.writerow(updates.pop(key))
+                    replaced += 1
+                else:
+                    writer.writerow(row)
+
+            appended = len(updates)
+            for row in updates.values():
                 writer.writerow(row)
 
-        appended = len(updates)
-        for row in updates.values():
-            writer.writerow(row)
-
-    os.replace(tmp_csv, RAW_CSV)
+        os.replace(tmp_csv, RAW_CSV)
+    finally:
+        if os.path.exists(tmp_csv):
+            os.remove(tmp_csv)
     print(f'  📝 {replaced}行を上書き / {appended}行を追加')
     return replaced + appended
 
@@ -447,28 +489,32 @@ def save_model_summary_to_csv(rows):
         print(f'  📝 機種別集計 新規作成: {len(updates)}行')
         return len(updates)
 
-    tmp_csv = STORE_MODEL_SUMMARY_CSV + '.tmp'
+    tmp_csv = _make_tmp_path(STORE_MODEL_SUMMARY_CSV)
     replaced = 0
-    with open(STORE_MODEL_SUMMARY_CSV, encoding='utf-8-sig', newline='') as src, \
-         open(tmp_csv, 'w', encoding='utf-8-sig', newline='') as dst:
-        reader = csv.DictReader(src)
-        fieldnames = reader.fieldnames or STORE_MODEL_SUMMARY_HEADER
-        writer = csv.DictWriter(dst, fieldnames=fieldnames)
-        writer.writeheader()
+    try:
+        with open(STORE_MODEL_SUMMARY_CSV, encoding='utf-8-sig', newline='') as src, \
+             open(tmp_csv, 'w', encoding='utf-8-sig', newline='') as dst:
+            reader = csv.DictReader(src)
+            fieldnames = reader.fieldnames or STORE_MODEL_SUMMARY_HEADER
+            writer = csv.DictWriter(dst, fieldnames=fieldnames)
+            writer.writeheader()
 
-        for row in reader:
-            key = _model_summary_key(row)
-            if key in updates:
-                writer.writerow(updates.pop(key))
-                replaced += 1
-            else:
-                writer.writerow(row)
+            for row in reader:
+                key = _model_summary_key(row)
+                if key in updates:
+                    writer.writerow(updates.pop(key))
+                    replaced += 1
+                else:
+                    writer.writerow(row)
 
-        appended = len(updates)
-        for row in updates.values():
-            writer.writerow({key: row.get(key, '') for key in fieldnames})
+            appended = len(updates)
+            for row in updates.values():
+                writer.writerow({key: row.get(key, '') for key in fieldnames})
 
-    os.replace(tmp_csv, STORE_MODEL_SUMMARY_CSV)
+        os.replace(tmp_csv, STORE_MODEL_SUMMARY_CSV)
+    finally:
+        if os.path.exists(tmp_csv):
+            os.remove(tmp_csv)
     print(f'  📝 機種別集計 {replaced}行を上書き / {appended}行を追加')
     return replaced + appended
 
