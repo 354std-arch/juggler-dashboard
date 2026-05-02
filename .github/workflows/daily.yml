@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt pandas
-          python -m scrapling install
+          scrapling install
 
       - name: Run juggler scrape
         run: python scrape_juggler.py
