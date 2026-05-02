@@ -7,7 +7,7 @@ import tempfile
 from datetime import date, timedelta, datetime, timezone
 from urllib.parse import quote
 
-from curl_cffi import requests
+from scrapling import StealthyFetcher
 from bs4 import BeautifulSoup
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -141,23 +141,29 @@ def scrape(target_date, store_name, slug, target_models=None):
     last_err = ''
     for attempt in range(1, 4):
         try:
-            res = requests.get(url, headers=HEADERS, timeout=15, impersonate="chrome120")
-            if res.status_code == 200:
+            res = StealthyFetcher.fetch(
+                url,
+                headless=True,
+                disable_resources=True,
+                timeout=30000,
+                solve_cloudflare=True,
+            )
+            if res.status == 200:
                 break
-            print(f'  ❌ {store_name} {target_date}: HTTP {res.status_code}')
-            print(f'    request headers: {dict(res.request.headers)}')
+            print(f'  ❌ {store_name} {target_date}: HTTP {res.status}')
+            print(f'    request headers: {dict(res.request_headers)}')
             print(f'    response headers: {dict(res.headers)}')
-            print(f'    response body (first 500 chars): {res.text[:500]}')
-            last_err = f'HTTP {res.status_code}'
+            print(f'    response body (first 500 chars): {str(res.html_content)[:500]}')
+            last_err = f'HTTP {res.status}'
         except Exception as e:
             last_err = str(e)
         if attempt < 3:
             time.sleep(2 * attempt)
-    if res is None or res.status_code != 200:
+    if res is None or res.status != 200:
         if res is None:
             print(f'  ❌ {store_name} {target_date}: {last_err or "request failed"}')
         return [], [], False
-    soup = BeautifulSoup(res.text, 'html.parser')
+    soup = BeautifulSoup(str(res.html_content), 'html.parser')
     model_summary_rows = extract_model_summary_rows(soup, target_date, store_name, target_models=target_models)
 
     table = soup.find('table', id='all_data_table')

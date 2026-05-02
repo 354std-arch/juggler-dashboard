@@ -24,7 +24,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt pandas
+        run: |
+          pip install -r requirements.txt pandas
+          python -m scrapling install
 
       - name: Run juggler scrape
         run: python scrape_juggler.py
