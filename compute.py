@@ -1,4 +1,4 @@
-import json, csv, math, os, random, hashlib
+import json, csv, math, os
 from datetime import datetime, date, timedelta, timezone
 from collections import defaultdict
 
@@ -75,20 +75,12 @@ STORE_EXCHANGE_RATE = {
     "エスパス日拓新宿歌舞伎町": 5.17,
 }
 DEFAULT_EXCHANGE_RATE = 5.0
-MC_TRIALS = 1000
-MC_PLAY_HOURS = 8
-MC_GAMES_PER_HOUR = 750
-MC_LOW_SETTING_DIFF_PER_1000G = -180
-HIGH_SETTING_WEIGHT = {4: 0.6, 5: 0.3, 6: 0.1}
-THOMPSON_BAYES_WEIGHT = 0.7
-THOMPSON_SAMPLE_WEIGHT = 0.3
 EMA_HALF_LIFE_DAYS = 180.0
 DIFF_AUXILIARY_WEIGHT = 1.0 / 3.0
 DIFF_AUXILIARY_MAX_DELTA = 9.0
 DIFF_AUXILIARY_SCALE_PER_1000G = 700.0
 PRIOR_DETAIL_MIN_SAMPLES = 10
 PRIOR_MODEL_MIN_SAMPLES = 5
-MC_PARAM_MIN_SAMPLES = 10
 HOLDOVER_BONUS_MAX = 8.0
 DEFAULT_SPECIAL_DAYS = [1, 11, 21, 31]
 FEEDBACK_KEY_SEP = "||"
@@ -105,21 +97,6 @@ MODEL_HOLDOVER_SYN_THRESHOLD = {
     "新ハナビ": 148,
     "スマスロハナビ": 161,
 }
-
-MODEL_MC_FALLBACK = {
-    "ネオアイムジャグラー": {"meanHigh": 90.0, "sigma": 520.0},
-    "ウルトラミラクルジャグラー": {"meanHigh": 120.0, "sigma": 560.0},
-    "ミスタージャグラー": {"meanHigh": 110.0, "sigma": 540.0},
-    "ジャグラーガールズSS": {"meanHigh": 110.0, "sigma": 540.0},
-    "ゴーゴージャグラー3": {"meanHigh": 120.0, "sigma": 550.0},
-    "ハッピージャグラーVIII": {"meanHigh": 110.0, "sigma": 540.0},
-    "マイジャグラーV": {"meanHigh": 130.0, "sigma": 560.0},
-    "ファンキージャグラー2": {"meanHigh": 125.0, "sigma": 560.0},
-    "新ハナビ": {"meanHigh": 70.0, "sigma": 500.0},
-    "スマスロハナビ": {"meanHigh": 80.0, "sigma": 520.0},
-    "クランキーセレブレーション": {"meanHigh": 85.0, "sigma": 510.0},
-}
-DEFAULT_MODEL_MC_FALLBACK = {"meanHigh": 100.0, "sigma": 550.0}
 
 ANALYTICS_CACHE = {}
 
@@ -187,105 +164,12 @@ def calc_ema_weight(dt, today):
     days_ago = max(0, (today - dt.date()).days)
     return math.exp(-math.log(2.0) * (days_ago / EMA_HALF_LIFE_DAYS))
 
-def stable_seed_int(*parts):
-    raw = "|".join(str(p) for p in parts)
-    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
-    return int(digest[:16], 16)
-
-def calc_percentile(values, p):
-    if not values:
-        return 0
-    arr = sorted(values)
-    if len(arr) == 1:
-        return arr[0]
-    pos = clamp(p, 0, 1) * (len(arr) - 1)
-    lo = int(math.floor(pos))
-    hi = int(math.ceil(pos))
-    if lo == hi:
-        return arr[lo]
-    w = pos - lo
-    return arr[lo] * (1 - w) + arr[hi] * w
-
 def get_store_exchange_rate(store):
     key = normalize_store_name(store)
     rate = STORE_EXCHANGE_RATE.get(key)
     if isinstance(rate, (int, float)) and rate > 0:
         return float(rate)
     return DEFAULT_EXCHANGE_RATE
-
-def build_high_setting_dist():
-    total = sum(v for v in HIGH_SETTING_WEIGHT.values() if v > 0)
-    if total <= 0:
-        return {4: 1/3, 5: 1/3, 6: 1/3}
-    return {s: max(0, w) / total for s, w in HIGH_SETTING_WEIGHT.items()}
-
-def run_monte_carlo_simulation(store, model, p_setting4_plus, is_special_day, trials=MC_TRIALS):
-    if p_setting4_plus is None:
-        return None
-    p_high = clamp(p_setting4_plus / 100.0, 0.0, 1.0)
-    exchange_rate = get_store_exchange_rate(store)
-    yen_per_coin = 1000.0 / (exchange_rate * 10.0)
-    chunks = max(1, int((MC_PLAY_HOURS * MC_GAMES_PER_HOUR) // 1000))
-    mc_params = get_monte_carlo_params(store, model, is_special_day)
-    mean_high = mc_params["meanHigh"]
-    sigma = mc_params["sigma"]
-    seed = stable_seed_int(
-        "mc",
-        store,
-        model,
-        bool(is_special_day),
-        p_setting4_plus,
-        exchange_rate,
-        mean_high,
-        sigma,
-        trials,
-    )
-    rng = random.Random(seed)
-    totals_yen = []
-    hourly_yen = []
-    for _ in range(trials):
-        per_1000g_mean = mean_high if rng.random() < p_high else MC_LOW_SETTING_DIFF_PER_1000G
-        total_coin = 0
-        for _ in range(chunks):
-            total_coin += rng.gauss(per_1000g_mean, sigma)
-        total_yen = total_coin * yen_per_coin
-        totals_yen.append(total_yen)
-        hourly_yen.append(total_yen / MC_PLAY_HOURS)
-    return {
-        "trials": trials,
-        "playHours": MC_PLAY_HOURS,
-        "gamesPerHour": MC_GAMES_PER_HOUR,
-        "exchangeRate": exchange_rate,
-        "pSetting4Plus": r1(p_setting4_plus),
-        "dayType": "special" if is_special_day else "normal",
-        "paramSource": mc_params["source"],
-        "paramSampleCount": mc_params["count"],
-        "meanDiffPer1000G": r1(mean_high),
-        "sigmaPer1000G": r1(sigma),
-        "expectedHourlyMedian": int(round(calc_percentile(hourly_yen, 0.5))),
-        "worstCase5p": int(round(calc_percentile(totals_yen, 0.05))),
-        "luckyCase95p": int(round(calc_percentile(totals_yen, 0.95))),
-    }
-
-def calc_thompson_metrics(store, tai, model, bayes_prob, sample_size, phase="all"):
-    if bayes_prob is None:
-        return None
-    p = clamp(bayes_prob / 100.0, 0.0, 1.0)
-    n = max(1.0, float(sample_size or 1))
-    alpha = 1.0 + p * n
-    beta = 1.0 + (1.0 - p) * n
-    seed = stable_seed_int("thompson", store, tai, model, phase, bayes_prob, n)
-    rng = random.Random(seed)
-    sampled_prob = rng.betavariate(alpha, beta)
-    final_score = (
-        THOMPSON_BAYES_WEIGHT * p + THOMPSON_SAMPLE_WEIGHT * sampled_prob
-    ) * 100.0
-    return {
-        "alpha": r1(alpha),
-        "beta": r1(beta),
-        "sampledProb": round(sampled_prob * 100, 2),
-        "finalScore": round(final_score, 2),
-    }
 
 def normalize_model_name(model_name):
     name = str(model_name or "").replace("　", " ").strip()
@@ -388,7 +272,6 @@ def build_analytics_cache(rows):
     prior_l4 = defaultdict(lambda: {"plus": 0, "total": 0})
     prior_l3 = defaultdict(lambda: {"plus": 0, "total": 0})
     prior_l2 = defaultdict(lambda: {"plus": 0, "total": 0})
-    mc_acc = defaultdict(lambda: {"count": 0, "sum": 0.0, "sumSq": 0.0})
     holdover = defaultdict(lambda: {"num": 0, "den": 0})
     prev_by_tai = {}
     for r in rows:
@@ -408,13 +291,6 @@ def build_analytics_cache(rows):
             prior_l3[k3]["plus"] += 1
             prior_l2[k2]["plus"] += 1
 
-        if r.get("hasDiff") and r["g"] > 0:
-            per_1000g = (r["diff"] * 1000.0) / r["g"]
-            mk = (store, model, is_special)
-            mc_acc[mk]["count"] += 1
-            mc_acc[mk]["sum"] += per_1000g
-            mc_acc[mk]["sumSq"] += per_1000g * per_1000g
-
         tk = (store, r["tai"], model)
         prev = prev_by_tai.get(tk)
         if prev and (r["date"] - prev["date"]).days == 1 and prev["isHighSettingSyn"]:
@@ -423,18 +299,6 @@ def build_analytics_cache(rows):
                 holdover[store]["num"] += 1
         prev_by_tai[tk] = r
 
-    mc_stats = {}
-    for key, stat in mc_acc.items():
-        n = stat["count"]
-        if n <= 0:
-            continue
-        mean = stat["sum"] / n
-        variance = max(0.0, (stat["sumSq"] / n) - (mean * mean))
-        mc_stats[key] = {
-            "count": n,
-            "mean": mean,
-            "std": math.sqrt(variance),
-        }
     holdover_rate = {}
     for store, stat in holdover.items():
         den = stat["den"]
@@ -447,7 +311,6 @@ def build_analytics_cache(rows):
         "prior_l4": dict(prior_l4),
         "prior_l3": dict(prior_l3),
         "prior_l2": dict(prior_l2),
-        "mc_stats": mc_stats,
         "holdover_rate": holdover_rate,
     }
 
@@ -526,25 +389,6 @@ def get_dynamic_prior_high_prob(store, model, weekday, is_special, tai=None):
 def get_holdover_rate(store):
     data = (ANALYTICS_CACHE or {}).get("holdover_rate", {}).get(store, {})
     return float(data.get("rate", 0.0))
-
-def get_monte_carlo_params(store, model, is_special):
-    mc_stats = (ANALYTICS_CACHE or {}).get("mc_stats", {})
-    key = (store, model, bool(is_special))
-    stat = mc_stats.get(key)
-    if stat and stat.get("count", 0) >= MC_PARAM_MIN_SAMPLES:
-        return {
-            "source": "raw_data",
-            "count": stat["count"],
-            "meanHigh": float(stat["mean"]),
-            "sigma": max(200.0, float(stat["std"])),
-        }
-    fallback = MODEL_MC_FALLBACK.get(model, DEFAULT_MODEL_MC_FALLBACK)
-    return {
-        "source": "model_fallback",
-        "count": int(stat.get("count", 0)) if stat else 0,
-        "meanHigh": float(fallback["meanHigh"]),
-        "sigma": float(fallback["sigma"]),
-    }
 
 def load_store_freshness():
     if not os.path.exists(STORE_FRESHNESS_JSON):
@@ -906,10 +750,6 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
             t["model"], bayes_tg_nm, bayes_tb_nm, bayes_tr_nm, prior_high_prob=prior_nm,
             total_diff=nd, diff_weighted_count=diff_n_nm
         )
-        monte_carlo = run_monte_carlo_simulation(
-            t["store"], t["model"], bayes_all, context_is_special
-        )
-        thompson = calc_thompson_metrics(t["store"], t["tai"], t["model"], bayes_all, wn, phase="all")
         result.append({
             "tai":t["tai"],"taiNum":t["taiNum"],"model":t["model"],"store":t["store"],
             "avg":r1(weighted_avg_rows(t["all"], "diff")),"count":n,
@@ -945,14 +785,6 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
                     "eligible": bayes_nm is not None,
                 },
             },
-            "dynamicPrior": {
-                "all": {"highProb": r1(prior_all * 100), "source": prior_all_source, "samples": prior_all_n},
-                "special": {"highProb": r1(prior_sp * 100), "source": prior_sp_source, "samples": prior_sp_n},
-                "normal": {"highProb": r1(prior_nm * 100), "source": prior_nm_source, "samples": prior_nm_n},
-            },
-            "monteCarlo": monte_carlo,
-            "thompson": thompson,
-            "finalScore": thompson["finalScore"] if thompson else None,
             "confidence":"高" if n>=30 else "中" if n>=15 else "低",
             "prevRow": prev_row,
         })
@@ -1284,28 +1116,19 @@ def build_store_recommendations(store, store_rows, special, tai_detail, today=No
             continue
         cond_n = t.get("spCount") if is_special else t.get("nmCount")
         cond_n = cond_n if cond_n is not None else t.get("count", 0)
-        thompson = calc_thompson_metrics(
-            store,
-            t["tai"],
-            t["model"],
-            bayes,
-            cond_n,
-            phase="special" if is_special else "normal",
-        )
-        final_score = thompson["finalScore"] if thompson else float(bayes)
+        final_score = float(bayes)
         holdover_bonus = 0.0
         prev = t.get("prevRow") or {}
         if prev.get("isHighSettingSyn"):
             holdover_bonus = HOLDOVER_BONUS_MAX * holdover_rate
             final_score = clamp(final_score + holdover_bonus, 0.0, 100.0)
         weighted_score = final_score * weekday_coeff * monthly_timing_coeff * store_coeff
-        monte_carlo = run_monte_carlo_simulation(store, t["model"], bayes, is_special)
         reasons = []
         if is_special:
             reasons.append("今日は特定日")
         if is_special_next_day:
             reasons.append("特定日翌日")
-        reasons.append(f"Thompson最終スコア {final_score:.2f}")
+        reasons.append(f"P(設定4以上) {final_score:.1f}%")
         if holdover_bonus > 0:
             reasons.append(f"据え置き補正 +{holdover_bonus:.2f}(据え置き率{r1(holdover_rate*100)}%)")
         if t["taiNum"] > 0:
@@ -1323,11 +1146,7 @@ def build_store_recommendations(store, store_rows, special, tai_detail, today=No
             reasons.append("曜日係数1.1以上")
         if monthly_timing_coeff >= 1.0:
             reasons.append("月内係数1.0以上")
-        expected_hourly = (
-            monte_carlo["expectedHourlyMedian"]
-            if monte_carlo and monte_carlo.get("expectedHourlyMedian") is not None
-            else r1(bayes * 16.6)
-        )
+        expected_hourly = r1(bayes * 16.6)
         recs.append({
             "store": store,
             "tai": t["tai"],
@@ -1335,14 +1154,10 @@ def build_store_recommendations(store, store_rows, special, tai_detail, today=No
             "bayes_score": bayes,
             "final_score": final_score,
             "expected_hourly": expected_hourly,
-            "worst_case": monte_carlo.get("worstCase5p") if monte_carlo else None,
-            "lucky_case": monte_carlo.get("luckyCase95p") if monte_carlo else None,
             "confidence": "★★★" if final_score >= 75 else "★★" if final_score >= 65 else "★",
             "day_type": "特定日" if is_special else "特定日翌日",
             "recent_count_3m": recent_count,
             "reasons": reasons,
-            "thompson": thompson,
-            "monteCarlo": monte_carlo,
             "score": weighted_score,
         })
     recs.sort(key=lambda x: (-x["score"], -x["recent_count_3m"], x["store"], x["tai"]))
