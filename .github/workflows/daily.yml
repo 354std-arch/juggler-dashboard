@@ -1,8 +1,6 @@
 name: Daily Scrape
 
 on:
-  # Scraping is now done locally via launchd (Cloudflare blocks GitHub Actions Azure IPs)
-  # This workflow is kept for manual re-compute if needed
   workflow_dispatch:
 
 concurrency:
