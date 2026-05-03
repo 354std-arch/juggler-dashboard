@@ -16,8 +16,6 @@ AIが自動でデータ取得・分析・推薦・学習する。
 | ファイル | 役割 |
 |---|---|
 | scrape_juggler.py | ana-slo.comをスクレイピング → raw_data.csvに追記 |
-| scrape_minrepo.py | みんレポから周辺ホールをスキャン → store_list.json更新 |
-| backfill_new_stores.py | 新規店舗の過去データを一括取得 |
 | compute.py | raw_data.csvを集計・ベイズ計算 → data.jsonを生成 |
 | feedback.py | sessions.jsonとraw_data.csvを照合 → 予測精度を更新（未実装） |
 | index.html | エントリポイント |
@@ -36,9 +34,10 @@ AIが自動でデータ取得・分析・推薦・学習する。
 | エスパス日拓新宿歌舞伎町 | 5.17枚 | source=manual |
 | みんレポ優良店 | 各店舗に依存 | スコア65点以上・データ30件以上・ジャグラー系に☆か◎ |
 
-## GitHub Actions実行スケジュール（JST）
-- 5:00・6:00・8:00の3回
-- scrape_juggler.py → compute.pyの順で実行
+## 実行スケジュール（JST）
+- 毎朝7:31に launchd（Mac ローカル）で自動実行
+- run_daily.sh → scrape_juggler.py → compute.py の順で実行 → git push
+- GitHub Actions は手動 compute 専用（workflow_dispatch のみ）
 - 重複データ対策：同じ日付・店名・台番号は上書き
 
 ## 開発ルール
@@ -123,9 +122,7 @@ raw_data.csvの同日・同店・同台番号
 ## 現在の未解決タスク（上から順に対応する）
 
 ### UI改善
-- [ ] DESIGN.mdを適用してstyle.css・app.jsのUIをさらに改善する
-  - DESIGN_sentry.md・DESIGN_linear.md・DESIGN_supabase.md・DESIGN_nvidia.md・DESIGN_cursor.mdの5つが既にリポジトリにある
-  - 最も適したものを選んでUIを改善する
+- [ ] style.css・app.jsのUIをさらに改善する
 
 ## 未実装機能（優先度順）
 - [ ] Web Pushプッシュ通知（期待時給1,000円以上で通知）
