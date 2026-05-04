@@ -3696,32 +3696,17 @@ function buildCalculatedRecommendations(targetDate, predictionBaseDate) {
   const scored = taiRows.map(t => {
     const refAvg = isSpecial ? t.spAvg : t.nmAvg;
     const bayes = Number(isSpecial ? (t.bayesProbSp ?? t.bayesProbAll) : (t.bayesProbNm ?? t.bayesProbAll)) || 0;
-    const monteCarlo = (t.monteCarlo && typeof t.monteCarlo === 'object') ? t.monteCarlo : null;
-    const finalScoreRaw = Number(t.finalScore ?? t.thompson?.finalScore);
-    const hasFinalScore = Number.isFinite(finalScoreRaw);
     const calc = hasRawRows ? calcScore(t, scoringDate) : null;
     const score = calc ? Number(calc.score || 0) : ((Number(refAvg) || 0) / 120 + bayes / 30);
-    const rankScore = hasFinalScore
-      ? finalScoreRaw
-      : (score * 100 + bayes * 2 + (Number(refAvg) || 0) * 0.15);
+    const rankScore = score * 100 + bayes * 2 + (Number(refAvg) || 0) * 0.15;
     const reasons = calc
       ? (calc.reasons || []).slice(0, 3).map(r => `${r.label}: ${r.val}`)
       : [
           `${isSpecial ? '特定日' : '通常日'}平均 ${refAvg !== null ? `${refAvg >= 0 ? '+' : ''}${refAvg}枚` : '—'}`,
           `P(設定4+) ${bayes.toFixed(1)}%`,
         ];
-    const confidence = hasFinalScore
-      ? (finalScoreRaw >= 75 ? '★★★' : finalScoreRaw >= 65 ? '★★☆' : '★☆☆')
-      : (rankScore >= 700 ? '★★★' : rankScore >= 450 ? '★★☆' : '★☆☆');
-    const expectedHourly = Number.isFinite(Number(monteCarlo?.expectedHourlyMedian))
-      ? Math.round(Number(monteCarlo.expectedHourlyMedian))
-      : Math.round(((Number(refAvg) || 0) + bayes * 20) / 8);
-    const worstCase = Number.isFinite(Number(monteCarlo?.worstCase5p))
-      ? Math.round(Number(monteCarlo.worstCase5p))
-      : null;
-    const luckyCase = Number.isFinite(Number(monteCarlo?.luckyCase95p))
-      ? Math.round(Number(monteCarlo.luckyCase95p))
-      : null;
+    const confidence = rankScore >= 700 ? '★★★' : rankScore >= 450 ? '★★☆' : '★☆☆';
+    const expectedHourly = Math.round(((Number(refAvg) || 0) + bayes * 20) / 8);
     return {
       ...t,
       rankScore,
@@ -3730,9 +3715,6 @@ function buildCalculatedRecommendations(targetDate, predictionBaseDate) {
       model: t.model || '機種不明',
       bayes_score: bayes,
       expected_hourly: expectedHourly,
-      final_score: hasFinalScore ? finalScoreRaw : null,
-      worst_case: worstCase,
-      lucky_case: luckyCase,
       confidence,
       reasons,
     };
