@@ -1937,122 +1937,6 @@ function getSessionBayesProbOver4(session) {
   return Math.max(0, Math.min(100, n));
 }
 
-async function fetchSessionsForAnswerTab() {
-  try {
-    const res = await fetch(`${GITHUB_SESSIONS_PATH}?_ts=${Date.now()}`, { cache: 'no-store' });
-    if(!res.ok) return [];
-    const parsed = await res.json();
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (_) {
-    return [];
-  }
-}
-
-function renderRateTable(rows, key, label) {
-  const grouped = {};
-  rows.forEach(row => {
-    const bucket = row[key] || '不明';
-    if(!grouped[bucket]) grouped[bucket] = { hit: 0, total: 0 };
-    grouped[bucket].total += 1;
-    if(row.judge === '◎') grouped[bucket].hit += 1;
-  });
-  const ranked = Object.entries(grouped)
-    .map(([name, stat]) => ({ name, ...stat, rate: stat.total ? (stat.hit / stat.total) * 100 : 0 }))
-    .sort((a, b) => b.rate - a.rate || b.total - a.total || a.name.localeCompare(b.name, 'ja'));
-  if(!ranked.length) return '<div class="empty-msg">まだ記録がありません</div>';
-  return `
-    <div class="answer-table-wrap">
-      <table class="data-table answer-rate-table">
-        <thead><tr><th>${label}</th><th>的中率</th></tr></thead>
-        <tbody>
-          ${ranked.map(r => `
-            <tr>
-              <td>${escapeHtml(r.name)}</td>
-              <td><span class="answer-rate-value">${r.rate.toFixed(1)}%</span><span class="answer-rate-sub">（${r.hit}/${r.total}）</span></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-async function renderAnswerTab() {
-  const el = document.getElementById('answerContent');
-  if(!el) return;
-
-  el.innerHTML = '<div class="empty-msg">読み込み中...</div>';
-  const sessions = await fetchSessionsForAnswerTab();
-  const rows = sessions
-    .map(session => {
-      const bayes = getSessionBayesProbOver4(session);
-      const diffRaw = Number(session?.diff);
-      const diff = Number.isFinite(diffRaw) ? diffRaw : 0;
-      return {
-        date: session?.date || '',
-        store: session?.store || '不明',
-        tai: String(session?.tai || ''),
-        model: session?.model || '不明',
-        bayes,
-        diff,
-        judge: diff >= 0 ? '◎' : '×',
-      };
-    })
-    .filter(row => row.bayes !== null && row.bayes >= 60)
-    .sort((a, b) => String(b.date).localeCompare(String(a.date), 'ja'));
-
-  if(!rows.length) {
-    el.innerHTML = '<div class="empty-msg">まだ記録がありません</div>';
-    return;
-  }
-
-  const mainTable = `
-    <div class="answer-table-wrap">
-      <table class="data-table answer-table">
-        <thead>
-          <tr>
-            <th>日付</th>
-            <th>店舗</th>
-            <th>台番号</th>
-            <th>機種</th>
-            <th>ベイズスコア</th>
-            <th>実測差枚</th>
-            <th>判定</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows.map(row => `
-            <tr>
-              <td>${escapeHtml(row.date)}</td>
-              <td>${escapeHtml(row.store)}</td>
-              <td>${escapeHtml(row.tai)}</td>
-              <td>${escapeHtml(row.model)}</td>
-              <td>${row.bayes.toFixed(1)}%</td>
-              <td class="${row.diff >= 0 ? 'answer-diff-hit' : 'answer-diff-miss'}">${row.diff >= 0 ? '+' : ''}${row.diff.toLocaleString()}</td>
-              <td><span class="answer-judge ${row.judge === '◎' ? 'hit' : 'miss'}">${row.judge}</span></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-
-  el.innerHTML = `
-    <div class="card">
-      <div class="card-title">✅ 予測 vs 実測</div>
-      ${mainTable}
-    </div>
-    <div class="card">
-      <div class="card-title">🏪 店舗別的中率</div>
-      ${renderRateTable(rows, 'store', '店舗')}
-    </div>
-    <div class="card">
-      <div class="card-title">🎮 機種別的中率</div>
-      ${renderRateTable(rows, 'model', '機種')}
-    </div>
-  `;
-}
-
 // RB確率から推定設定（設定4以上のRB確率に相当するか判定）
 function isHighSetRBLead(model, g, bb, rb) {
   if(!g||!rb||!bb) return false;
@@ -7598,7 +7482,6 @@ function saveDataHTML() {
 // ====== 全レンダリング（アクティブタブのみ描画） ======
 const TAB_RENDER_MAP = {
   'tab-data':     () => { renderSessionUI(); },
-  'tab-answer':   () => { renderAnswerTab(); },
   'tab-days':     () => { renderDayBar(); },
   'tab-model':    () => { renderModelComp(); },
   'tab-tai':      () => { renderTaiFilter(); renderTaiList(); },
