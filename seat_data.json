@@ -1,5 +1,6 @@
 {
   "dates": [
+    "2026-05-04",
     "2026-05-03",
     "2026-05-02",
     "2026-05-01",
@@ -28,8 +29,7 @@
     "2026-04-08",
     "2026-04-07",
     "2026-04-06",
-    "2026-04-05",
-    "2026-04-04"
+    "2026-04-05"
   ],
   "stores": [
     "鶴見UNO",
@@ -43,6 +43,3919 @@
     "SKIP関内店"
   ],
   "data": {
+    "2026-05-04": {
+      "鶴見UNO": [
+        {
+          "machine_no": 477,
+          "model": "スマスロハナビ",
+          "diff": -2410
+        },
+        {
+          "machine_no": 478,
+          "model": "スマスロハナビ",
+          "diff": -1046
+        },
+        {
+          "machine_no": 479,
+          "model": "スマスロハナビ",
+          "diff": -793
+        },
+        {
+          "machine_no": 489,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1004
+        },
+        {
+          "machine_no": 490,
+          "model": "ゴーゴージャグラー3",
+          "diff": 77
+        },
+        {
+          "machine_no": 491,
+          "model": "ゴーゴージャグラー3",
+          "diff": 400
+        },
+        {
+          "machine_no": 492,
+          "model": "ゴーゴージャグラー3",
+          "diff": -400
+        },
+        {
+          "machine_no": 493,
+          "model": "ゴーゴージャグラー3",
+          "diff": 358
+        },
+        {
+          "machine_no": 494,
+          "model": "ゴーゴージャグラー3",
+          "diff": 1326
+        },
+        {
+          "machine_no": 495,
+          "model": "ゴーゴージャグラー3",
+          "diff": -793
+        },
+        {
+          "machine_no": 496,
+          "model": "ゴーゴージャグラー3",
+          "diff": -330
+        },
+        {
+          "machine_no": 497,
+          "model": "ゴーゴージャグラー3",
+          "diff": 1340
+        },
+        {
+          "machine_no": 498,
+          "model": "ゴーゴージャグラー3",
+          "diff": -554
+        },
+        {
+          "machine_no": 511,
+          "model": "ジャグラーガールズSS",
+          "diff": -288
+        },
+        {
+          "machine_no": 512,
+          "model": "ジャグラーガールズSS",
+          "diff": -583
+        },
+        {
+          "machine_no": 513,
+          "model": "ジャグラーガールズSS",
+          "diff": 386
+        },
+        {
+          "machine_no": 514,
+          "model": "ジャグラーガールズSS",
+          "diff": -1537
+        },
+        {
+          "machine_no": 515,
+          "model": "ジャグラーガールズSS",
+          "diff": -1130
+        },
+        {
+          "machine_no": 516,
+          "model": "ジャグラーガールズSS",
+          "diff": -1821
+        },
+        {
+          "machine_no": 517,
+          "model": "ハッピージャグラーVIII",
+          "diff": 63
+        },
+        {
+          "machine_no": 518,
+          "model": "ハッピージャグラーVIII",
+          "diff": 1537
+        },
+        {
+          "machine_no": 519,
+          "model": "ハッピージャグラーVIII",
+          "diff": 498
+        },
+        {
+          "machine_no": 520,
+          "model": "ハッピージャグラーVIII",
+          "diff": -835
+        },
+        {
+          "machine_no": 521,
+          "model": "ハッピージャグラーVIII",
+          "diff": 442
+        },
+        {
+          "machine_no": 522,
+          "model": "ハッピージャグラーVIII",
+          "diff": -218
+        },
+        {
+          "machine_no": 523,
+          "model": "ネオアイムジャグラー",
+          "diff": 1340
+        },
+        {
+          "machine_no": 524,
+          "model": "ネオアイムジャグラー",
+          "diff": 105
+        },
+        {
+          "machine_no": 525,
+          "model": "ネオアイムジャグラー",
+          "diff": -442
+        },
+        {
+          "machine_no": 526,
+          "model": "ネオアイムジャグラー",
+          "diff": 49
+        },
+        {
+          "machine_no": 527,
+          "model": "ネオアイムジャグラー",
+          "diff": -1018
+        },
+        {
+          "machine_no": 528,
+          "model": "ネオアイムジャグラー",
+          "diff": 2116
+        },
+        {
+          "machine_no": 529,
+          "model": "ネオアイムジャグラー",
+          "diff": -470
+        },
+        {
+          "machine_no": 530,
+          "model": "ネオアイムジャグラー",
+          "diff": 790
+        },
+        {
+          "machine_no": 531,
+          "model": "ネオアイムジャグラー",
+          "diff": -877
+        },
+        {
+          "machine_no": 532,
+          "model": "ネオアイムジャグラー",
+          "diff": -232
+        },
+        {
+          "machine_no": 533,
+          "model": "ファンキージャグラー2",
+          "diff": 3000
+        },
+        {
+          "machine_no": 534,
+          "model": "ファンキージャグラー2",
+          "diff": -554
+        },
+        {
+          "machine_no": 535,
+          "model": "ファンキージャグラー2",
+          "diff": 1088
+        },
+        {
+          "machine_no": 536,
+          "model": "ファンキージャグラー2",
+          "diff": 63
+        },
+        {
+          "machine_no": 537,
+          "model": "ファンキージャグラー2",
+          "diff": 1719
+        },
+        {
+          "machine_no": 538,
+          "model": "ネオアイムジャグラー",
+          "diff": -512
+        },
+        {
+          "machine_no": 539,
+          "model": "ネオアイムジャグラー",
+          "diff": 274
+        },
+        {
+          "machine_no": 540,
+          "model": "ネオアイムジャグラー",
+          "diff": -653
+        },
+        {
+          "machine_no": 541,
+          "model": "ネオアイムジャグラー",
+          "diff": 246
+        },
+        {
+          "machine_no": 542,
+          "model": "ネオアイムジャグラー",
+          "diff": -274
+        },
+        {
+          "machine_no": 543,
+          "model": "ネオアイムジャグラー",
+          "diff": -512
+        },
+        {
+          "machine_no": 544,
+          "model": "ネオアイムジャグラー",
+          "diff": 667
+        },
+        {
+          "machine_no": 545,
+          "model": "ミスタージャグラー",
+          "diff": -1947
+        },
+        {
+          "machine_no": 546,
+          "model": "ミスタージャグラー",
+          "diff": -1228
+        },
+        {
+          "machine_no": 547,
+          "model": "ミスタージャグラー",
+          "diff": -625
+        },
+        {
+          "machine_no": 548,
+          "model": "マイジャグラーV",
+          "diff": -1958
+        },
+        {
+          "machine_no": 549,
+          "model": "マイジャグラーV",
+          "diff": 821
+        },
+        {
+          "machine_no": 550,
+          "model": "マイジャグラーV",
+          "diff": 414
+        },
+        {
+          "machine_no": 551,
+          "model": "マイジャグラーV",
+          "diff": -1340
+        },
+        {
+          "machine_no": 552,
+          "model": "マイジャグラーV",
+          "diff": 133
+        },
+        {
+          "machine_no": 553,
+          "model": "マイジャグラーV",
+          "diff": -2052
+        },
+        {
+          "machine_no": 554,
+          "model": "マイジャグラーV",
+          "diff": -891
+        },
+        {
+          "machine_no": 555,
+          "model": "マイジャグラーV",
+          "diff": -793
+        },
+        {
+          "machine_no": 556,
+          "model": "マイジャグラーV",
+          "diff": 1425
+        },
+        {
+          "machine_no": 557,
+          "model": "マイジャグラーV",
+          "diff": -1425
+        },
+        {
+          "machine_no": 558,
+          "model": "マイジャグラーV",
+          "diff": -133
+        },
+        {
+          "machine_no": 559,
+          "model": "マイジャグラーV",
+          "diff": 1242
+        },
+        {
+          "machine_no": 560,
+          "model": "マイジャグラーV",
+          "diff": 947
+        },
+        {
+          "machine_no": 561,
+          "model": "マイジャグラーV",
+          "diff": 400
+        },
+        {
+          "machine_no": 562,
+          "model": "マイジャグラーV",
+          "diff": 498
+        },
+        {
+          "machine_no": 563,
+          "model": "マイジャグラーV",
+          "diff": 1102
+        },
+        {
+          "machine_no": 564,
+          "model": "マイジャグラーV",
+          "diff": -1340
+        }
+      ],
+      "マルハン都築": [
+        {
+          "machine_no": 836,
+          "model": "ファンキージャグラー2",
+          "diff": -2000
+        },
+        {
+          "machine_no": 837,
+          "model": "ファンキージャグラー2",
+          "diff": 2700
+        },
+        {
+          "machine_no": 838,
+          "model": "ファンキージャグラー2",
+          "diff": 1400
+        },
+        {
+          "machine_no": 839,
+          "model": "ミスタージャグラー",
+          "diff": -400
+        },
+        {
+          "machine_no": 840,
+          "model": "ミスタージャグラー",
+          "diff": -400
+        },
+        {
+          "machine_no": 841,
+          "model": "ミスタージャグラー",
+          "diff": -1100
+        },
+        {
+          "machine_no": 842,
+          "model": "ミスタージャグラー",
+          "diff": 700
+        },
+        {
+          "machine_no": 843,
+          "model": "マイジャグラーV",
+          "diff": -2600
+        },
+        {
+          "machine_no": 844,
+          "model": "マイジャグラーV",
+          "diff": -2100
+        },
+        {
+          "machine_no": 845,
+          "model": "マイジャグラーV",
+          "diff": -2400
+        },
+        {
+          "machine_no": 846,
+          "model": "マイジャグラーV",
+          "diff": 1600
+        },
+        {
+          "machine_no": 847,
+          "model": "マイジャグラーV",
+          "diff": -1300
+        },
+        {
+          "machine_no": 848,
+          "model": "マイジャグラーV",
+          "diff": -2100
+        },
+        {
+          "machine_no": 849,
+          "model": "マイジャグラーV",
+          "diff": 300
+        },
+        {
+          "machine_no": 850,
+          "model": "マイジャグラーV",
+          "diff": 0
+        },
+        {
+          "machine_no": 851,
+          "model": "マイジャグラーV",
+          "diff": 300
+        },
+        {
+          "machine_no": 852,
+          "model": "マイジャグラーV",
+          "diff": 900
+        },
+        {
+          "machine_no": 853,
+          "model": "マイジャグラーV",
+          "diff": -600
+        },
+        {
+          "machine_no": 854,
+          "model": "マイジャグラーV",
+          "diff": 1700
+        },
+        {
+          "machine_no": 855,
+          "model": "マイジャグラーV",
+          "diff": 800
+        },
+        {
+          "machine_no": 856,
+          "model": "マイジャグラーV",
+          "diff": -1000
+        },
+        {
+          "machine_no": 857,
+          "model": "ゴーゴージャグラー3",
+          "diff": -2500
+        },
+        {
+          "machine_no": 858,
+          "model": "ゴーゴージャグラー3",
+          "diff": -600
+        },
+        {
+          "machine_no": 859,
+          "model": "ゴーゴージャグラー3",
+          "diff": 300
+        },
+        {
+          "machine_no": 860,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1900
+        },
+        {
+          "machine_no": 861,
+          "model": "ゴーゴージャグラー3",
+          "diff": -200
+        },
+        {
+          "machine_no": 862,
+          "model": "ゴーゴージャグラー3",
+          "diff": -400
+        },
+        {
+          "machine_no": 863,
+          "model": "ゴーゴージャグラー3",
+          "diff": 200
+        },
+        {
+          "machine_no": 864,
+          "model": "ゴーゴージャグラー3",
+          "diff": 1500
+        },
+        {
+          "machine_no": 865,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1000
+        },
+        {
+          "machine_no": 866,
+          "model": "ゴーゴージャグラー3",
+          "diff": -700
+        },
+        {
+          "machine_no": 867,
+          "model": "ゴーゴージャグラー3",
+          "diff": -900
+        },
+        {
+          "machine_no": 868,
+          "model": "ゴーゴージャグラー3",
+          "diff": 1600
+        },
+        {
+          "machine_no": 869,
+          "model": "ゴーゴージャグラー3",
+          "diff": 1300
+        },
+        {
+          "machine_no": 870,
+          "model": "ゴーゴージャグラー3",
+          "diff": 800
+        },
+        {
+          "machine_no": 871,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": -1600
+        },
+        {
+          "machine_no": 872,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": -1300
+        },
+        {
+          "machine_no": 873,
+          "model": "ジャグラーガールズSS",
+          "diff": -1100
+        },
+        {
+          "machine_no": 874,
+          "model": "ジャグラーガールズSS",
+          "diff": -1900
+        },
+        {
+          "machine_no": 875,
+          "model": "ハッピージャグラーVIII",
+          "diff": -1000
+        },
+        {
+          "machine_no": 876,
+          "model": "ハッピージャグラーVIII",
+          "diff": -2300
+        },
+        {
+          "machine_no": 877,
+          "model": "ハッピージャグラーVIII",
+          "diff": -700
+        },
+        {
+          "machine_no": 878,
+          "model": "ハッピージャグラーVIII",
+          "diff": -200
+        },
+        {
+          "machine_no": 879,
+          "model": "ジャグラーガールズSS",
+          "diff": -500
+        },
+        {
+          "machine_no": 880,
+          "model": "ジャグラーガールズSS",
+          "diff": -2100
+        },
+        {
+          "machine_no": 881,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": 2200
+        },
+        {
+          "machine_no": 882,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": -300
+        },
+        {
+          "machine_no": 883,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1700
+        },
+        {
+          "machine_no": 884,
+          "model": "ゴーゴージャグラー3",
+          "diff": 0
+        },
+        {
+          "machine_no": 885,
+          "model": "ゴーゴージャグラー3",
+          "diff": -600
+        },
+        {
+          "machine_no": 886,
+          "model": "ゴーゴージャグラー3",
+          "diff": 200
+        },
+        {
+          "machine_no": 887,
+          "model": "ゴーゴージャグラー3",
+          "diff": 600
+        },
+        {
+          "machine_no": 888,
+          "model": "ゴーゴージャグラー3",
+          "diff": -2800
+        },
+        {
+          "machine_no": 889,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1500
+        },
+        {
+          "machine_no": 890,
+          "model": "ゴーゴージャグラー3",
+          "diff": 1700
+        },
+        {
+          "machine_no": 891,
+          "model": "ゴーゴージャグラー3",
+          "diff": 0
+        },
+        {
+          "machine_no": 892,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1200
+        },
+        {
+          "machine_no": 893,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1400
+        },
+        {
+          "machine_no": 894,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1500
+        },
+        {
+          "machine_no": 895,
+          "model": "ゴーゴージャグラー3",
+          "diff": 1500
+        },
+        {
+          "machine_no": 896,
+          "model": "ゴーゴージャグラー3",
+          "diff": 1100
+        },
+        {
+          "machine_no": 897,
+          "model": "マイジャグラーV",
+          "diff": 1000
+        },
+        {
+          "machine_no": 898,
+          "model": "マイジャグラーV",
+          "diff": 500
+        },
+        {
+          "machine_no": 899,
+          "model": "マイジャグラーV",
+          "diff": -400
+        },
+        {
+          "machine_no": 900,
+          "model": "マイジャグラーV",
+          "diff": 700
+        },
+        {
+          "machine_no": 901,
+          "model": "マイジャグラーV",
+          "diff": -1900
+        },
+        {
+          "machine_no": 902,
+          "model": "マイジャグラーV",
+          "diff": 400
+        },
+        {
+          "machine_no": 903,
+          "model": "マイジャグラーV",
+          "diff": -1900
+        },
+        {
+          "machine_no": 904,
+          "model": "マイジャグラーV",
+          "diff": -600
+        },
+        {
+          "machine_no": 905,
+          "model": "マイジャグラーV",
+          "diff": -300
+        },
+        {
+          "machine_no": 906,
+          "model": "マイジャグラーV",
+          "diff": -2000
+        },
+        {
+          "machine_no": 907,
+          "model": "マイジャグラーV",
+          "diff": -700
+        },
+        {
+          "machine_no": 908,
+          "model": "マイジャグラーV",
+          "diff": -2500
+        },
+        {
+          "machine_no": 909,
+          "model": "マイジャグラーV",
+          "diff": -500
+        },
+        {
+          "machine_no": 910,
+          "model": "マイジャグラーV",
+          "diff": -1200
+        },
+        {
+          "machine_no": 911,
+          "model": "マイジャグラーV",
+          "diff": 900
+        },
+        {
+          "machine_no": 912,
+          "model": "マイジャグラーV",
+          "diff": -1200
+        },
+        {
+          "machine_no": 913,
+          "model": "マイジャグラーV",
+          "diff": -2200
+        },
+        {
+          "machine_no": 914,
+          "model": "ネオアイムジャグラー",
+          "diff": -1600
+        },
+        {
+          "machine_no": 915,
+          "model": "ネオアイムジャグラー",
+          "diff": -800
+        },
+        {
+          "machine_no": 916,
+          "model": "ネオアイムジャグラー",
+          "diff": -800
+        },
+        {
+          "machine_no": 917,
+          "model": "ネオアイムジャグラー",
+          "diff": 100
+        },
+        {
+          "machine_no": 918,
+          "model": "ネオアイムジャグラー",
+          "diff": -600
+        },
+        {
+          "machine_no": 919,
+          "model": "ネオアイムジャグラー",
+          "diff": 400
+        },
+        {
+          "machine_no": 920,
+          "model": "ネオアイムジャグラー",
+          "diff": 600
+        },
+        {
+          "machine_no": 921,
+          "model": "ネオアイムジャグラー",
+          "diff": -500
+        },
+        {
+          "machine_no": 922,
+          "model": "ネオアイムジャグラー",
+          "diff": 200
+        },
+        {
+          "machine_no": 923,
+          "model": "ネオアイムジャグラー",
+          "diff": 700
+        },
+        {
+          "machine_no": 924,
+          "model": "ネオアイムジャグラー",
+          "diff": 1100
+        },
+        {
+          "machine_no": 925,
+          "model": "ネオアイムジャグラー",
+          "diff": -900
+        },
+        {
+          "machine_no": 926,
+          "model": "ネオアイムジャグラー",
+          "diff": -800
+        },
+        {
+          "machine_no": 927,
+          "model": "ネオアイムジャグラー",
+          "diff": 800
+        },
+        {
+          "machine_no": 928,
+          "model": "ネオアイムジャグラー",
+          "diff": -2200
+        },
+        {
+          "machine_no": 929,
+          "model": "ネオアイムジャグラー",
+          "diff": -100
+        },
+        {
+          "machine_no": 930,
+          "model": "ネオアイムジャグラー",
+          "diff": -400
+        },
+        {
+          "machine_no": 931,
+          "model": "ネオアイムジャグラー",
+          "diff": -1900
+        },
+        {
+          "machine_no": 932,
+          "model": "ネオアイムジャグラー",
+          "diff": -800
+        },
+        {
+          "machine_no": 933,
+          "model": "ネオアイムジャグラー",
+          "diff": 1900
+        },
+        {
+          "machine_no": 938,
+          "model": "ネオアイムジャグラー",
+          "diff": 200
+        },
+        {
+          "machine_no": 939,
+          "model": "ネオアイムジャグラー",
+          "diff": -1900
+        },
+        {
+          "machine_no": 940,
+          "model": "ネオアイムジャグラー",
+          "diff": 700
+        },
+        {
+          "machine_no": 941,
+          "model": "ネオアイムジャグラー",
+          "diff": 800
+        },
+        {
+          "machine_no": 942,
+          "model": "ネオアイムジャグラー",
+          "diff": -1400
+        },
+        {
+          "machine_no": 943,
+          "model": "ネオアイムジャグラー",
+          "diff": -500
+        },
+        {
+          "machine_no": 944,
+          "model": "ネオアイムジャグラー",
+          "diff": -2500
+        },
+        {
+          "machine_no": 945,
+          "model": "ネオアイムジャグラー",
+          "diff": 800
+        },
+        {
+          "machine_no": 946,
+          "model": "ネオアイムジャグラー",
+          "diff": 1500
+        },
+        {
+          "machine_no": 997,
+          "model": "スマスロハナビ",
+          "diff": 1100
+        },
+        {
+          "machine_no": 998,
+          "model": "スマスロハナビ",
+          "diff": 0
+        },
+        {
+          "machine_no": 999,
+          "model": "スマスロハナビ",
+          "diff": -500
+        },
+        {
+          "machine_no": 1000,
+          "model": "スマスロハナビ",
+          "diff": -600
+        },
+        {
+          "machine_no": 1001,
+          "model": "スマスロハナビ",
+          "diff": -700
+        }
+      ],
+      "中山UNO": [
+        {
+          "machine_no": 432,
+          "model": "スマスロハナビ",
+          "diff": -232
+        },
+        {
+          "machine_no": 433,
+          "model": "スマスロハナビ",
+          "diff": -190
+        },
+        {
+          "machine_no": 434,
+          "model": "スマスロハナビ",
+          "diff": -288
+        },
+        {
+          "machine_no": 435,
+          "model": "スマスロハナビ",
+          "diff": 526
+        },
+        {
+          "machine_no": 436,
+          "model": "新ハナビ",
+          "diff": -133
+        },
+        {
+          "machine_no": 437,
+          "model": "新ハナビ",
+          "diff": -470
+        },
+        {
+          "machine_no": 446,
+          "model": "ネオアイムジャグラー",
+          "diff": 474
+        },
+        {
+          "machine_no": 447,
+          "model": "ネオアイムジャグラー",
+          "diff": 1340
+        },
+        {
+          "machine_no": 448,
+          "model": "ネオアイムジャグラー",
+          "diff": 807
+        },
+        {
+          "machine_no": 449,
+          "model": "ネオアイムジャグラー",
+          "diff": -442
+        },
+        {
+          "machine_no": 450,
+          "model": "ネオアイムジャグラー",
+          "diff": 1747
+        },
+        {
+          "machine_no": 451,
+          "model": "ネオアイムジャグラー",
+          "diff": -1800
+        },
+        {
+          "machine_no": 452,
+          "model": "ネオアイムジャグラー",
+          "diff": -1354
+        },
+        {
+          "machine_no": 453,
+          "model": "ネオアイムジャグラー",
+          "diff": -2347
+        },
+        {
+          "machine_no": 454,
+          "model": "ネオアイムジャグラー",
+          "diff": -990
+        },
+        {
+          "machine_no": 455,
+          "model": "ネオアイムジャグラー",
+          "diff": -1523
+        },
+        {
+          "machine_no": 456,
+          "model": "マイジャグラーV",
+          "diff": -919
+        },
+        {
+          "machine_no": 457,
+          "model": "マイジャグラーV",
+          "diff": -1116
+        },
+        {
+          "machine_no": 458,
+          "model": "マイジャグラーV",
+          "diff": 1284
+        },
+        {
+          "machine_no": 459,
+          "model": "マイジャグラーV",
+          "diff": 2411
+        },
+        {
+          "machine_no": 460,
+          "model": "マイジャグラーV",
+          "diff": 874
+        },
+        {
+          "machine_no": 461,
+          "model": "マイジャグラーV",
+          "diff": -1312
+        },
+        {
+          "machine_no": 462,
+          "model": "マイジャグラーV",
+          "diff": 1733
+        },
+        {
+          "machine_no": 463,
+          "model": "マイジャグラーV",
+          "diff": -990
+        },
+        {
+          "machine_no": 464,
+          "model": "マイジャグラーV",
+          "diff": -119
+        },
+        {
+          "machine_no": 465,
+          "model": "マイジャグラーV",
+          "diff": 737
+        },
+        {
+          "machine_no": 466,
+          "model": "マイジャグラーV",
+          "diff": -84
+        },
+        {
+          "machine_no": 467,
+          "model": "マイジャグラーV",
+          "diff": 2600
+        },
+        {
+          "machine_no": 468,
+          "model": "マイジャグラーV",
+          "diff": -232
+        },
+        {
+          "machine_no": 469,
+          "model": "マイジャグラーV",
+          "diff": 372
+        },
+        {
+          "machine_no": 470,
+          "model": "マイジャグラーV",
+          "diff": -470
+        },
+        {
+          "machine_no": 471,
+          "model": "マイジャグラーV",
+          "diff": 175
+        },
+        {
+          "machine_no": 472,
+          "model": "マイジャグラーV",
+          "diff": -1649
+        },
+        {
+          "machine_no": 473,
+          "model": "ネオアイムジャグラー",
+          "diff": -653
+        },
+        {
+          "machine_no": 474,
+          "model": "ネオアイムジャグラー",
+          "diff": 1190
+        },
+        {
+          "machine_no": 475,
+          "model": "ネオアイムジャグラー",
+          "diff": -274
+        },
+        {
+          "machine_no": 476,
+          "model": "ネオアイムジャグラー",
+          "diff": -344
+        },
+        {
+          "machine_no": 477,
+          "model": "ネオアイムジャグラー",
+          "diff": 358
+        },
+        {
+          "machine_no": 478,
+          "model": "ネオアイムジャグラー",
+          "diff": 1379
+        },
+        {
+          "machine_no": 479,
+          "model": "ファンキージャグラー2",
+          "diff": -1761
+        },
+        {
+          "machine_no": 480,
+          "model": "ファンキージャグラー2",
+          "diff": -442
+        },
+        {
+          "machine_no": 481,
+          "model": "ファンキージャグラー2",
+          "diff": -372
+        },
+        {
+          "machine_no": 482,
+          "model": "ファンキージャグラー2",
+          "diff": -737
+        },
+        {
+          "machine_no": 483,
+          "model": "ファンキージャグラー2",
+          "diff": -2179
+        },
+        {
+          "machine_no": 484,
+          "model": "ハッピージャグラーVIII",
+          "diff": -611
+        },
+        {
+          "machine_no": 485,
+          "model": "ハッピージャグラーVIII",
+          "diff": 905
+        },
+        {
+          "machine_no": 486,
+          "model": "ハッピージャグラーVIII",
+          "diff": -1186
+        },
+        {
+          "machine_no": 487,
+          "model": "ハッピージャグラーVIII",
+          "diff": 2853
+        },
+        {
+          "machine_no": 488,
+          "model": "ハッピージャグラーVIII",
+          "diff": 2643
+        },
+        {
+          "machine_no": 489,
+          "model": "ハッピージャグラーVIII",
+          "diff": -218
+        },
+        {
+          "machine_no": 490,
+          "model": "ネオアイムジャグラー",
+          "diff": 667
+        },
+        {
+          "machine_no": 491,
+          "model": "ネオアイムジャグラー",
+          "diff": 0
+        },
+        {
+          "machine_no": 492,
+          "model": "ネオアイムジャグラー",
+          "diff": -70
+        },
+        {
+          "machine_no": 493,
+          "model": "ネオアイムジャグラー",
+          "diff": -1354
+        },
+        {
+          "machine_no": 494,
+          "model": "ゴーゴージャグラー3",
+          "diff": -526
+        },
+        {
+          "machine_no": 495,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1270
+        },
+        {
+          "machine_no": 496,
+          "model": "ゴーゴージャグラー3",
+          "diff": -232
+        },
+        {
+          "machine_no": 497,
+          "model": "ゴーゴージャグラー3",
+          "diff": -568
+        },
+        {
+          "machine_no": 498,
+          "model": "ゴーゴージャグラー3",
+          "diff": -133
+        },
+        {
+          "machine_no": 499,
+          "model": "ゴーゴージャグラー3",
+          "diff": -358
+        },
+        {
+          "machine_no": 500,
+          "model": "ゴーゴージャグラー3",
+          "diff": -919
+        },
+        {
+          "machine_no": 501,
+          "model": "ゴーゴージャグラー3",
+          "diff": -765
+        },
+        {
+          "machine_no": 502,
+          "model": "ゴーゴージャグラー3",
+          "diff": -779
+        },
+        {
+          "machine_no": 503,
+          "model": "ジャグラーガールズSS",
+          "diff": 1789
+        },
+        {
+          "machine_no": 504,
+          "model": "ジャグラーガールズSS",
+          "diff": -919
+        },
+        {
+          "machine_no": 505,
+          "model": "ジャグラーガールズSS",
+          "diff": 358
+        },
+        {
+          "machine_no": 506,
+          "model": "ジャグラーガールズSS",
+          "diff": -1004
+        },
+        {
+          "machine_no": 507,
+          "model": "ミスタージャグラー",
+          "diff": 133
+        },
+        {
+          "machine_no": 508,
+          "model": "ミスタージャグラー",
+          "diff": -175
+        },
+        {
+          "machine_no": 509,
+          "model": "ミスタージャグラー",
+          "diff": -1018
+        },
+        {
+          "machine_no": 510,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1130
+        },
+        {
+          "machine_no": 511,
+          "model": "ゴーゴージャグラー3",
+          "diff": -751
+        },
+        {
+          "machine_no": 512,
+          "model": "ゴーゴージャグラー3",
+          "diff": 807
+        },
+        {
+          "machine_no": 513,
+          "model": "ゴーゴージャグラー3",
+          "diff": -274
+        },
+        {
+          "machine_no": 514,
+          "model": "ゴーゴージャグラー3",
+          "diff": 2348
+        },
+        {
+          "machine_no": 515,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1439
+        },
+        {
+          "machine_no": 516,
+          "model": "ゴーゴージャグラー3",
+          "diff": 498
+        },
+        {
+          "machine_no": 517,
+          "model": "ゴーゴージャグラー3",
+          "diff": 1116
+        },
+        {
+          "machine_no": 518,
+          "model": "ゴーゴージャグラー3",
+          "diff": -597
+        }
+      ],
+      "エスパス日拓新宿歌舞伎町": [
+        {
+          "machine_no": 601,
+          "model": "マイジャグラーV",
+          "diff": -600
+        },
+        {
+          "machine_no": 602,
+          "model": "マイジャグラーV",
+          "diff": -200
+        },
+        {
+          "machine_no": 603,
+          "model": "マイジャグラーV",
+          "diff": -400
+        },
+        {
+          "machine_no": 604,
+          "model": "マイジャグラーV",
+          "diff": 300
+        },
+        {
+          "machine_no": 605,
+          "model": "マイジャグラーV",
+          "diff": -700
+        },
+        {
+          "machine_no": 606,
+          "model": "マイジャグラーV",
+          "diff": 1600
+        },
+        {
+          "machine_no": 607,
+          "model": "マイジャグラーV",
+          "diff": -1400
+        },
+        {
+          "machine_no": 608,
+          "model": "マイジャグラーV",
+          "diff": 200
+        },
+        {
+          "machine_no": 609,
+          "model": "マイジャグラーV",
+          "diff": -1500
+        },
+        {
+          "machine_no": 610,
+          "model": "マイジャグラーV",
+          "diff": -1400
+        },
+        {
+          "machine_no": 611,
+          "model": "マイジャグラーV",
+          "diff": -900
+        },
+        {
+          "machine_no": 612,
+          "model": "マイジャグラーV",
+          "diff": -400
+        },
+        {
+          "machine_no": 613,
+          "model": "マイジャグラーV",
+          "diff": 1300
+        },
+        {
+          "machine_no": 614,
+          "model": "マイジャグラーV",
+          "diff": 0
+        },
+        {
+          "machine_no": 615,
+          "model": "マイジャグラーV",
+          "diff": 0
+        },
+        {
+          "machine_no": 616,
+          "model": "マイジャグラーV",
+          "diff": 600
+        },
+        {
+          "machine_no": 617,
+          "model": "マイジャグラーV",
+          "diff": 700
+        },
+        {
+          "machine_no": 618,
+          "model": "マイジャグラーV",
+          "diff": -400
+        },
+        {
+          "machine_no": 619,
+          "model": "マイジャグラーV",
+          "diff": 1500
+        },
+        {
+          "machine_no": 620,
+          "model": "マイジャグラーV",
+          "diff": 1000
+        },
+        {
+          "machine_no": 621,
+          "model": "マイジャグラーV",
+          "diff": 1800
+        },
+        {
+          "machine_no": 622,
+          "model": "マイジャグラーV",
+          "diff": -200
+        },
+        {
+          "machine_no": 623,
+          "model": "マイジャグラーV",
+          "diff": -1600
+        },
+        {
+          "machine_no": 624,
+          "model": "マイジャグラーV",
+          "diff": 1100
+        },
+        {
+          "machine_no": 625,
+          "model": "マイジャグラーV",
+          "diff": 0
+        },
+        {
+          "machine_no": 626,
+          "model": "マイジャグラーV",
+          "diff": -1200
+        },
+        {
+          "machine_no": 627,
+          "model": "マイジャグラーV",
+          "diff": 900
+        },
+        {
+          "machine_no": 628,
+          "model": "マイジャグラーV",
+          "diff": 2100
+        },
+        {
+          "machine_no": 629,
+          "model": "マイジャグラーV",
+          "diff": 1900
+        },
+        {
+          "machine_no": 630,
+          "model": "マイジャグラーV",
+          "diff": 100
+        },
+        {
+          "machine_no": 631,
+          "model": "マイジャグラーV",
+          "diff": 100
+        },
+        {
+          "machine_no": 632,
+          "model": "マイジャグラーV",
+          "diff": 1400
+        },
+        {
+          "machine_no": 633,
+          "model": "マイジャグラーV",
+          "diff": -500
+        },
+        {
+          "machine_no": 634,
+          "model": "マイジャグラーV",
+          "diff": 1700
+        },
+        {
+          "machine_no": 635,
+          "model": "マイジャグラーV",
+          "diff": -600
+        },
+        {
+          "machine_no": 735,
+          "model": "マイジャグラーV",
+          "diff": -300
+        },
+        {
+          "machine_no": 736,
+          "model": "マイジャグラーV",
+          "diff": -1500
+        },
+        {
+          "machine_no": 737,
+          "model": "マイジャグラーV",
+          "diff": -200
+        },
+        {
+          "machine_no": 738,
+          "model": "マイジャグラーV",
+          "diff": 0
+        },
+        {
+          "machine_no": 739,
+          "model": "マイジャグラーV",
+          "diff": 1100
+        },
+        {
+          "machine_no": 740,
+          "model": "マイジャグラーV",
+          "diff": -200
+        },
+        {
+          "machine_no": 741,
+          "model": "マイジャグラーV",
+          "diff": 1100
+        },
+        {
+          "machine_no": 742,
+          "model": "マイジャグラーV",
+          "diff": -500
+        },
+        {
+          "machine_no": 743,
+          "model": "マイジャグラーV",
+          "diff": -3000
+        },
+        {
+          "machine_no": 744,
+          "model": "マイジャグラーV",
+          "diff": 3000
+        },
+        {
+          "machine_no": 745,
+          "model": "マイジャグラーV",
+          "diff": 400
+        },
+        {
+          "machine_no": 746,
+          "model": "マイジャグラーV",
+          "diff": -400
+        },
+        {
+          "machine_no": 747,
+          "model": "マイジャグラーV",
+          "diff": -600
+        },
+        {
+          "machine_no": 748,
+          "model": "マイジャグラーV",
+          "diff": -1200
+        },
+        {
+          "machine_no": 749,
+          "model": "マイジャグラーV",
+          "diff": -900
+        },
+        {
+          "machine_no": 750,
+          "model": "マイジャグラーV",
+          "diff": -100
+        },
+        {
+          "machine_no": 751,
+          "model": "マイジャグラーV",
+          "diff": -400
+        },
+        {
+          "machine_no": 752,
+          "model": "マイジャグラーV",
+          "diff": 2000
+        },
+        {
+          "machine_no": 753,
+          "model": "マイジャグラーV",
+          "diff": -700
+        },
+        {
+          "machine_no": 754,
+          "model": "マイジャグラーV",
+          "diff": -200
+        },
+        {
+          "machine_no": 755,
+          "model": "マイジャグラーV",
+          "diff": -400
+        },
+        {
+          "machine_no": 756,
+          "model": "マイジャグラーV",
+          "diff": -1700
+        },
+        {
+          "machine_no": 757,
+          "model": "マイジャグラーV",
+          "diff": -900
+        },
+        {
+          "machine_no": 758,
+          "model": "マイジャグラーV",
+          "diff": -900
+        },
+        {
+          "machine_no": 759,
+          "model": "マイジャグラーV",
+          "diff": -1200
+        },
+        {
+          "machine_no": 760,
+          "model": "ファンキージャグラー2",
+          "diff": 1200
+        },
+        {
+          "machine_no": 761,
+          "model": "ファンキージャグラー2",
+          "diff": 2200
+        },
+        {
+          "machine_no": 762,
+          "model": "ファンキージャグラー2",
+          "diff": 200
+        },
+        {
+          "machine_no": 763,
+          "model": "ファンキージャグラー2",
+          "diff": -800
+        },
+        {
+          "machine_no": 764,
+          "model": "ファンキージャグラー2",
+          "diff": -1200
+        },
+        {
+          "machine_no": 765,
+          "model": "ファンキージャグラー2",
+          "diff": 200
+        },
+        {
+          "machine_no": 766,
+          "model": "ファンキージャグラー2",
+          "diff": -700
+        },
+        {
+          "machine_no": 767,
+          "model": "ファンキージャグラー2",
+          "diff": 400
+        },
+        {
+          "machine_no": 768,
+          "model": "ファンキージャグラー2",
+          "diff": -2100
+        },
+        {
+          "machine_no": 769,
+          "model": "ファンキージャグラー2",
+          "diff": -600
+        },
+        {
+          "machine_no": 770,
+          "model": "ファンキージャグラー2",
+          "diff": -1500
+        },
+        {
+          "machine_no": 771,
+          "model": "ファンキージャグラー2",
+          "diff": 500
+        },
+        {
+          "machine_no": 772,
+          "model": "ファンキージャグラー2",
+          "diff": 400
+        },
+        {
+          "machine_no": 773,
+          "model": "ファンキージャグラー2",
+          "diff": -1100
+        },
+        {
+          "machine_no": 774,
+          "model": "ファンキージャグラー2",
+          "diff": -1300
+        },
+        {
+          "machine_no": 775,
+          "model": "ファンキージャグラー2",
+          "diff": -900
+        },
+        {
+          "machine_no": 776,
+          "model": "ファンキージャグラー2",
+          "diff": -100
+        },
+        {
+          "machine_no": 777,
+          "model": "ファンキージャグラー2",
+          "diff": -1900
+        },
+        {
+          "machine_no": 778,
+          "model": "ファンキージャグラー2",
+          "diff": 1800
+        },
+        {
+          "machine_no": 1001,
+          "model": "マイジャグラーV",
+          "diff": 600
+        },
+        {
+          "machine_no": 1002,
+          "model": "マイジャグラーV",
+          "diff": -1700
+        },
+        {
+          "machine_no": 1003,
+          "model": "マイジャグラーV",
+          "diff": -1900
+        },
+        {
+          "machine_no": 1004,
+          "model": "マイジャグラーV",
+          "diff": 3200
+        },
+        {
+          "machine_no": 1005,
+          "model": "マイジャグラーV",
+          "diff": 0
+        },
+        {
+          "machine_no": 1006,
+          "model": "マイジャグラーV",
+          "diff": 1400
+        },
+        {
+          "machine_no": 1007,
+          "model": "マイジャグラーV",
+          "diff": 1600
+        },
+        {
+          "machine_no": 1008,
+          "model": "マイジャグラーV",
+          "diff": -300
+        },
+        {
+          "machine_no": 1009,
+          "model": "マイジャグラーV",
+          "diff": -1700
+        },
+        {
+          "machine_no": 1010,
+          "model": "マイジャグラーV",
+          "diff": -900
+        },
+        {
+          "machine_no": 1011,
+          "model": "マイジャグラーV",
+          "diff": -1100
+        },
+        {
+          "machine_no": 1012,
+          "model": "マイジャグラーV",
+          "diff": 600
+        },
+        {
+          "machine_no": 1013,
+          "model": "マイジャグラーV",
+          "diff": 600
+        },
+        {
+          "machine_no": 1014,
+          "model": "マイジャグラーV",
+          "diff": -300
+        },
+        {
+          "machine_no": 1016,
+          "model": "マイジャグラーV",
+          "diff": -200
+        },
+        {
+          "machine_no": 1017,
+          "model": "マイジャグラーV",
+          "diff": 500
+        },
+        {
+          "machine_no": 1018,
+          "model": "マイジャグラーV",
+          "diff": -200
+        },
+        {
+          "machine_no": 1019,
+          "model": "マイジャグラーV",
+          "diff": 1500
+        },
+        {
+          "machine_no": 1020,
+          "model": "マイジャグラーV",
+          "diff": -1500
+        },
+        {
+          "machine_no": 1021,
+          "model": "マイジャグラーV",
+          "diff": -2600
+        },
+        {
+          "machine_no": 1022,
+          "model": "マイジャグラーV",
+          "diff": 1100
+        },
+        {
+          "machine_no": 1023,
+          "model": "マイジャグラーV",
+          "diff": -100
+        },
+        {
+          "machine_no": 1024,
+          "model": "マイジャグラーV",
+          "diff": 0
+        },
+        {
+          "machine_no": 1025,
+          "model": "マイジャグラーV",
+          "diff": 600
+        },
+        {
+          "machine_no": 1026,
+          "model": "マイジャグラーV",
+          "diff": -300
+        },
+        {
+          "machine_no": 1027,
+          "model": "マイジャグラーV",
+          "diff": -100
+        },
+        {
+          "machine_no": 1028,
+          "model": "マイジャグラーV",
+          "diff": -200
+        },
+        {
+          "machine_no": 1029,
+          "model": "マイジャグラーV",
+          "diff": -600
+        },
+        {
+          "machine_no": 1030,
+          "model": "マイジャグラーV",
+          "diff": 600
+        },
+        {
+          "machine_no": 1031,
+          "model": "マイジャグラーV",
+          "diff": -400
+        },
+        {
+          "machine_no": 1032,
+          "model": "マイジャグラーV",
+          "diff": -2200
+        },
+        {
+          "machine_no": 1033,
+          "model": "マイジャグラーV",
+          "diff": 1700
+        },
+        {
+          "machine_no": 1034,
+          "model": "マイジャグラーV",
+          "diff": -1200
+        },
+        {
+          "machine_no": 1035,
+          "model": "マイジャグラーV",
+          "diff": -1500
+        },
+        {
+          "machine_no": 1036,
+          "model": "マイジャグラーV",
+          "diff": 700
+        },
+        {
+          "machine_no": 1037,
+          "model": "マイジャグラーV",
+          "diff": 500
+        },
+        {
+          "machine_no": 1038,
+          "model": "マイジャグラーV",
+          "diff": -1400
+        },
+        {
+          "machine_no": 1039,
+          "model": "マイジャグラーV",
+          "diff": -700
+        },
+        {
+          "machine_no": 1040,
+          "model": "ミスタージャグラー",
+          "diff": 500
+        },
+        {
+          "machine_no": 1041,
+          "model": "ミスタージャグラー",
+          "diff": -1300
+        },
+        {
+          "machine_no": 1042,
+          "model": "ミスタージャグラー",
+          "diff": 300
+        },
+        {
+          "machine_no": 1043,
+          "model": "ミスタージャグラー",
+          "diff": -300
+        },
+        {
+          "machine_no": 1044,
+          "model": "ミスタージャグラー",
+          "diff": -1100
+        },
+        {
+          "machine_no": 1045,
+          "model": "ミスタージャグラー",
+          "diff": -1200
+        },
+        {
+          "machine_no": 1046,
+          "model": "ハッピージャグラーVIII",
+          "diff": 600
+        },
+        {
+          "machine_no": 1047,
+          "model": "ハッピージャグラーVIII",
+          "diff": -700
+        },
+        {
+          "machine_no": 1048,
+          "model": "ハッピージャグラーVIII",
+          "diff": 1300
+        },
+        {
+          "machine_no": 1049,
+          "model": "ハッピージャグラーVIII",
+          "diff": -1200
+        },
+        {
+          "machine_no": 1050,
+          "model": "ハッピージャグラーVIII",
+          "diff": 500
+        },
+        {
+          "machine_no": 1051,
+          "model": "ハッピージャグラーVIII",
+          "diff": -500
+        },
+        {
+          "machine_no": 1052,
+          "model": "ハッピージャグラーVIII",
+          "diff": 1400
+        },
+        {
+          "machine_no": 1053,
+          "model": "ゴーゴージャグラー3",
+          "diff": 1400
+        },
+        {
+          "machine_no": 1054,
+          "model": "ゴーゴージャグラー3",
+          "diff": 200
+        },
+        {
+          "machine_no": 1055,
+          "model": "ゴーゴージャグラー3",
+          "diff": -500
+        },
+        {
+          "machine_no": 1056,
+          "model": "ゴーゴージャグラー3",
+          "diff": 2700
+        },
+        {
+          "machine_no": 1057,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1400
+        },
+        {
+          "machine_no": 1058,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": 3500
+        },
+        {
+          "machine_no": 1059,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": -1100
+        },
+        {
+          "machine_no": 1060,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": -500
+        },
+        {
+          "machine_no": 1061,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": -200
+        },
+        {
+          "machine_no": 1062,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": -900
+        },
+        {
+          "machine_no": 1063,
+          "model": "ネオアイムジャグラー",
+          "diff": 1100
+        },
+        {
+          "machine_no": 1064,
+          "model": "ネオアイムジャグラー",
+          "diff": -1100
+        },
+        {
+          "machine_no": 1065,
+          "model": "ネオアイムジャグラー",
+          "diff": -2300
+        },
+        {
+          "machine_no": 1066,
+          "model": "ネオアイムジャグラー",
+          "diff": 1300
+        },
+        {
+          "machine_no": 1067,
+          "model": "ネオアイムジャグラー",
+          "diff": -1100
+        },
+        {
+          "machine_no": 1068,
+          "model": "ネオアイムジャグラー",
+          "diff": 1200
+        },
+        {
+          "machine_no": 1069,
+          "model": "ネオアイムジャグラー",
+          "diff": -400
+        },
+        {
+          "machine_no": 1071,
+          "model": "ネオアイムジャグラー",
+          "diff": 2300
+        },
+        {
+          "machine_no": 1072,
+          "model": "ネオアイムジャグラー",
+          "diff": -1800
+        },
+        {
+          "machine_no": 1073,
+          "model": "ネオアイムジャグラー",
+          "diff": -300
+        },
+        {
+          "machine_no": 1074,
+          "model": "ネオアイムジャグラー",
+          "diff": -400
+        },
+        {
+          "machine_no": 1075,
+          "model": "ネオアイムジャグラー",
+          "diff": -200
+        },
+        {
+          "machine_no": 1076,
+          "model": "ネオアイムジャグラー",
+          "diff": -100
+        },
+        {
+          "machine_no": 1077,
+          "model": "ネオアイムジャグラー",
+          "diff": -100
+        },
+        {
+          "machine_no": 1078,
+          "model": "ネオアイムジャグラー",
+          "diff": -1800
+        },
+        {
+          "machine_no": 1079,
+          "model": "ネオアイムジャグラー",
+          "diff": 1200
+        },
+        {
+          "machine_no": 1080,
+          "model": "ネオアイムジャグラー",
+          "diff": 1300
+        },
+        {
+          "machine_no": 1081,
+          "model": "ネオアイムジャグラー",
+          "diff": 2300
+        },
+        {
+          "machine_no": 1082,
+          "model": "ネオアイムジャグラー",
+          "diff": -700
+        },
+        {
+          "machine_no": 1084,
+          "model": "ネオアイムジャグラー",
+          "diff": 2700
+        },
+        {
+          "machine_no": 1085,
+          "model": "ネオアイムジャグラー",
+          "diff": 0
+        },
+        {
+          "machine_no": 1086,
+          "model": "ネオアイムジャグラー",
+          "diff": -1000
+        },
+        {
+          "machine_no": 1087,
+          "model": "ネオアイムジャグラー",
+          "diff": -700
+        },
+        {
+          "machine_no": 1088,
+          "model": "ネオアイムジャグラー",
+          "diff": -1000
+        },
+        {
+          "machine_no": 1089,
+          "model": "ネオアイムジャグラー",
+          "diff": -500
+        },
+        {
+          "machine_no": 1090,
+          "model": "ネオアイムジャグラー",
+          "diff": 600
+        },
+        {
+          "machine_no": 1091,
+          "model": "ネオアイムジャグラー",
+          "diff": 400
+        },
+        {
+          "machine_no": 1092,
+          "model": "ネオアイムジャグラー",
+          "diff": -200
+        },
+        {
+          "machine_no": 1093,
+          "model": "ネオアイムジャグラー",
+          "diff": -400
+        },
+        {
+          "machine_no": 1094,
+          "model": "ネオアイムジャグラー",
+          "diff": 1800
+        },
+        {
+          "machine_no": 1095,
+          "model": "ネオアイムジャグラー",
+          "diff": 400
+        },
+        {
+          "machine_no": 1096,
+          "model": "ネオアイムジャグラー",
+          "diff": 400
+        },
+        {
+          "machine_no": 1097,
+          "model": "ネオアイムジャグラー",
+          "diff": -600
+        },
+        {
+          "machine_no": 1098,
+          "model": "ネオアイムジャグラー",
+          "diff": -900
+        },
+        {
+          "machine_no": 1099,
+          "model": "ネオアイムジャグラー",
+          "diff": -800
+        },
+        {
+          "machine_no": 1100,
+          "model": "ネオアイムジャグラー",
+          "diff": 200
+        },
+        {
+          "machine_no": 1101,
+          "model": "ゴーゴージャグラー3",
+          "diff": -900
+        },
+        {
+          "machine_no": 1102,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1200
+        },
+        {
+          "machine_no": 1103,
+          "model": "ゴーゴージャグラー3",
+          "diff": 600
+        },
+        {
+          "machine_no": 1104,
+          "model": "ゴーゴージャグラー3",
+          "diff": -400
+        },
+        {
+          "machine_no": 1105,
+          "model": "ゴーゴージャグラー3",
+          "diff": -100
+        },
+        {
+          "machine_no": 1106,
+          "model": "ゴーゴージャグラー3",
+          "diff": -300
+        },
+        {
+          "machine_no": 1107,
+          "model": "ゴーゴージャグラー3",
+          "diff": 2000
+        },
+        {
+          "machine_no": 1108,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1300
+        },
+        {
+          "machine_no": 1109,
+          "model": "ゴーゴージャグラー3",
+          "diff": 300
+        },
+        {
+          "machine_no": 1110,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1100
+        },
+        {
+          "machine_no": 1111,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1000
+        },
+        {
+          "machine_no": 1112,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1000
+        },
+        {
+          "machine_no": 1113,
+          "model": "ゴーゴージャグラー3",
+          "diff": 700
+        },
+        {
+          "machine_no": 1114,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1200
+        },
+        {
+          "machine_no": 1115,
+          "model": "ゴーゴージャグラー3",
+          "diff": -700
+        },
+        {
+          "machine_no": 1116,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1600
+        },
+        {
+          "machine_no": 1117,
+          "model": "ゴーゴージャグラー3",
+          "diff": -700
+        },
+        {
+          "machine_no": 1118,
+          "model": "ゴーゴージャグラー3",
+          "diff": -600
+        },
+        {
+          "machine_no": 1119,
+          "model": "ゴーゴージャグラー3",
+          "diff": 200
+        },
+        {
+          "machine_no": 1120,
+          "model": "ゴーゴージャグラー3",
+          "diff": 1000
+        },
+        {
+          "machine_no": 1121,
+          "model": "ゴーゴージャグラー3",
+          "diff": -100
+        },
+        {
+          "machine_no": 1122,
+          "model": "ゴーゴージャグラー3",
+          "diff": -800
+        },
+        {
+          "machine_no": 1123,
+          "model": "ゴーゴージャグラー3",
+          "diff": -200
+        },
+        {
+          "machine_no": 1124,
+          "model": "ゴーゴージャグラー3",
+          "diff": -2500
+        },
+        {
+          "machine_no": 1125,
+          "model": "マイジャグラーV",
+          "diff": -2300
+        },
+        {
+          "machine_no": 1126,
+          "model": "マイジャグラーV",
+          "diff": -700
+        },
+        {
+          "machine_no": 1127,
+          "model": "マイジャグラーV",
+          "diff": 900
+        },
+        {
+          "machine_no": 1128,
+          "model": "マイジャグラーV",
+          "diff": -1700
+        },
+        {
+          "machine_no": 1129,
+          "model": "マイジャグラーV",
+          "diff": -800
+        },
+        {
+          "machine_no": 1130,
+          "model": "マイジャグラーV",
+          "diff": -300
+        },
+        {
+          "machine_no": 1131,
+          "model": "マイジャグラーV",
+          "diff": 1100
+        },
+        {
+          "machine_no": 1132,
+          "model": "マイジャグラーV",
+          "diff": -300
+        },
+        {
+          "machine_no": 1133,
+          "model": "マイジャグラーV",
+          "diff": -300
+        },
+        {
+          "machine_no": 1134,
+          "model": "マイジャグラーV",
+          "diff": -2000
+        },
+        {
+          "machine_no": 1135,
+          "model": "マイジャグラーV",
+          "diff": -1400
+        },
+        {
+          "machine_no": 1136,
+          "model": "ジャグラーガールズSS",
+          "diff": -600
+        },
+        {
+          "machine_no": 1137,
+          "model": "ジャグラーガールズSS",
+          "diff": -1500
+        },
+        {
+          "machine_no": 1138,
+          "model": "ジャグラーガールズSS",
+          "diff": -1100
+        },
+        {
+          "machine_no": 1139,
+          "model": "ジャグラーガールズSS",
+          "diff": -1100
+        },
+        {
+          "machine_no": 1140,
+          "model": "ジャグラーガールズSS",
+          "diff": -1000
+        },
+        {
+          "machine_no": 1141,
+          "model": "ジャグラーガールズSS",
+          "diff": 2300
+        },
+        {
+          "machine_no": 1142,
+          "model": "ジャグラーガールズSS",
+          "diff": -500
+        },
+        {
+          "machine_no": 1143,
+          "model": "ジャグラーガールズSS",
+          "diff": 2300
+        },
+        {
+          "machine_no": 1144,
+          "model": "ジャグラーガールズSS",
+          "diff": 3500
+        },
+        {
+          "machine_no": 1145,
+          "model": "ジャグラーガールズSS",
+          "diff": -1700
+        },
+        {
+          "machine_no": 1146,
+          "model": "ジャグラーガールズSS",
+          "diff": 500
+        },
+        {
+          "machine_no": 1147,
+          "model": "ジャグラーガールズSS",
+          "diff": -1000
+        },
+        {
+          "machine_no": 1148,
+          "model": "ジャグラーガールズSS",
+          "diff": 300
+        },
+        {
+          "machine_no": 1149,
+          "model": "ジャグラーガールズSS",
+          "diff": -1600
+        },
+        {
+          "machine_no": 1150,
+          "model": "マイジャグラーV",
+          "diff": 700
+        },
+        {
+          "machine_no": 1151,
+          "model": "マイジャグラーV",
+          "diff": 1700
+        },
+        {
+          "machine_no": 1152,
+          "model": "ファンキージャグラー2",
+          "diff": -800
+        },
+        {
+          "machine_no": 1153,
+          "model": "ファンキージャグラー2",
+          "diff": -800
+        },
+        {
+          "machine_no": 1154,
+          "model": "ファンキージャグラー2",
+          "diff": 1900
+        },
+        {
+          "machine_no": 1155,
+          "model": "ファンキージャグラー2",
+          "diff": 100
+        },
+        {
+          "machine_no": 1156,
+          "model": "ファンキージャグラー2",
+          "diff": -1400
+        },
+        {
+          "machine_no": 1157,
+          "model": "ファンキージャグラー2",
+          "diff": -800
+        },
+        {
+          "machine_no": 1158,
+          "model": "ファンキージャグラー2",
+          "diff": -1000
+        },
+        {
+          "machine_no": 1159,
+          "model": "ファンキージャグラー2",
+          "diff": -100
+        },
+        {
+          "machine_no": 1160,
+          "model": "ファンキージャグラー2",
+          "diff": 1000
+        },
+        {
+          "machine_no": 1161,
+          "model": "ファンキージャグラー2",
+          "diff": -700
+        },
+        {
+          "machine_no": 1162,
+          "model": "ファンキージャグラー2",
+          "diff": 800
+        },
+        {
+          "machine_no": 1163,
+          "model": "ファンキージャグラー2",
+          "diff": 200
+        },
+        {
+          "machine_no": 1164,
+          "model": "ファンキージャグラー2",
+          "diff": -900
+        },
+        {
+          "machine_no": 1165,
+          "model": "ファンキージャグラー2",
+          "diff": -800
+        },
+        {
+          "machine_no": 1166,
+          "model": "ファンキージャグラー2",
+          "diff": 1200
+        },
+        {
+          "machine_no": 1167,
+          "model": "ファンキージャグラー2",
+          "diff": -100
+        },
+        {
+          "machine_no": 1168,
+          "model": "ファンキージャグラー2",
+          "diff": 800
+        },
+        {
+          "machine_no": 1169,
+          "model": "ファンキージャグラー2",
+          "diff": 500
+        },
+        {
+          "machine_no": 1170,
+          "model": "ネオアイムジャグラー",
+          "diff": 300
+        },
+        {
+          "machine_no": 1171,
+          "model": "ファンキージャグラー2",
+          "diff": 1600
+        },
+        {
+          "machine_no": 1378,
+          "model": "スマスロハナビ",
+          "diff": -200
+        },
+        {
+          "machine_no": 1379,
+          "model": "スマスロハナビ",
+          "diff": -600
+        },
+        {
+          "machine_no": 1380,
+          "model": "スマスロハナビ",
+          "diff": 400
+        },
+        {
+          "machine_no": 1381,
+          "model": "スマスロハナビ",
+          "diff": -400
+        },
+        {
+          "machine_no": 1382,
+          "model": "スマスロハナビ",
+          "diff": -600
+        }
+      ],
+      "中山ZoRoN": [
+        {
+          "machine_no": 601,
+          "model": "ハッピージャグラーVIII",
+          "diff": -1116
+        },
+        {
+          "machine_no": 602,
+          "model": "ハッピージャグラーVIII",
+          "diff": -498
+        },
+        {
+          "machine_no": 603,
+          "model": "ハッピージャグラーVIII",
+          "diff": 288
+        },
+        {
+          "machine_no": 604,
+          "model": "ハッピージャグラーVIII",
+          "diff": 1116
+        },
+        {
+          "machine_no": 605,
+          "model": "ハッピージャグラーVIII",
+          "diff": -288
+        },
+        {
+          "machine_no": 606,
+          "model": "ハッピージャグラーVIII",
+          "diff": -765
+        },
+        {
+          "machine_no": 607,
+          "model": "新ハナビ",
+          "diff": 625
+        },
+        {
+          "machine_no": 608,
+          "model": "新ハナビ",
+          "diff": -1130
+        },
+        {
+          "machine_no": 609,
+          "model": "クランキークレスト",
+          "diff": 793
+        },
+        {
+          "machine_no": 610,
+          "model": "クランキークレスト",
+          "diff": -583
+        },
+        {
+          "machine_no": 611,
+          "model": "クランキークレスト",
+          "diff": -133
+        },
+        {
+          "machine_no": 747,
+          "model": "スマスロハナビ",
+          "diff": 288
+        },
+        {
+          "machine_no": 748,
+          "model": "スマスロハナビ",
+          "diff": 484
+        },
+        {
+          "machine_no": 749,
+          "model": "スマスロハナビ",
+          "diff": 4625
+        },
+        {
+          "machine_no": 750,
+          "model": "スマスロハナビ",
+          "diff": 1548
+        },
+        {
+          "machine_no": 754,
+          "model": "バーサスリヴァイズ",
+          "diff": 568
+        },
+        {
+          "machine_no": 755,
+          "model": "バーサスリヴァイズ",
+          "diff": -414
+        },
+        {
+          "machine_no": 756,
+          "model": "バーサスリヴァイズ",
+          "diff": 232
+        },
+        {
+          "machine_no": 757,
+          "model": "バーサスリヴァイズ",
+          "diff": -218
+        },
+        {
+          "machine_no": 758,
+          "model": "ジャグラーガールズSS",
+          "diff": -302
+        },
+        {
+          "machine_no": 759,
+          "model": "ジャグラーガールズSS",
+          "diff": -344
+        },
+        {
+          "machine_no": 760,
+          "model": "ジャグラーガールズSS",
+          "diff": -849
+        },
+        {
+          "machine_no": 761,
+          "model": "ファンキージャグラー2",
+          "diff": -863
+        },
+        {
+          "machine_no": 762,
+          "model": "ファンキージャグラー2",
+          "diff": -793
+        },
+        {
+          "machine_no": 763,
+          "model": "ファンキージャグラー2",
+          "diff": -863
+        },
+        {
+          "machine_no": 764,
+          "model": "ファンキージャグラー2",
+          "diff": -498
+        },
+        {
+          "machine_no": 765,
+          "model": "ファンキージャグラー2",
+          "diff": 877
+        },
+        {
+          "machine_no": 766,
+          "model": "ゴーゴージャグラー3",
+          "diff": -372
+        },
+        {
+          "machine_no": 767,
+          "model": "ゴーゴージャグラー3",
+          "diff": 1593
+        },
+        {
+          "machine_no": 768,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1004
+        },
+        {
+          "machine_no": 769,
+          "model": "ゴーゴージャグラー3",
+          "diff": -288
+        },
+        {
+          "machine_no": 770,
+          "model": "ゴーゴージャグラー3",
+          "diff": 975
+        },
+        {
+          "machine_no": 771,
+          "model": "ゴーゴージャグラー3",
+          "diff": 2011
+        },
+        {
+          "machine_no": 772,
+          "model": "ゴーゴージャグラー3",
+          "diff": -133
+        },
+        {
+          "machine_no": 773,
+          "model": "ネオアイムジャグラー",
+          "diff": 596
+        },
+        {
+          "machine_no": 774,
+          "model": "ネオアイムジャグラー",
+          "diff": -386
+        },
+        {
+          "machine_no": 775,
+          "model": "ネオアイムジャグラー",
+          "diff": -512
+        },
+        {
+          "machine_no": 776,
+          "model": "ネオアイムジャグラー",
+          "diff": 793
+        },
+        {
+          "machine_no": 777,
+          "model": "ネオアイムジャグラー",
+          "diff": -119
+        },
+        {
+          "machine_no": 778,
+          "model": "ネオアイムジャグラー",
+          "diff": -119
+        },
+        {
+          "machine_no": 779,
+          "model": "ネオアイムジャグラー",
+          "diff": 175
+        },
+        {
+          "machine_no": 780,
+          "model": "ネオアイムジャグラー",
+          "diff": 232
+        },
+        {
+          "machine_no": 781,
+          "model": "ネオアイムジャグラー",
+          "diff": 161
+        },
+        {
+          "machine_no": 782,
+          "model": "ネオアイムジャグラー",
+          "diff": 1144
+        },
+        {
+          "machine_no": 783,
+          "model": "ネオアイムジャグラー",
+          "diff": -147
+        },
+        {
+          "machine_no": 784,
+          "model": "ネオアイムジャグラー",
+          "diff": -274
+        },
+        {
+          "machine_no": 785,
+          "model": "ネオアイムジャグラー",
+          "diff": 540
+        },
+        {
+          "machine_no": 786,
+          "model": "ネオアイムジャグラー",
+          "diff": -470
+        },
+        {
+          "machine_no": 787,
+          "model": "ネオアイムジャグラー",
+          "diff": -190
+        },
+        {
+          "machine_no": 788,
+          "model": "ネオアイムジャグラー",
+          "diff": -568
+        },
+        {
+          "machine_no": 789,
+          "model": "ネオアイムジャグラー",
+          "diff": -386
+        },
+        {
+          "machine_no": 790,
+          "model": "ネオアイムジャグラー",
+          "diff": -863
+        },
+        {
+          "machine_no": 791,
+          "model": "ネオアイムジャグラー",
+          "diff": -316
+        },
+        {
+          "machine_no": 792,
+          "model": "ネオアイムジャグラー",
+          "diff": -1509
+        },
+        {
+          "machine_no": 793,
+          "model": "マイジャグラーV",
+          "diff": 1186
+        },
+        {
+          "machine_no": 794,
+          "model": "マイジャグラーV",
+          "diff": -91
+        },
+        {
+          "machine_no": 795,
+          "model": "マイジャグラーV",
+          "diff": -681
+        },
+        {
+          "machine_no": 796,
+          "model": "マイジャグラーV",
+          "diff": 1453
+        },
+        {
+          "machine_no": 797,
+          "model": "マイジャグラーV",
+          "diff": -316
+        },
+        {
+          "machine_no": 798,
+          "model": "マイジャグラーV",
+          "diff": -863
+        },
+        {
+          "machine_no": 799,
+          "model": "マイジャグラーV",
+          "diff": 175
+        },
+        {
+          "machine_no": 800,
+          "model": "マイジャグラーV",
+          "diff": -1832
+        }
+      ],
+      "ギンザホール707": [
+        {
+          "machine_no": 328,
+          "model": "クランキークレスト",
+          "diff": 639
+        },
+        {
+          "machine_no": 331,
+          "model": "ネオアイムジャグラー",
+          "diff": 1583
+        },
+        {
+          "machine_no": 332,
+          "model": "ネオアイムジャグラー",
+          "diff": 411
+        },
+        {
+          "machine_no": 333,
+          "model": "ネオアイムジャグラー",
+          "diff": -113
+        },
+        {
+          "machine_no": 334,
+          "model": "ネオアイムジャグラー",
+          "diff": 394
+        },
+        {
+          "machine_no": 335,
+          "model": "ネオアイムジャグラー",
+          "diff": -352
+        },
+        {
+          "machine_no": 336,
+          "model": "ネオアイムジャグラー",
+          "diff": -112
+        },
+        {
+          "machine_no": 337,
+          "model": "ネオアイムジャグラー",
+          "diff": -243
+        },
+        {
+          "machine_no": 338,
+          "model": "ネオアイムジャグラー",
+          "diff": -422
+        },
+        {
+          "machine_no": 339,
+          "model": "ネオアイムジャグラー",
+          "diff": 303
+        },
+        {
+          "machine_no": 344,
+          "model": "スマスロハナビ",
+          "diff": -838
+        },
+        {
+          "machine_no": 361,
+          "model": "ジャグラーガールズSS",
+          "diff": 417
+        },
+        {
+          "machine_no": 362,
+          "model": "ジャグラーガールズSS",
+          "diff": 155
+        },
+        {
+          "machine_no": 363,
+          "model": "ジャグラーガールズSS",
+          "diff": -81
+        },
+        {
+          "machine_no": 364,
+          "model": "ジャグラーガールズSS",
+          "diff": -256
+        },
+        {
+          "machine_no": 365,
+          "model": "ジャグラーガールズSS",
+          "diff": -168
+        },
+        {
+          "machine_no": 366,
+          "model": "ジャグラーガールズSS",
+          "diff": 446
+        },
+        {
+          "machine_no": 367,
+          "model": "ゴーゴージャグラー3",
+          "diff": -820
+        },
+        {
+          "machine_no": 368,
+          "model": "ゴーゴージャグラー3",
+          "diff": -808
+        },
+        {
+          "machine_no": 369,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1577
+        },
+        {
+          "machine_no": 370,
+          "model": "ゴーゴージャグラー3",
+          "diff": -374
+        },
+        {
+          "machine_no": 371,
+          "model": "ゴーゴージャグラー3",
+          "diff": -352
+        },
+        {
+          "machine_no": 372,
+          "model": "ゴーゴージャグラー3",
+          "diff": -433
+        },
+        {
+          "machine_no": 373,
+          "model": "ファンキージャグラー2",
+          "diff": -191
+        },
+        {
+          "machine_no": 374,
+          "model": "ファンキージャグラー2",
+          "diff": -722
+        },
+        {
+          "machine_no": 375,
+          "model": "ファンキージャグラー2",
+          "diff": -737
+        },
+        {
+          "machine_no": 376,
+          "model": "ファンキージャグラー2",
+          "diff": -642
+        },
+        {
+          "machine_no": 377,
+          "model": "ファンキージャグラー2",
+          "diff": 119
+        },
+        {
+          "machine_no": 378,
+          "model": "ミスタージャグラー",
+          "diff": -640
+        },
+        {
+          "machine_no": 379,
+          "model": "ミスタージャグラー",
+          "diff": 76
+        },
+        {
+          "machine_no": 380,
+          "model": "ミスタージャグラー",
+          "diff": -208
+        },
+        {
+          "machine_no": 381,
+          "model": "ミスタージャグラー",
+          "diff": -413
+        },
+        {
+          "machine_no": 382,
+          "model": "マイジャグラーV",
+          "diff": -2619
+        },
+        {
+          "machine_no": 383,
+          "model": "マイジャグラーV",
+          "diff": -59
+        },
+        {
+          "machine_no": 384,
+          "model": "マイジャグラーV",
+          "diff": -1345
+        },
+        {
+          "machine_no": 385,
+          "model": "マイジャグラーV",
+          "diff": -623
+        },
+        {
+          "machine_no": 386,
+          "model": "マイジャグラーV",
+          "diff": -1136
+        },
+        {
+          "machine_no": 387,
+          "model": "マイジャグラーV",
+          "diff": -1977
+        },
+        {
+          "machine_no": 388,
+          "model": "マイジャグラーV",
+          "diff": -37
+        },
+        {
+          "machine_no": 389,
+          "model": "マイジャグラーV",
+          "diff": -1444
+        },
+        {
+          "machine_no": 390,
+          "model": "マイジャグラーV",
+          "diff": -500
+        },
+        {
+          "machine_no": 391,
+          "model": "マイジャグラーV",
+          "diff": -287
+        },
+        {
+          "machine_no": 392,
+          "model": "マイジャグラーV",
+          "diff": -570
+        },
+        {
+          "machine_no": 393,
+          "model": "ハッピージャグラーVIII",
+          "diff": -663
+        },
+        {
+          "machine_no": 394,
+          "model": "ハッピージャグラーVIII",
+          "diff": 289
+        },
+        {
+          "machine_no": 395,
+          "model": "ハッピージャグラーVIII",
+          "diff": 210
+        },
+        {
+          "machine_no": 396,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": -302
+        },
+        {
+          "machine_no": 397,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": 753
+        },
+        {
+          "machine_no": 398,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": -784
+        },
+        {
+          "machine_no": 399,
+          "model": "ファンキージャグラー2",
+          "diff": 114
+        },
+        {
+          "machine_no": 400,
+          "model": "ファンキージャグラー2",
+          "diff": -227
+        },
+        {
+          "machine_no": 401,
+          "model": "ファンキージャグラー2",
+          "diff": -175
+        },
+        {
+          "machine_no": 402,
+          "model": "ファンキージャグラー2",
+          "diff": 2877
+        },
+        {
+          "machine_no": 403,
+          "model": "ゴーゴージャグラー3",
+          "diff": -456
+        },
+        {
+          "machine_no": 404,
+          "model": "ゴーゴージャグラー3",
+          "diff": -482
+        },
+        {
+          "machine_no": 405,
+          "model": "ゴーゴージャグラー3",
+          "diff": -295
+        },
+        {
+          "machine_no": 406,
+          "model": "ゴーゴージャグラー3",
+          "diff": -768
+        },
+        {
+          "machine_no": 407,
+          "model": "ゴーゴージャグラー3",
+          "diff": -616
+        },
+        {
+          "machine_no": 408,
+          "model": "ゴーゴージャグラー3",
+          "diff": -628
+        }
+      ],
+      "ジアスセンター南": [
+        {
+          "machine_no": 395,
+          "model": "スマスロハナビ",
+          "diff": -256
+        },
+        {
+          "machine_no": 396,
+          "model": "スマスロハナビ",
+          "diff": 1
+        },
+        {
+          "machine_no": 468,
+          "model": "ゴーゴージャグラー3",
+          "diff": 676
+        },
+        {
+          "machine_no": 469,
+          "model": "ゴーゴージャグラー3",
+          "diff": -877
+        },
+        {
+          "machine_no": 470,
+          "model": "ゴーゴージャグラー3",
+          "diff": -586
+        },
+        {
+          "machine_no": 471,
+          "model": "ゴーゴージャグラー3",
+          "diff": 2254
+        },
+        {
+          "machine_no": 472,
+          "model": "ゴーゴージャグラー3",
+          "diff": -266
+        },
+        {
+          "machine_no": 473,
+          "model": "ゴーゴージャグラー3",
+          "diff": 660
+        },
+        {
+          "machine_no": 474,
+          "model": "ゴーゴージャグラー3",
+          "diff": -393
+        },
+        {
+          "machine_no": 475,
+          "model": "ゴーゴージャグラー3",
+          "diff": -397
+        },
+        {
+          "machine_no": 476,
+          "model": "ゴーゴージャグラー3",
+          "diff": -437
+        },
+        {
+          "machine_no": 477,
+          "model": "ゴーゴージャグラー3",
+          "diff": -194
+        },
+        {
+          "machine_no": 478,
+          "model": "ゴーゴージャグラー3",
+          "diff": 3286
+        },
+        {
+          "machine_no": 479,
+          "model": "ゴーゴージャグラー3",
+          "diff": 481
+        },
+        {
+          "machine_no": 480,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1085
+        },
+        {
+          "machine_no": 481,
+          "model": "ゴーゴージャグラー3",
+          "diff": -580
+        },
+        {
+          "machine_no": 482,
+          "model": "ゴーゴージャグラー3",
+          "diff": 946
+        },
+        {
+          "machine_no": 483,
+          "model": "ゴーゴージャグラー3",
+          "diff": 780
+        },
+        {
+          "machine_no": 484,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1612
+        },
+        {
+          "machine_no": 485,
+          "model": "ゴーゴージャグラー3",
+          "diff": -424
+        },
+        {
+          "machine_no": 486,
+          "model": "ミスタージャグラー",
+          "diff": -841
+        },
+        {
+          "machine_no": 487,
+          "model": "ファンキージャグラー2",
+          "diff": -169
+        },
+        {
+          "machine_no": 488,
+          "model": "ファンキージャグラー2",
+          "diff": -1236
+        },
+        {
+          "machine_no": 489,
+          "model": "ファンキージャグラー2",
+          "diff": 1072
+        },
+        {
+          "machine_no": 490,
+          "model": "ハッピージャグラーVIII",
+          "diff": 1626
+        },
+        {
+          "machine_no": 491,
+          "model": "ハッピージャグラーVIII",
+          "diff": -246
+        },
+        {
+          "machine_no": 492,
+          "model": "ハッピージャグラーVIII",
+          "diff": 4127
+        },
+        {
+          "machine_no": 493,
+          "model": "ハッピージャグラーVIII",
+          "diff": 62
+        },
+        {
+          "machine_no": 494,
+          "model": "ハッピージャグラーVIII",
+          "diff": -334
+        },
+        {
+          "machine_no": 495,
+          "model": "ハッピージャグラーVIII",
+          "diff": 1649
+        },
+        {
+          "machine_no": 496,
+          "model": "ハッピージャグラーVIII",
+          "diff": -239
+        },
+        {
+          "machine_no": 497,
+          "model": "ハッピージャグラーVIII",
+          "diff": -996
+        },
+        {
+          "machine_no": 528,
+          "model": "ネオアイムジャグラー",
+          "diff": -512
+        },
+        {
+          "machine_no": 529,
+          "model": "ネオアイムジャグラー",
+          "diff": 655
+        },
+        {
+          "machine_no": 530,
+          "model": "ネオアイムジャグラー",
+          "diff": -338
+        },
+        {
+          "machine_no": 531,
+          "model": "ネオアイムジャグラー",
+          "diff": -175
+        },
+        {
+          "machine_no": 532,
+          "model": "ネオアイムジャグラー",
+          "diff": -241
+        },
+        {
+          "machine_no": 533,
+          "model": "ネオアイムジャグラー",
+          "diff": -494
+        },
+        {
+          "machine_no": 534,
+          "model": "ネオアイムジャグラー",
+          "diff": 455
+        },
+        {
+          "machine_no": 535,
+          "model": "ネオアイムジャグラー",
+          "diff": -1153
+        },
+        {
+          "machine_no": 536,
+          "model": "ネオアイムジャグラー",
+          "diff": -756
+        },
+        {
+          "machine_no": 537,
+          "model": "ネオアイムジャグラー",
+          "diff": -1979
+        },
+        {
+          "machine_no": 538,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": -898
+        },
+        {
+          "machine_no": 539,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": -91
+        },
+        {
+          "machine_no": 540,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": 641
+        },
+        {
+          "machine_no": 541,
+          "model": "ジャグラーガールズSS",
+          "diff": -66
+        },
+        {
+          "machine_no": 542,
+          "model": "ジャグラーガールズSS",
+          "diff": -482
+        },
+        {
+          "machine_no": 543,
+          "model": "マイジャグラーV",
+          "diff": -625
+        },
+        {
+          "machine_no": 544,
+          "model": "マイジャグラーV",
+          "diff": 3873
+        },
+        {
+          "machine_no": 545,
+          "model": "マイジャグラーV",
+          "diff": -1165
+        },
+        {
+          "machine_no": 546,
+          "model": "マイジャグラーV",
+          "diff": -730
+        },
+        {
+          "machine_no": 547,
+          "model": "マイジャグラーV",
+          "diff": 1268
+        },
+        {
+          "machine_no": 548,
+          "model": "マイジャグラーV",
+          "diff": -428
+        },
+        {
+          "machine_no": 549,
+          "model": "マイジャグラーV",
+          "diff": -498
+        },
+        {
+          "machine_no": 550,
+          "model": "マイジャグラーV",
+          "diff": 3248
+        },
+        {
+          "machine_no": 551,
+          "model": "マイジャグラーV",
+          "diff": 1507
+        },
+        {
+          "machine_no": 552,
+          "model": "ネオアイムジャグラー",
+          "diff": 891
+        },
+        {
+          "machine_no": 553,
+          "model": "ネオアイムジャグラー",
+          "diff": 3177
+        },
+        {
+          "machine_no": 554,
+          "model": "ネオアイムジャグラー",
+          "diff": -475
+        },
+        {
+          "machine_no": 555,
+          "model": "ネオアイムジャグラー",
+          "diff": -377
+        },
+        {
+          "machine_no": 556,
+          "model": "ネオアイムジャグラー",
+          "diff": 6015
+        },
+        {
+          "machine_no": 557,
+          "model": "ネオアイムジャグラー",
+          "diff": -569
+        }
+      ],
+      "マルハンメガシティ横浜町田": [
+        {
+          "machine_no": 993,
+          "model": "スマスロハナビ",
+          "diff": -1200
+        },
+        {
+          "machine_no": 994,
+          "model": "スマスロハナビ",
+          "diff": -500
+        },
+        {
+          "machine_no": 995,
+          "model": "スマスロハナビ",
+          "diff": 300
+        },
+        {
+          "machine_no": 996,
+          "model": "スマスロハナビ",
+          "diff": -200
+        },
+        {
+          "machine_no": 997,
+          "model": "スマスロハナビ",
+          "diff": -300
+        },
+        {
+          "machine_no": 1039,
+          "model": "ネオアイムジャグラー",
+          "diff": 1600
+        },
+        {
+          "machine_no": 1040,
+          "model": "ネオアイムジャグラー",
+          "diff": -3000
+        },
+        {
+          "machine_no": 1041,
+          "model": "ネオアイムジャグラー",
+          "diff": 500
+        },
+        {
+          "machine_no": 1042,
+          "model": "ネオアイムジャグラー",
+          "diff": -1000
+        },
+        {
+          "machine_no": 1043,
+          "model": "ネオアイムジャグラー",
+          "diff": -1100
+        },
+        {
+          "machine_no": 1044,
+          "model": "ネオアイムジャグラー",
+          "diff": -800
+        },
+        {
+          "machine_no": 1045,
+          "model": "ネオアイムジャグラー",
+          "diff": -600
+        },
+        {
+          "machine_no": 1046,
+          "model": "ネオアイムジャグラー",
+          "diff": 400
+        },
+        {
+          "machine_no": 1047,
+          "model": "ネオアイムジャグラー",
+          "diff": 1100
+        },
+        {
+          "machine_no": 1048,
+          "model": "ネオアイムジャグラー",
+          "diff": -1000
+        },
+        {
+          "machine_no": 1049,
+          "model": "ネオアイムジャグラー",
+          "diff": 500
+        },
+        {
+          "machine_no": 1050,
+          "model": "ネオアイムジャグラー",
+          "diff": -1200
+        },
+        {
+          "machine_no": 1094,
+          "model": "ゴーゴージャグラー3",
+          "diff": 0
+        },
+        {
+          "machine_no": 1095,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1100
+        },
+        {
+          "machine_no": 1096,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": 1400
+        },
+        {
+          "machine_no": 1097,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": 2300
+        },
+        {
+          "machine_no": 1098,
+          "model": "ウルトラミラクルジャグラー",
+          "diff": -1200
+        },
+        {
+          "machine_no": 1099,
+          "model": "ミスタージャグラー",
+          "diff": 500
+        },
+        {
+          "machine_no": 1100,
+          "model": "ミスタージャグラー",
+          "diff": -100
+        },
+        {
+          "machine_no": 1101,
+          "model": "ミスタージャグラー",
+          "diff": -1200
+        },
+        {
+          "machine_no": 1102,
+          "model": "ミスタージャグラー",
+          "diff": 1500
+        },
+        {
+          "machine_no": 1103,
+          "model": "ハッピージャグラーVIII",
+          "diff": -800
+        },
+        {
+          "machine_no": 1104,
+          "model": "ハッピージャグラーVIII",
+          "diff": -2600
+        },
+        {
+          "machine_no": 1105,
+          "model": "ハッピージャグラーVIII",
+          "diff": 600
+        },
+        {
+          "machine_no": 1106,
+          "model": "ジャグラーガールズSS",
+          "diff": -300
+        },
+        {
+          "machine_no": 1107,
+          "model": "ジャグラーガールズSS",
+          "diff": -2400
+        },
+        {
+          "machine_no": 1131,
+          "model": "ファンキージャグラー2",
+          "diff": -800
+        },
+        {
+          "machine_no": 1132,
+          "model": "ファンキージャグラー2",
+          "diff": -1300
+        },
+        {
+          "machine_no": 1133,
+          "model": "ファンキージャグラー2",
+          "diff": -2700
+        },
+        {
+          "machine_no": 1134,
+          "model": "ファンキージャグラー2",
+          "diff": -1000
+        },
+        {
+          "machine_no": 1135,
+          "model": "ファンキージャグラー2",
+          "diff": 1500
+        },
+        {
+          "machine_no": 1136,
+          "model": "ファンキージャグラー2",
+          "diff": -1600
+        },
+        {
+          "machine_no": 1137,
+          "model": "ファンキージャグラー2",
+          "diff": -800
+        },
+        {
+          "machine_no": 1138,
+          "model": "ファンキージャグラー2",
+          "diff": -200
+        },
+        {
+          "machine_no": 1139,
+          "model": "ファンキージャグラー2",
+          "diff": 1700
+        },
+        {
+          "machine_no": 1140,
+          "model": "マイジャグラーV",
+          "diff": 500
+        },
+        {
+          "machine_no": 1141,
+          "model": "マイジャグラーV",
+          "diff": 1700
+        },
+        {
+          "machine_no": 1142,
+          "model": "マイジャグラーV",
+          "diff": 1800
+        },
+        {
+          "machine_no": 1143,
+          "model": "マイジャグラーV",
+          "diff": -1600
+        },
+        {
+          "machine_no": 1144,
+          "model": "マイジャグラーV",
+          "diff": -2000
+        },
+        {
+          "machine_no": 1145,
+          "model": "マイジャグラーV",
+          "diff": -2200
+        },
+        {
+          "machine_no": 1146,
+          "model": "マイジャグラーV",
+          "diff": 800
+        },
+        {
+          "machine_no": 1147,
+          "model": "ゴーゴージャグラー3",
+          "diff": 600
+        },
+        {
+          "machine_no": 1148,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1700
+        },
+        {
+          "machine_no": 1149,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1700
+        },
+        {
+          "machine_no": 1150,
+          "model": "ゴーゴージャグラー3",
+          "diff": -1600
+        },
+        {
+          "machine_no": 1151,
+          "model": "マイジャグラーV",
+          "diff": -2000
+        },
+        {
+          "machine_no": 1152,
+          "model": "マイジャグラーV",
+          "diff": -800
+        },
+        {
+          "machine_no": 1153,
+          "model": "マイジャグラーV",
+          "diff": -1900
+        },
+        {
+          "machine_no": 1154,
+          "model": "マイジャグラーV",
+          "diff": 100
+        },
+        {
+          "machine_no": 1155,
+          "model": "マイジャグラーV",
+          "diff": -1000
+        },
+        {
+          "machine_no": 1156,
+          "model": "マイジャグラーV",
+          "diff": 700
+        },
+        {
+          "machine_no": 1157,
+          "model": "マイジャグラーV",
+          "diff": -2000
+        },
+        {
+          "machine_no": 1158,
+          "model": "マイジャグラーV",
+          "diff": -2500
+        },
+        {
+          "machine_no": 1159,
+          "model": "マイジャグラーV",
+          "diff": -2300
+        },
+        {
+          "machine_no": 1160,
+          "model": "マイジャグラーV",
+          "diff": 2500
+        },
+        {
+          "machine_no": 1161,
+          "model": "マイジャグラーV",
+          "diff": -700
+        },
+        {
+          "machine_no": 1183,
+          "model": "マイジャグラーV",
+          "diff": 900
+        },
+        {
+          "machine_no": 1184,
+          "model": "マイジャグラーV",
+          "diff": 3300
+        },
+        {
+          "machine_no": 1185,
+          "model": "マイジャグラーV",
+          "diff": -400
+        },
+        {
+          "machine_no": 1186,
+          "model": "マイジャグラーV",
+          "diff": -1200
+        },
+        {
+          "machine_no": 1187,
+          "model": "マイジャグラーV",
+          "diff": -1900
+        },
+        {
+          "machine_no": 1188,
+          "model": "マイジャグラーV",
+          "diff": 1800
+        },
+        {
+          "machine_no": 1189,
+          "model": "マイジャグラーV",
+          "diff": -300
+        },
+        {
+          "machine_no": 1190,
+          "model": "マイジャグラーV",
+          "diff": -400
+        },
+        {
+          "machine_no": 1191,
+          "model": "マイジャグラーV",
+          "diff": 0
+        },
+        {
+          "machine_no": 1192,
+          "model": "マイジャグラーV",
+          "diff": -1800
+        },
+        {
+          "machine_no": 1193,
+          "model": "マイジャグラーV",
+          "diff": 1100
+        },
+        {
+          "machine_no": 1194,
+          "model": "マイジャグラーV",
+          "diff": 2500
+        },
+        {
+          "machine_no": 1195,
+          "model": "マイジャグラーV",
+          "diff": -1100
+        },
+        {
+          "machine_no": 1196,
+          "model": "マイジャグラーV",
+          "diff": -600
+        },
+        {
+          "machine_no": 1197,
+          "model": "マイジャグラーV",
+          "diff": -600
+        },
+        {
+          "machine_no": 1198,
+          "model": "マイジャグラーV",
+          "diff": 900
+        },
+        {
+          "machine_no": 1199,
+          "model": "マイジャグラーV",
+          "diff": -400
+        },
+        {
+          "machine_no": 1200,
+          "model": "マイジャグラーV",
+          "diff": -1500
+        },
+        {
+          "machine_no": 1201,
+          "model": "マイジャグラーV",
+          "diff": 2900
+        },
+        {
+          "machine_no": 1202,
+          "model": "マイジャグラーV",
+          "diff": 2000
+        },
+        {
+          "machine_no": 1203,
+          "model": "マイジャグラーV",
+          "diff": -1900
+        },
+        {
+          "machine_no": 1204,
+          "model": "マイジャグラーV",
+          "diff": -900
+        },
+        {
+          "machine_no": 1205,
+          "model": "マイジャグラーV",
+          "diff": -300
+        },
+        {
+          "machine_no": 1206,
+          "model": "マイジャグラーV",
+          "diff": 200
+        }
+      ]
+    },
     "2026-05-03": {
       "鶴見UNO": [
         {
@@ -113322,3934 +117235,6 @@
           "machine_no": 1206,
           "model": "マイジャグラーV",
           "diff": -400
-        }
-      ]
-    },
-    "2026-04-04": {
-      "鶴見UNO": [
-        {
-          "machine_no": 425,
-          "model": "スマスロハナビ",
-          "diff": 288
-        },
-        {
-          "machine_no": 426,
-          "model": "スマスロハナビ",
-          "diff": 751
-        },
-        {
-          "machine_no": 427,
-          "model": "スマスロハナビ",
-          "diff": 232
-        },
-        {
-          "machine_no": 477,
-          "model": "新ハナビ",
-          "diff": -204
-        },
-        {
-          "machine_no": 478,
-          "model": "新ハナビ",
-          "diff": 737
-        },
-        {
-          "machine_no": 479,
-          "model": "新ハナビ",
-          "diff": 681
-        },
-        {
-          "machine_no": 480,
-          "model": "新ハナビ",
-          "diff": 344
-        },
-        {
-          "machine_no": 481,
-          "model": "新ハナビ",
-          "diff": -428
-        },
-        {
-          "machine_no": 482,
-          "model": "バーサスリヴァイズ",
-          "diff": -877
-        },
-        {
-          "machine_no": 489,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1172
-        },
-        {
-          "machine_no": 490,
-          "model": "ゴーゴージャグラー3",
-          "diff": 723
-        },
-        {
-          "machine_no": 491,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1551
-        },
-        {
-          "machine_no": 492,
-          "model": "ゴーゴージャグラー3",
-          "diff": 2832
-        },
-        {
-          "machine_no": 493,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1969
-        },
-        {
-          "machine_no": 494,
-          "model": "ゴーゴージャグラー3",
-          "diff": 2811
-        },
-        {
-          "machine_no": 495,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1158
-        },
-        {
-          "machine_no": 496,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1439
-        },
-        {
-          "machine_no": 497,
-          "model": "ゴーゴージャグラー3",
-          "diff": -498
-        },
-        {
-          "machine_no": 498,
-          "model": "ゴーゴージャグラー3",
-          "diff": 372
-        },
-        {
-          "machine_no": 511,
-          "model": "ジャグラーガールズSS",
-          "diff": -1411
-        },
-        {
-          "machine_no": 512,
-          "model": "ジャグラーガールズSS",
-          "diff": -442
-        },
-        {
-          "machine_no": 513,
-          "model": "ジャグラーガールズSS",
-          "diff": -905
-        },
-        {
-          "machine_no": 514,
-          "model": "ジャグラーガールズSS",
-          "diff": -2073
-        },
-        {
-          "machine_no": 515,
-          "model": "ジャグラーガールズSS",
-          "diff": -484
-        },
-        {
-          "machine_no": 516,
-          "model": "ジャグラーガールズSS",
-          "diff": -849
-        },
-        {
-          "machine_no": 517,
-          "model": "ハッピージャグラーVIII",
-          "diff": 470
-        },
-        {
-          "machine_no": 518,
-          "model": "ハッピージャグラーVIII",
-          "diff": -975
-        },
-        {
-          "machine_no": 519,
-          "model": "ハッピージャグラーVIII",
-          "diff": -1060
-        },
-        {
-          "machine_no": 520,
-          "model": "ハッピージャグラーVIII",
-          "diff": -1691
-        },
-        {
-          "machine_no": 521,
-          "model": "ハッピージャグラーVIII",
-          "diff": 330
-        },
-        {
-          "machine_no": 522,
-          "model": "ハッピージャグラーVIII",
-          "diff": 484
-        },
-        {
-          "machine_no": 523,
-          "model": "ネオアイムジャグラー",
-          "diff": 442
-        },
-        {
-          "machine_no": 524,
-          "model": "ネオアイムジャグラー",
-          "diff": 358
-        },
-        {
-          "machine_no": 525,
-          "model": "ネオアイムジャグラー",
-          "diff": 1242
-        },
-        {
-          "machine_no": 526,
-          "model": "ネオアイムジャグラー",
-          "diff": -1298
-        },
-        {
-          "machine_no": 527,
-          "model": "ネオアイムジャグラー",
-          "diff": 0
-        },
-        {
-          "machine_no": 528,
-          "model": "ネオアイムジャグラー",
-          "diff": -456
-        },
-        {
-          "machine_no": 529,
-          "model": "ネオアイムジャグラー",
-          "diff": -1551
-        },
-        {
-          "machine_no": 530,
-          "model": "ネオアイムジャグラー",
-          "diff": -484
-        },
-        {
-          "machine_no": 531,
-          "model": "ネオアイムジャグラー",
-          "diff": -1958
-        },
-        {
-          "machine_no": 532,
-          "model": "ネオアイムジャグラー",
-          "diff": 1635
-        },
-        {
-          "machine_no": 533,
-          "model": "ファンキージャグラー2",
-          "diff": 1003
-        },
-        {
-          "machine_no": 534,
-          "model": "ファンキージャグラー2",
-          "diff": -2431
-        },
-        {
-          "machine_no": 535,
-          "model": "ファンキージャグラー2",
-          "diff": -498
-        },
-        {
-          "machine_no": 536,
-          "model": "ファンキージャグラー2",
-          "diff": -330
-        },
-        {
-          "machine_no": 537,
-          "model": "ファンキージャグラー2",
-          "diff": -91
-        },
-        {
-          "machine_no": 538,
-          "model": "ネオアイムジャグラー",
-          "diff": -302
-        },
-        {
-          "machine_no": 539,
-          "model": "ネオアイムジャグラー",
-          "diff": -765
-        },
-        {
-          "machine_no": 540,
-          "model": "ネオアイムジャグラー",
-          "diff": 554
-        },
-        {
-          "machine_no": 541,
-          "model": "ネオアイムジャグラー",
-          "diff": 288
-        },
-        {
-          "machine_no": 542,
-          "model": "ネオアイムジャグラー",
-          "diff": -1593
-        },
-        {
-          "machine_no": 543,
-          "model": "ネオアイムジャグラー",
-          "diff": 807
-        },
-        {
-          "machine_no": 544,
-          "model": "ネオアイムジャグラー",
-          "diff": -779
-        },
-        {
-          "machine_no": 545,
-          "model": "ミスタージャグラー",
-          "diff": -526
-        },
-        {
-          "machine_no": 546,
-          "model": "ミスタージャグラー",
-          "diff": -232
-        },
-        {
-          "machine_no": 547,
-          "model": "ミスタージャグラー",
-          "diff": -56
-        },
-        {
-          "machine_no": 548,
-          "model": "マイジャグラーV",
-          "diff": 456
-        },
-        {
-          "machine_no": 549,
-          "model": "マイジャグラーV",
-          "diff": -498
-        },
-        {
-          "machine_no": 550,
-          "model": "マイジャグラーV",
-          "diff": -1453
-        },
-        {
-          "machine_no": 551,
-          "model": "マイジャグラーV",
-          "diff": 1509
-        },
-        {
-          "machine_no": 552,
-          "model": "マイジャグラーV",
-          "diff": 863
-        },
-        {
-          "machine_no": 553,
-          "model": "マイジャグラーV",
-          "diff": -2263
-        },
-        {
-          "machine_no": 554,
-          "model": "マイジャグラーV",
-          "diff": -737
-        },
-        {
-          "machine_no": 555,
-          "model": "マイジャグラーV",
-          "diff": -372
-        },
-        {
-          "machine_no": 556,
-          "model": "マイジャグラーV",
-          "diff": -428
-        },
-        {
-          "machine_no": 557,
-          "model": "マイジャグラーV",
-          "diff": 667
-        },
-        {
-          "machine_no": 558,
-          "model": "マイジャグラーV",
-          "diff": 288
-        },
-        {
-          "machine_no": 559,
-          "model": "マイジャグラーV",
-          "diff": -1832
-        },
-        {
-          "machine_no": 560,
-          "model": "マイジャグラーV",
-          "diff": -695
-        },
-        {
-          "machine_no": 561,
-          "model": "マイジャグラーV",
-          "diff": -554
-        },
-        {
-          "machine_no": 562,
-          "model": "マイジャグラーV",
-          "diff": -414
-        },
-        {
-          "machine_no": 563,
-          "model": "マイジャグラーV",
-          "diff": -1102
-        },
-        {
-          "machine_no": 564,
-          "model": "マイジャグラーV",
-          "diff": -1411
-        }
-      ],
-      "マルハン都築": [
-        {
-          "machine_no": 836,
-          "model": "ファンキージャグラー2",
-          "diff": -600
-        },
-        {
-          "machine_no": 837,
-          "model": "ファンキージャグラー2",
-          "diff": 2800
-        },
-        {
-          "machine_no": 838,
-          "model": "ファンキージャグラー2",
-          "diff": 3600
-        },
-        {
-          "machine_no": 839,
-          "model": "ミスタージャグラー",
-          "diff": -100
-        },
-        {
-          "machine_no": 840,
-          "model": "ミスタージャグラー",
-          "diff": -300
-        },
-        {
-          "machine_no": 841,
-          "model": "ミスタージャグラー",
-          "diff": 1600
-        },
-        {
-          "machine_no": 842,
-          "model": "ミスタージャグラー",
-          "diff": 900
-        },
-        {
-          "machine_no": 843,
-          "model": "マイジャグラーV",
-          "diff": -700
-        },
-        {
-          "machine_no": 844,
-          "model": "マイジャグラーV",
-          "diff": 3900
-        },
-        {
-          "machine_no": 845,
-          "model": "マイジャグラーV",
-          "diff": 700
-        },
-        {
-          "machine_no": 846,
-          "model": "マイジャグラーV",
-          "diff": -200
-        },
-        {
-          "machine_no": 847,
-          "model": "マイジャグラーV",
-          "diff": -3200
-        },
-        {
-          "machine_no": 848,
-          "model": "マイジャグラーV",
-          "diff": 0
-        },
-        {
-          "machine_no": 849,
-          "model": "マイジャグラーV",
-          "diff": -1300
-        },
-        {
-          "machine_no": 850,
-          "model": "マイジャグラーV",
-          "diff": -1500
-        },
-        {
-          "machine_no": 851,
-          "model": "マイジャグラーV",
-          "diff": -4400
-        },
-        {
-          "machine_no": 852,
-          "model": "マイジャグラーV",
-          "diff": 500
-        },
-        {
-          "machine_no": 853,
-          "model": "マイジャグラーV",
-          "diff": -3300
-        },
-        {
-          "machine_no": 854,
-          "model": "マイジャグラーV",
-          "diff": -2700
-        },
-        {
-          "machine_no": 855,
-          "model": "マイジャグラーV",
-          "diff": 5000
-        },
-        {
-          "machine_no": 856,
-          "model": "マイジャグラーV",
-          "diff": 400
-        },
-        {
-          "machine_no": 857,
-          "model": "ゴーゴージャグラー3",
-          "diff": 300
-        },
-        {
-          "machine_no": 858,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1300
-        },
-        {
-          "machine_no": 859,
-          "model": "ゴーゴージャグラー3",
-          "diff": -700
-        },
-        {
-          "machine_no": 860,
-          "model": "ゴーゴージャグラー3",
-          "diff": 200
-        },
-        {
-          "machine_no": 861,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1100
-        },
-        {
-          "machine_no": 862,
-          "model": "ゴーゴージャグラー3",
-          "diff": 100
-        },
-        {
-          "machine_no": 863,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1200
-        },
-        {
-          "machine_no": 864,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1900
-        },
-        {
-          "machine_no": 865,
-          "model": "ゴーゴージャグラー3",
-          "diff": -3200
-        },
-        {
-          "machine_no": 866,
-          "model": "ゴーゴージャグラー3",
-          "diff": 3100
-        },
-        {
-          "machine_no": 867,
-          "model": "ゴーゴージャグラー3",
-          "diff": -800
-        },
-        {
-          "machine_no": 868,
-          "model": "ゴーゴージャグラー3",
-          "diff": 0
-        },
-        {
-          "machine_no": 869,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1300
-        },
-        {
-          "machine_no": 870,
-          "model": "ゴーゴージャグラー3",
-          "diff": -900
-        },
-        {
-          "machine_no": 871,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": 500
-        },
-        {
-          "machine_no": 872,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": 900
-        },
-        {
-          "machine_no": 873,
-          "model": "ジャグラーガールズSS",
-          "diff": 400
-        },
-        {
-          "machine_no": 874,
-          "model": "ジャグラーガールズSS",
-          "diff": -1800
-        },
-        {
-          "machine_no": 875,
-          "model": "ハッピージャグラーVIII",
-          "diff": -1100
-        },
-        {
-          "machine_no": 876,
-          "model": "ハッピージャグラーVIII",
-          "diff": 2100
-        },
-        {
-          "machine_no": 877,
-          "model": "ハッピージャグラーVIII",
-          "diff": 2200
-        },
-        {
-          "machine_no": 878,
-          "model": "ハッピージャグラーVIII",
-          "diff": 2100
-        },
-        {
-          "machine_no": 879,
-          "model": "ジャグラーガールズSS",
-          "diff": 1600
-        },
-        {
-          "machine_no": 880,
-          "model": "ジャグラーガールズSS",
-          "diff": -100
-        },
-        {
-          "machine_no": 881,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": -500
-        },
-        {
-          "machine_no": 882,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": -900
-        },
-        {
-          "machine_no": 883,
-          "model": "ゴーゴージャグラー3",
-          "diff": 800
-        },
-        {
-          "machine_no": 884,
-          "model": "ゴーゴージャグラー3",
-          "diff": 2500
-        },
-        {
-          "machine_no": 885,
-          "model": "ゴーゴージャグラー3",
-          "diff": 0
-        },
-        {
-          "machine_no": 886,
-          "model": "ゴーゴージャグラー3",
-          "diff": -2100
-        },
-        {
-          "machine_no": 887,
-          "model": "ゴーゴージャグラー3",
-          "diff": -700
-        },
-        {
-          "machine_no": 888,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1000
-        },
-        {
-          "machine_no": 889,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1500
-        },
-        {
-          "machine_no": 890,
-          "model": "ゴーゴージャグラー3",
-          "diff": 700
-        },
-        {
-          "machine_no": 891,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1600
-        },
-        {
-          "machine_no": 892,
-          "model": "ゴーゴージャグラー3",
-          "diff": -800
-        },
-        {
-          "machine_no": 893,
-          "model": "ゴーゴージャグラー3",
-          "diff": -600
-        },
-        {
-          "machine_no": 894,
-          "model": "ゴーゴージャグラー3",
-          "diff": -400
-        },
-        {
-          "machine_no": 895,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1500
-        },
-        {
-          "machine_no": 896,
-          "model": "ゴーゴージャグラー3",
-          "diff": 800
-        },
-        {
-          "machine_no": 897,
-          "model": "マイジャグラーV",
-          "diff": -600
-        },
-        {
-          "machine_no": 898,
-          "model": "マイジャグラーV",
-          "diff": 4100
-        },
-        {
-          "machine_no": 899,
-          "model": "マイジャグラーV",
-          "diff": 4200
-        },
-        {
-          "machine_no": 900,
-          "model": "マイジャグラーV",
-          "diff": 1900
-        },
-        {
-          "machine_no": 901,
-          "model": "マイジャグラーV",
-          "diff": 0
-        },
-        {
-          "machine_no": 902,
-          "model": "マイジャグラーV",
-          "diff": -1500
-        },
-        {
-          "machine_no": 903,
-          "model": "マイジャグラーV",
-          "diff": 500
-        },
-        {
-          "machine_no": 904,
-          "model": "マイジャグラーV",
-          "diff": 4600
-        },
-        {
-          "machine_no": 905,
-          "model": "マイジャグラーV",
-          "diff": -200
-        },
-        {
-          "machine_no": 906,
-          "model": "マイジャグラーV",
-          "diff": 100
-        },
-        {
-          "machine_no": 907,
-          "model": "マイジャグラーV",
-          "diff": -2400
-        },
-        {
-          "machine_no": 908,
-          "model": "マイジャグラーV",
-          "diff": 300
-        },
-        {
-          "machine_no": 909,
-          "model": "マイジャグラーV",
-          "diff": -1400
-        },
-        {
-          "machine_no": 910,
-          "model": "マイジャグラーV",
-          "diff": -600
-        },
-        {
-          "machine_no": 911,
-          "model": "マイジャグラーV",
-          "diff": 3700
-        },
-        {
-          "machine_no": 912,
-          "model": "マイジャグラーV",
-          "diff": -400
-        },
-        {
-          "machine_no": 913,
-          "model": "マイジャグラーV",
-          "diff": -200
-        },
-        {
-          "machine_no": 914,
-          "model": "ネオアイムジャグラー",
-          "diff": -400
-        },
-        {
-          "machine_no": 915,
-          "model": "ネオアイムジャグラー",
-          "diff": -2700
-        },
-        {
-          "machine_no": 916,
-          "model": "ネオアイムジャグラー",
-          "diff": 0
-        },
-        {
-          "machine_no": 917,
-          "model": "ネオアイムジャグラー",
-          "diff": -600
-        },
-        {
-          "machine_no": 918,
-          "model": "ネオアイムジャグラー",
-          "diff": -100
-        },
-        {
-          "machine_no": 919,
-          "model": "ネオアイムジャグラー",
-          "diff": 400
-        },
-        {
-          "machine_no": 920,
-          "model": "ネオアイムジャグラー",
-          "diff": -1800
-        },
-        {
-          "machine_no": 921,
-          "model": "ネオアイムジャグラー",
-          "diff": -1300
-        },
-        {
-          "machine_no": 922,
-          "model": "ネオアイムジャグラー",
-          "diff": 2900
-        },
-        {
-          "machine_no": 923,
-          "model": "ネオアイムジャグラー",
-          "diff": -1200
-        },
-        {
-          "machine_no": 924,
-          "model": "ネオアイムジャグラー",
-          "diff": -1500
-        },
-        {
-          "machine_no": 925,
-          "model": "ネオアイムジャグラー",
-          "diff": -1200
-        },
-        {
-          "machine_no": 926,
-          "model": "ネオアイムジャグラー",
-          "diff": -200
-        },
-        {
-          "machine_no": 927,
-          "model": "ネオアイムジャグラー",
-          "diff": -900
-        },
-        {
-          "machine_no": 928,
-          "model": "ネオアイムジャグラー",
-          "diff": -1400
-        },
-        {
-          "machine_no": 929,
-          "model": "ネオアイムジャグラー",
-          "diff": -1300
-        },
-        {
-          "machine_no": 930,
-          "model": "ネオアイムジャグラー",
-          "diff": -1500
-        },
-        {
-          "machine_no": 931,
-          "model": "ネオアイムジャグラー",
-          "diff": -1400
-        },
-        {
-          "machine_no": 932,
-          "model": "ネオアイムジャグラー",
-          "diff": -1100
-        },
-        {
-          "machine_no": 933,
-          "model": "ネオアイムジャグラー",
-          "diff": 2000
-        },
-        {
-          "machine_no": 938,
-          "model": "ネオアイムジャグラー",
-          "diff": 2500
-        },
-        {
-          "machine_no": 939,
-          "model": "ネオアイムジャグラー",
-          "diff": -1400
-        },
-        {
-          "machine_no": 940,
-          "model": "ネオアイムジャグラー",
-          "diff": 2300
-        },
-        {
-          "machine_no": 941,
-          "model": "ネオアイムジャグラー",
-          "diff": -1800
-        },
-        {
-          "machine_no": 942,
-          "model": "ネオアイムジャグラー",
-          "diff": -3200
-        },
-        {
-          "machine_no": 943,
-          "model": "ネオアイムジャグラー",
-          "diff": -1300
-        },
-        {
-          "machine_no": 944,
-          "model": "ネオアイムジャグラー",
-          "diff": 2800
-        },
-        {
-          "machine_no": 945,
-          "model": "ネオアイムジャグラー",
-          "diff": -100
-        },
-        {
-          "machine_no": 946,
-          "model": "ネオアイムジャグラー",
-          "diff": -2400
-        },
-        {
-          "machine_no": 997,
-          "model": "スマスロハナビ",
-          "diff": 1000
-        },
-        {
-          "machine_no": 998,
-          "model": "スマスロハナビ",
-          "diff": -2100
-        },
-        {
-          "machine_no": 999,
-          "model": "スマスロハナビ",
-          "diff": 2200
-        },
-        {
-          "machine_no": 1000,
-          "model": "スマスロハナビ",
-          "diff": 1300
-        },
-        {
-          "machine_no": 1001,
-          "model": "スマスロハナビ",
-          "diff": 800
-        }
-      ],
-      "中山UNO": [
-        {
-          "machine_no": 432,
-          "model": "スマスロハナビ",
-          "diff": -1284
-        },
-        {
-          "machine_no": 433,
-          "model": "スマスロハナビ",
-          "diff": 821
-        },
-        {
-          "machine_no": 434,
-          "model": "スマスロハナビ",
-          "diff": -1663
-        },
-        {
-          "machine_no": 435,
-          "model": "スマスロハナビ",
-          "diff": -1298
-        },
-        {
-          "machine_no": 436,
-          "model": "新ハナビ",
-          "diff": -91
-        },
-        {
-          "machine_no": 437,
-          "model": "新ハナビ",
-          "diff": -765
-        },
-        {
-          "machine_no": 446,
-          "model": "ネオアイムジャグラー",
-          "diff": -84
-        },
-        {
-          "machine_no": 447,
-          "model": "ネオアイムジャグラー",
-          "diff": -1060
-        },
-        {
-          "machine_no": 448,
-          "model": "ネオアイムジャグラー",
-          "diff": 3211
-        },
-        {
-          "machine_no": 449,
-          "model": "ネオアイムジャグラー",
-          "diff": 554
-        },
-        {
-          "machine_no": 450,
-          "model": "ネオアイムジャグラー",
-          "diff": -2136
-        },
-        {
-          "machine_no": 451,
-          "model": "ネオアイムジャグラー",
-          "diff": 2769
-        },
-        {
-          "machine_no": 452,
-          "model": "ネオアイムジャグラー",
-          "diff": -1004
-        },
-        {
-          "machine_no": 453,
-          "model": "ネオアイムジャグラー",
-          "diff": 49
-        },
-        {
-          "machine_no": 454,
-          "model": "ネオアイムジャグラー",
-          "diff": -288
-        },
-        {
-          "machine_no": 455,
-          "model": "ネオアイムジャグラー",
-          "diff": 175
-        },
-        {
-          "machine_no": 456,
-          "model": "マイジャグラーV",
-          "diff": 695
-        },
-        {
-          "machine_no": 457,
-          "model": "マイジャグラーV",
-          "diff": -470
-        },
-        {
-          "machine_no": 458,
-          "model": "マイジャグラーV",
-          "diff": 1172
-        },
-        {
-          "machine_no": 459,
-          "model": "マイジャグラーV",
-          "diff": 2285
-        },
-        {
-          "machine_no": 460,
-          "model": "マイジャグラーV",
-          "diff": -1004
-        },
-        {
-          "machine_no": 461,
-          "model": "マイジャグラーV",
-          "diff": -723
-        },
-        {
-          "machine_no": 462,
-          "model": "マイジャグラーV",
-          "diff": -653
-        },
-        {
-          "machine_no": 463,
-          "model": "マイジャグラーV",
-          "diff": 863
-        },
-        {
-          "machine_no": 464,
-          "model": "マイジャグラーV",
-          "diff": -1565
-        },
-        {
-          "machine_no": 465,
-          "model": "マイジャグラーV",
-          "diff": 568
-        },
-        {
-          "machine_no": 466,
-          "model": "マイジャグラーV",
-          "diff": -681
-        },
-        {
-          "machine_no": 467,
-          "model": "マイジャグラーV",
-          "diff": -498
-        },
-        {
-          "machine_no": 468,
-          "model": "マイジャグラーV",
-          "diff": -779
-        },
-        {
-          "machine_no": 469,
-          "model": "マイジャグラーV",
-          "diff": -1425
-        },
-        {
-          "machine_no": 470,
-          "model": "マイジャグラーV",
-          "diff": -1116
-        },
-        {
-          "machine_no": 471,
-          "model": "マイジャグラーV",
-          "diff": 344
-        },
-        {
-          "machine_no": 472,
-          "model": "マイジャグラーV",
-          "diff": -98
-        },
-        {
-          "machine_no": 473,
-          "model": "ネオアイムジャグラー",
-          "diff": 568
-        },
-        {
-          "machine_no": 474,
-          "model": "ネオアイムジャグラー",
-          "diff": 3779
-        },
-        {
-          "machine_no": 475,
-          "model": "ネオアイムジャグラー",
-          "diff": -428
-        },
-        {
-          "machine_no": 476,
-          "model": "ネオアイムジャグラー",
-          "diff": 779
-        },
-        {
-          "machine_no": 477,
-          "model": "ネオアイムジャグラー",
-          "diff": -990
-        },
-        {
-          "machine_no": 478,
-          "model": "ネオアイムジャグラー",
-          "diff": 540
-        },
-        {
-          "machine_no": 479,
-          "model": "ファンキージャグラー2",
-          "diff": 2853
-        },
-        {
-          "machine_no": 480,
-          "model": "ファンキージャグラー2",
-          "diff": -1004
-        },
-        {
-          "machine_no": 481,
-          "model": "ファンキージャグラー2",
-          "diff": -14
-        },
-        {
-          "machine_no": 482,
-          "model": "ファンキージャグラー2",
-          "diff": -947
-        },
-        {
-          "machine_no": 483,
-          "model": "ファンキージャグラー2",
-          "diff": 807
-        },
-        {
-          "machine_no": 484,
-          "model": "ハッピージャグラーVIII",
-          "diff": -835
-        },
-        {
-          "machine_no": 485,
-          "model": "ハッピージャグラーVIII",
-          "diff": -414
-        },
-        {
-          "machine_no": 486,
-          "model": "ハッピージャグラーVIII",
-          "diff": -625
-        },
-        {
-          "machine_no": 487,
-          "model": "ハッピージャグラーVIII",
-          "diff": -639
-        },
-        {
-          "machine_no": 488,
-          "model": "ハッピージャグラーVIII",
-          "diff": -667
-        },
-        {
-          "machine_no": 489,
-          "model": "ハッピージャグラーVIII",
-          "diff": -1158
-        },
-        {
-          "machine_no": 490,
-          "model": "ネオアイムジャグラー",
-          "diff": -190
-        },
-        {
-          "machine_no": 491,
-          "model": "ネオアイムジャグラー",
-          "diff": 288
-        },
-        {
-          "machine_no": 492,
-          "model": "ネオアイムジャグラー",
-          "diff": -218
-        },
-        {
-          "machine_no": 493,
-          "model": "ネオアイムジャグラー",
-          "diff": -849
-        },
-        {
-          "machine_no": 494,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1003
-        },
-        {
-          "machine_no": 495,
-          "model": "ゴーゴージャグラー3",
-          "diff": 751
-        },
-        {
-          "machine_no": 496,
-          "model": "ゴーゴージャグラー3",
-          "diff": 49
-        },
-        {
-          "machine_no": 497,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1705
-        },
-        {
-          "machine_no": 498,
-          "model": "ゴーゴージャグラー3",
-          "diff": 246
-        },
-        {
-          "machine_no": 499,
-          "model": "ゴーゴージャグラー3",
-          "diff": 643
-        },
-        {
-          "machine_no": 500,
-          "model": "ゴーゴージャグラー3",
-          "diff": -344
-        },
-        {
-          "machine_no": 501,
-          "model": "ゴーゴージャグラー3",
-          "diff": 709
-        },
-        {
-          "machine_no": 502,
-          "model": "ゴーゴージャグラー3",
-          "diff": -667
-        },
-        {
-          "machine_no": 503,
-          "model": "ジャグラーガールズSS",
-          "diff": -835
-        },
-        {
-          "machine_no": 504,
-          "model": "ジャグラーガールズSS",
-          "diff": -133
-        },
-        {
-          "machine_no": 505,
-          "model": "ジャグラーガールズSS",
-          "diff": -1116
-        },
-        {
-          "machine_no": 506,
-          "model": "ジャグラーガールズSS",
-          "diff": -133
-        },
-        {
-          "machine_no": 507,
-          "model": "ミスタージャグラー",
-          "diff": 2706
-        },
-        {
-          "machine_no": 508,
-          "model": "ミスタージャグラー",
-          "diff": -1172
-        },
-        {
-          "machine_no": 509,
-          "model": "ミスタージャグラー",
-          "diff": -218
-        },
-        {
-          "machine_no": 510,
-          "model": "ゴーゴージャグラー3",
-          "diff": 147
-        },
-        {
-          "machine_no": 511,
-          "model": "ゴーゴージャグラー3",
-          "diff": -849
-        },
-        {
-          "machine_no": 512,
-          "model": "ゴーゴージャグラー3",
-          "diff": 414
-        },
-        {
-          "machine_no": 513,
-          "model": "ゴーゴージャグラー3",
-          "diff": 484
-        },
-        {
-          "machine_no": 514,
-          "model": "ゴーゴージャグラー3",
-          "diff": -204
-        },
-        {
-          "machine_no": 515,
-          "model": "ゴーゴージャグラー3",
-          "diff": 260
-        },
-        {
-          "machine_no": 516,
-          "model": "ゴーゴージャグラー3",
-          "diff": -512
-        },
-        {
-          "machine_no": 517,
-          "model": "ゴーゴージャグラー3",
-          "diff": -386
-        },
-        {
-          "machine_no": 518,
-          "model": "ゴーゴージャグラー3",
-          "diff": -119
-        }
-      ],
-      "エスパス日拓新宿歌舞伎町": [
-        {
-          "machine_no": 601,
-          "model": "マイジャグラーV",
-          "diff": -200
-        },
-        {
-          "machine_no": 602,
-          "model": "マイジャグラーV",
-          "diff": -1700
-        },
-        {
-          "machine_no": 603,
-          "model": "マイジャグラーV",
-          "diff": -1300
-        },
-        {
-          "machine_no": 604,
-          "model": "マイジャグラーV",
-          "diff": -1100
-        },
-        {
-          "machine_no": 605,
-          "model": "マイジャグラーV",
-          "diff": -1200
-        },
-        {
-          "machine_no": 606,
-          "model": "マイジャグラーV",
-          "diff": 2700
-        },
-        {
-          "machine_no": 611,
-          "model": "マイジャグラーV",
-          "diff": 2500
-        },
-        {
-          "machine_no": 612,
-          "model": "マイジャグラーV",
-          "diff": 3100
-        },
-        {
-          "machine_no": 613,
-          "model": "マイジャグラーV",
-          "diff": -600
-        },
-        {
-          "machine_no": 614,
-          "model": "マイジャグラーV",
-          "diff": 2500
-        },
-        {
-          "machine_no": 615,
-          "model": "マイジャグラーV",
-          "diff": 1100
-        },
-        {
-          "machine_no": 616,
-          "model": "マイジャグラーV",
-          "diff": 100
-        },
-        {
-          "machine_no": 617,
-          "model": "マイジャグラーV",
-          "diff": 1600
-        },
-        {
-          "machine_no": 618,
-          "model": "マイジャグラーV",
-          "diff": -700
-        },
-        {
-          "machine_no": 619,
-          "model": "マイジャグラーV",
-          "diff": -2600
-        },
-        {
-          "machine_no": 620,
-          "model": "マイジャグラーV",
-          "diff": 500
-        },
-        {
-          "machine_no": 621,
-          "model": "マイジャグラーV",
-          "diff": 200
-        },
-        {
-          "machine_no": 622,
-          "model": "マイジャグラーV",
-          "diff": -900
-        },
-        {
-          "machine_no": 623,
-          "model": "マイジャグラーV",
-          "diff": 1000
-        },
-        {
-          "machine_no": 624,
-          "model": "マイジャグラーV",
-          "diff": 200
-        },
-        {
-          "machine_no": 625,
-          "model": "マイジャグラーV",
-          "diff": 100
-        },
-        {
-          "machine_no": 626,
-          "model": "マイジャグラーV",
-          "diff": -1000
-        },
-        {
-          "machine_no": 627,
-          "model": "マイジャグラーV",
-          "diff": 1000
-        },
-        {
-          "machine_no": 628,
-          "model": "マイジャグラーV",
-          "diff": 500
-        },
-        {
-          "machine_no": 629,
-          "model": "マイジャグラーV",
-          "diff": 300
-        },
-        {
-          "machine_no": 630,
-          "model": "マイジャグラーV",
-          "diff": 400
-        },
-        {
-          "machine_no": 631,
-          "model": "マイジャグラーV",
-          "diff": 100
-        },
-        {
-          "machine_no": 632,
-          "model": "マイジャグラーV",
-          "diff": 0
-        },
-        {
-          "machine_no": 633,
-          "model": "マイジャグラーV",
-          "diff": 2600
-        },
-        {
-          "machine_no": 634,
-          "model": "マイジャグラーV",
-          "diff": -1300
-        },
-        {
-          "machine_no": 635,
-          "model": "マイジャグラーV",
-          "diff": 3600
-        },
-        {
-          "machine_no": 636,
-          "model": "マイジャグラーV",
-          "diff": 600
-        },
-        {
-          "machine_no": 637,
-          "model": "マイジャグラーV",
-          "diff": -1400
-        },
-        {
-          "machine_no": 732,
-          "model": "マイジャグラーV",
-          "diff": -1400
-        },
-        {
-          "machine_no": 733,
-          "model": "マイジャグラーV",
-          "diff": 400
-        },
-        {
-          "machine_no": 734,
-          "model": "マイジャグラーV",
-          "diff": -600
-        },
-        {
-          "machine_no": 735,
-          "model": "マイジャグラーV",
-          "diff": -1300
-        },
-        {
-          "machine_no": 736,
-          "model": "マイジャグラーV",
-          "diff": -100
-        },
-        {
-          "machine_no": 737,
-          "model": "マイジャグラーV",
-          "diff": -300
-        },
-        {
-          "machine_no": 738,
-          "model": "マイジャグラーV",
-          "diff": 800
-        },
-        {
-          "machine_no": 739,
-          "model": "マイジャグラーV",
-          "diff": -800
-        },
-        {
-          "machine_no": 740,
-          "model": "マイジャグラーV",
-          "diff": 100
-        },
-        {
-          "machine_no": 741,
-          "model": "マイジャグラーV",
-          "diff": -1400
-        },
-        {
-          "machine_no": 742,
-          "model": "マイジャグラーV",
-          "diff": -1600
-        },
-        {
-          "machine_no": 743,
-          "model": "マイジャグラーV",
-          "diff": -2300
-        },
-        {
-          "machine_no": 744,
-          "model": "マイジャグラーV",
-          "diff": 700
-        },
-        {
-          "machine_no": 745,
-          "model": "マイジャグラーV",
-          "diff": 500
-        },
-        {
-          "machine_no": 746,
-          "model": "ファンキージャグラー2",
-          "diff": 500
-        },
-        {
-          "machine_no": 747,
-          "model": "ファンキージャグラー2",
-          "diff": 2400
-        },
-        {
-          "machine_no": 748,
-          "model": "ファンキージャグラー2",
-          "diff": 2100
-        },
-        {
-          "machine_no": 749,
-          "model": "ファンキージャグラー2",
-          "diff": 1700
-        },
-        {
-          "machine_no": 750,
-          "model": "ファンキージャグラー2",
-          "diff": 1800
-        },
-        {
-          "machine_no": 751,
-          "model": "ファンキージャグラー2",
-          "diff": -600
-        },
-        {
-          "machine_no": 752,
-          "model": "ファンキージャグラー2",
-          "diff": -600
-        },
-        {
-          "machine_no": 753,
-          "model": "ファンキージャグラー2",
-          "diff": 1500
-        },
-        {
-          "machine_no": 754,
-          "model": "ファンキージャグラー2",
-          "diff": 500
-        },
-        {
-          "machine_no": 755,
-          "model": "ファンキージャグラー2",
-          "diff": 1900
-        },
-        {
-          "machine_no": 756,
-          "model": "ファンキージャグラー2",
-          "diff": 900
-        },
-        {
-          "machine_no": 757,
-          "model": "ファンキージャグラー2",
-          "diff": 2400
-        },
-        {
-          "machine_no": 758,
-          "model": "ファンキージャグラー2",
-          "diff": -200
-        },
-        {
-          "machine_no": 759,
-          "model": "ファンキージャグラー2",
-          "diff": -200
-        },
-        {
-          "machine_no": 760,
-          "model": "ファンキージャグラー2",
-          "diff": 500
-        },
-        {
-          "machine_no": 761,
-          "model": "ファンキージャグラー2",
-          "diff": 1600
-        },
-        {
-          "machine_no": 762,
-          "model": "ファンキージャグラー2",
-          "diff": -1600
-        },
-        {
-          "machine_no": 763,
-          "model": "ファンキージャグラー2",
-          "diff": -1000
-        },
-        {
-          "machine_no": 764,
-          "model": "マイジャグラーV",
-          "diff": -800
-        },
-        {
-          "machine_no": 765,
-          "model": "マイジャグラーV",
-          "diff": -500
-        },
-        {
-          "machine_no": 766,
-          "model": "マイジャグラーV",
-          "diff": 700
-        },
-        {
-          "machine_no": 767,
-          "model": "マイジャグラーV",
-          "diff": 2800
-        },
-        {
-          "machine_no": 768,
-          "model": "マイジャグラーV",
-          "diff": 100
-        },
-        {
-          "machine_no": 769,
-          "model": "マイジャグラーV",
-          "diff": -2100
-        },
-        {
-          "machine_no": 770,
-          "model": "マイジャグラーV",
-          "diff": 1800
-        },
-        {
-          "machine_no": 771,
-          "model": "マイジャグラーV",
-          "diff": -1600
-        },
-        {
-          "machine_no": 772,
-          "model": "ファンキージャグラー2",
-          "diff": -2700
-        },
-        {
-          "machine_no": 1001,
-          "model": "マイジャグラーV",
-          "diff": 0
-        },
-        {
-          "machine_no": 1002,
-          "model": "マイジャグラーV",
-          "diff": -100
-        },
-        {
-          "machine_no": 1003,
-          "model": "マイジャグラーV",
-          "diff": -1300
-        },
-        {
-          "machine_no": 1004,
-          "model": "マイジャグラーV",
-          "diff": -500
-        },
-        {
-          "machine_no": 1005,
-          "model": "マイジャグラーV",
-          "diff": 3900
-        },
-        {
-          "machine_no": 1006,
-          "model": "マイジャグラーV",
-          "diff": 700
-        },
-        {
-          "machine_no": 1007,
-          "model": "マイジャグラーV",
-          "diff": 0
-        },
-        {
-          "machine_no": 1008,
-          "model": "マイジャグラーV",
-          "diff": -1100
-        },
-        {
-          "machine_no": 1009,
-          "model": "マイジャグラーV",
-          "diff": -2300
-        },
-        {
-          "machine_no": 1010,
-          "model": "マイジャグラーV",
-          "diff": 200
-        },
-        {
-          "machine_no": 1011,
-          "model": "マイジャグラーV",
-          "diff": 600
-        },
-        {
-          "machine_no": 1012,
-          "model": "マイジャグラーV",
-          "diff": 300
-        },
-        {
-          "machine_no": 1013,
-          "model": "マイジャグラーV",
-          "diff": 900
-        },
-        {
-          "machine_no": 1014,
-          "model": "マイジャグラーV",
-          "diff": -2300
-        },
-        {
-          "machine_no": 1016,
-          "model": "マイジャグラーV",
-          "diff": -200
-        },
-        {
-          "machine_no": 1017,
-          "model": "マイジャグラーV",
-          "diff": 4400
-        },
-        {
-          "machine_no": 1018,
-          "model": "マイジャグラーV",
-          "diff": 2100
-        },
-        {
-          "machine_no": 1019,
-          "model": "マイジャグラーV",
-          "diff": -2400
-        },
-        {
-          "machine_no": 1020,
-          "model": "マイジャグラーV",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1021,
-          "model": "マイジャグラーV",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1022,
-          "model": "マイジャグラーV",
-          "diff": 3500
-        },
-        {
-          "machine_no": 1023,
-          "model": "マイジャグラーV",
-          "diff": 1200
-        },
-        {
-          "machine_no": 1024,
-          "model": "マイジャグラーV",
-          "diff": 200
-        },
-        {
-          "machine_no": 1025,
-          "model": "マイジャグラーV",
-          "diff": 0
-        },
-        {
-          "machine_no": 1026,
-          "model": "マイジャグラーV",
-          "diff": 1500
-        },
-        {
-          "machine_no": 1027,
-          "model": "マイジャグラーV",
-          "diff": 200
-        },
-        {
-          "machine_no": 1028,
-          "model": "マイジャグラーV",
-          "diff": 200
-        },
-        {
-          "machine_no": 1029,
-          "model": "マイジャグラーV",
-          "diff": -900
-        },
-        {
-          "machine_no": 1030,
-          "model": "マイジャグラーV",
-          "diff": -400
-        },
-        {
-          "machine_no": 1031,
-          "model": "マイジャグラーV",
-          "diff": -2100
-        },
-        {
-          "machine_no": 1032,
-          "model": "マイジャグラーV",
-          "diff": -800
-        },
-        {
-          "machine_no": 1033,
-          "model": "マイジャグラーV",
-          "diff": 2500
-        },
-        {
-          "machine_no": 1034,
-          "model": "マイジャグラーV",
-          "diff": -200
-        },
-        {
-          "machine_no": 1035,
-          "model": "マイジャグラーV",
-          "diff": 1000
-        },
-        {
-          "machine_no": 1036,
-          "model": "マイジャグラーV",
-          "diff": -900
-        },
-        {
-          "machine_no": 1037,
-          "model": "マイジャグラーV",
-          "diff": 2600
-        },
-        {
-          "machine_no": 1038,
-          "model": "マイジャグラーV",
-          "diff": -1300
-        },
-        {
-          "machine_no": 1039,
-          "model": "マイジャグラーV",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1040,
-          "model": "ミスタージャグラー",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1041,
-          "model": "ミスタージャグラー",
-          "diff": -300
-        },
-        {
-          "machine_no": 1042,
-          "model": "ミスタージャグラー",
-          "diff": 400
-        },
-        {
-          "machine_no": 1043,
-          "model": "ミスタージャグラー",
-          "diff": -700
-        },
-        {
-          "machine_no": 1044,
-          "model": "ミスタージャグラー",
-          "diff": 1700
-        },
-        {
-          "machine_no": 1045,
-          "model": "ミスタージャグラー",
-          "diff": -700
-        },
-        {
-          "machine_no": 1046,
-          "model": "マイジャグラーV",
-          "diff": 600
-        },
-        {
-          "machine_no": 1047,
-          "model": "マイジャグラーV",
-          "diff": -400
-        },
-        {
-          "machine_no": 1048,
-          "model": "マイジャグラーV",
-          "diff": -900
-        },
-        {
-          "machine_no": 1049,
-          "model": "マイジャグラーV",
-          "diff": 700
-        },
-        {
-          "machine_no": 1050,
-          "model": "マイジャグラーV",
-          "diff": -300
-        },
-        {
-          "machine_no": 1051,
-          "model": "マイジャグラーV",
-          "diff": -2100
-        },
-        {
-          "machine_no": 1052,
-          "model": "マイジャグラーV",
-          "diff": 1400
-        },
-        {
-          "machine_no": 1053,
-          "model": "ゴーゴージャグラー3",
-          "diff": -700
-        },
-        {
-          "machine_no": 1054,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1055,
-          "model": "ゴーゴージャグラー3",
-          "diff": 400
-        },
-        {
-          "machine_no": 1056,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1300
-        },
-        {
-          "machine_no": 1057,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1000
-        },
-        {
-          "machine_no": 1058,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": 1900
-        },
-        {
-          "machine_no": 1059,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": -500
-        },
-        {
-          "machine_no": 1060,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": -1200
-        },
-        {
-          "machine_no": 1061,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": -2000
-        },
-        {
-          "machine_no": 1062,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": -400
-        },
-        {
-          "machine_no": 1063,
-          "model": "ネオアイムジャグラー",
-          "diff": -2500
-        },
-        {
-          "machine_no": 1064,
-          "model": "ネオアイムジャグラー",
-          "diff": -800
-        },
-        {
-          "machine_no": 1065,
-          "model": "ネオアイムジャグラー",
-          "diff": -1600
-        },
-        {
-          "machine_no": 1066,
-          "model": "ネオアイムジャグラー",
-          "diff": 5100
-        },
-        {
-          "machine_no": 1067,
-          "model": "ネオアイムジャグラー",
-          "diff": 1100
-        },
-        {
-          "machine_no": 1068,
-          "model": "ネオアイムジャグラー",
-          "diff": -1200
-        },
-        {
-          "machine_no": 1069,
-          "model": "ネオアイムジャグラー",
-          "diff": -2600
-        },
-        {
-          "machine_no": 1071,
-          "model": "ネオアイムジャグラー",
-          "diff": 2600
-        },
-        {
-          "machine_no": 1072,
-          "model": "ネオアイムジャグラー",
-          "diff": 1100
-        },
-        {
-          "machine_no": 1073,
-          "model": "ネオアイムジャグラー",
-          "diff": 1700
-        },
-        {
-          "machine_no": 1074,
-          "model": "ネオアイムジャグラー",
-          "diff": 700
-        },
-        {
-          "machine_no": 1075,
-          "model": "ネオアイムジャグラー",
-          "diff": -1100
-        },
-        {
-          "machine_no": 1076,
-          "model": "ネオアイムジャグラー",
-          "diff": -500
-        },
-        {
-          "machine_no": 1077,
-          "model": "ネオアイムジャグラー",
-          "diff": -2100
-        },
-        {
-          "machine_no": 1078,
-          "model": "ネオアイムジャグラー",
-          "diff": 1400
-        },
-        {
-          "machine_no": 1079,
-          "model": "ネオアイムジャグラー",
-          "diff": 1400
-        },
-        {
-          "machine_no": 1080,
-          "model": "ネオアイムジャグラー",
-          "diff": -1200
-        },
-        {
-          "machine_no": 1081,
-          "model": "ネオアイムジャグラー",
-          "diff": 0
-        },
-        {
-          "machine_no": 1082,
-          "model": "ネオアイムジャグラー",
-          "diff": -300
-        },
-        {
-          "machine_no": 1084,
-          "model": "ネオアイムジャグラー",
-          "diff": 1500
-        },
-        {
-          "machine_no": 1085,
-          "model": "ネオアイムジャグラー",
-          "diff": -2100
-        },
-        {
-          "machine_no": 1086,
-          "model": "ネオアイムジャグラー",
-          "diff": 1800
-        },
-        {
-          "machine_no": 1087,
-          "model": "ネオアイムジャグラー",
-          "diff": -700
-        },
-        {
-          "machine_no": 1088,
-          "model": "ネオアイムジャグラー",
-          "diff": 1400
-        },
-        {
-          "machine_no": 1089,
-          "model": "ネオアイムジャグラー",
-          "diff": 500
-        },
-        {
-          "machine_no": 1090,
-          "model": "ネオアイムジャグラー",
-          "diff": 300
-        },
-        {
-          "machine_no": 1091,
-          "model": "ネオアイムジャグラー",
-          "diff": -1200
-        },
-        {
-          "machine_no": 1092,
-          "model": "ネオアイムジャグラー",
-          "diff": -2400
-        },
-        {
-          "machine_no": 1093,
-          "model": "ネオアイムジャグラー",
-          "diff": 0
-        },
-        {
-          "machine_no": 1094,
-          "model": "ネオアイムジャグラー",
-          "diff": 1000
-        },
-        {
-          "machine_no": 1095,
-          "model": "ネオアイムジャグラー",
-          "diff": -600
-        },
-        {
-          "machine_no": 1096,
-          "model": "ネオアイムジャグラー",
-          "diff": -200
-        },
-        {
-          "machine_no": 1097,
-          "model": "ネオアイムジャグラー",
-          "diff": 1000
-        },
-        {
-          "machine_no": 1098,
-          "model": "ネオアイムジャグラー",
-          "diff": 1500
-        },
-        {
-          "machine_no": 1099,
-          "model": "ネオアイムジャグラー",
-          "diff": 500
-        },
-        {
-          "machine_no": 1100,
-          "model": "ネオアイムジャグラー",
-          "diff": -400
-        },
-        {
-          "machine_no": 1101,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1100
-        },
-        {
-          "machine_no": 1102,
-          "model": "ゴーゴージャグラー3",
-          "diff": -600
-        },
-        {
-          "machine_no": 1103,
-          "model": "ゴーゴージャグラー3",
-          "diff": 400
-        },
-        {
-          "machine_no": 1104,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1700
-        },
-        {
-          "machine_no": 1105,
-          "model": "ゴーゴージャグラー3",
-          "diff": -3100
-        },
-        {
-          "machine_no": 1106,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1000
-        },
-        {
-          "machine_no": 1107,
-          "model": "ゴーゴージャグラー3",
-          "diff": 700
-        },
-        {
-          "machine_no": 1108,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1109,
-          "model": "ゴーゴージャグラー3",
-          "diff": 0
-        },
-        {
-          "machine_no": 1110,
-          "model": "ゴーゴージャグラー3",
-          "diff": 3600
-        },
-        {
-          "machine_no": 1111,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1200
-        },
-        {
-          "machine_no": 1112,
-          "model": "ゴーゴージャグラー3",
-          "diff": 700
-        },
-        {
-          "machine_no": 1113,
-          "model": "ゴーゴージャグラー3",
-          "diff": 2100
-        },
-        {
-          "machine_no": 1114,
-          "model": "ゴーゴージャグラー3",
-          "diff": -100
-        },
-        {
-          "machine_no": 1115,
-          "model": "ゴーゴージャグラー3",
-          "diff": -600
-        },
-        {
-          "machine_no": 1116,
-          "model": "ゴーゴージャグラー3",
-          "diff": 300
-        },
-        {
-          "machine_no": 1117,
-          "model": "ゴーゴージャグラー3",
-          "diff": 2700
-        },
-        {
-          "machine_no": 1118,
-          "model": "ゴーゴージャグラー3",
-          "diff": 100
-        },
-        {
-          "machine_no": 1119,
-          "model": "ゴーゴージャグラー3",
-          "diff": -2300
-        },
-        {
-          "machine_no": 1120,
-          "model": "ゴーゴージャグラー3",
-          "diff": -2500
-        },
-        {
-          "machine_no": 1121,
-          "model": "ゴーゴージャグラー3",
-          "diff": 700
-        },
-        {
-          "machine_no": 1122,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1500
-        },
-        {
-          "machine_no": 1123,
-          "model": "ゴーゴージャグラー3",
-          "diff": 800
-        },
-        {
-          "machine_no": 1124,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1125,
-          "model": "マイジャグラーV",
-          "diff": 500
-        },
-        {
-          "machine_no": 1126,
-          "model": "マイジャグラーV",
-          "diff": -100
-        },
-        {
-          "machine_no": 1127,
-          "model": "マイジャグラーV",
-          "diff": -900
-        },
-        {
-          "machine_no": 1128,
-          "model": "マイジャグラーV",
-          "diff": -600
-        },
-        {
-          "machine_no": 1129,
-          "model": "マイジャグラーV",
-          "diff": -2400
-        },
-        {
-          "machine_no": 1130,
-          "model": "マイジャグラーV",
-          "diff": -600
-        },
-        {
-          "machine_no": 1131,
-          "model": "マイジャグラーV",
-          "diff": -600
-        },
-        {
-          "machine_no": 1132,
-          "model": "マイジャグラーV",
-          "diff": 0
-        },
-        {
-          "machine_no": 1133,
-          "model": "マイジャグラーV",
-          "diff": 1800
-        },
-        {
-          "machine_no": 1134,
-          "model": "マイジャグラーV",
-          "diff": -600
-        },
-        {
-          "machine_no": 1135,
-          "model": "マイジャグラーV",
-          "diff": -1600
-        },
-        {
-          "machine_no": 1136,
-          "model": "ハッピージャグラーVIII",
-          "diff": 1300
-        },
-        {
-          "machine_no": 1137,
-          "model": "ハッピージャグラーVIII",
-          "diff": 1100
-        },
-        {
-          "machine_no": 1138,
-          "model": "ハッピージャグラーVIII",
-          "diff": -1100
-        },
-        {
-          "machine_no": 1139,
-          "model": "ハッピージャグラーVIII",
-          "diff": 1200
-        },
-        {
-          "machine_no": 1140,
-          "model": "ハッピージャグラーVIII",
-          "diff": 200
-        },
-        {
-          "machine_no": 1141,
-          "model": "ハッピージャグラーVIII",
-          "diff": 1200
-        },
-        {
-          "machine_no": 1142,
-          "model": "ハッピージャグラーVIII",
-          "diff": 900
-        },
-        {
-          "machine_no": 1143,
-          "model": "ジャグラーガールズSS",
-          "diff": -1100
-        },
-        {
-          "machine_no": 1144,
-          "model": "ジャグラーガールズSS",
-          "diff": 1800
-        },
-        {
-          "machine_no": 1145,
-          "model": "ジャグラーガールズSS",
-          "diff": -1200
-        },
-        {
-          "machine_no": 1146,
-          "model": "ジャグラーガールズSS",
-          "diff": -400
-        },
-        {
-          "machine_no": 1147,
-          "model": "ジャグラーガールズSS",
-          "diff": 2300
-        },
-        {
-          "machine_no": 1148,
-          "model": "ジャグラーガールズSS",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1149,
-          "model": "ジャグラーガールズSS",
-          "diff": 900
-        },
-        {
-          "machine_no": 1150,
-          "model": "ファンキージャグラー2",
-          "diff": 2300
-        },
-        {
-          "machine_no": 1151,
-          "model": "ファンキージャグラー2",
-          "diff": 1400
-        },
-        {
-          "machine_no": 1152,
-          "model": "ファンキージャグラー2",
-          "diff": 100
-        },
-        {
-          "machine_no": 1153,
-          "model": "ファンキージャグラー2",
-          "diff": -200
-        },
-        {
-          "machine_no": 1154,
-          "model": "ファンキージャグラー2",
-          "diff": -2000
-        },
-        {
-          "machine_no": 1155,
-          "model": "ファンキージャグラー2",
-          "diff": 2800
-        },
-        {
-          "machine_no": 1156,
-          "model": "ファンキージャグラー2",
-          "diff": 1400
-        },
-        {
-          "machine_no": 1157,
-          "model": "ファンキージャグラー2",
-          "diff": 200
-        },
-        {
-          "machine_no": 1158,
-          "model": "ファンキージャグラー2",
-          "diff": 700
-        },
-        {
-          "machine_no": 1159,
-          "model": "ファンキージャグラー2",
-          "diff": -300
-        },
-        {
-          "machine_no": 1160,
-          "model": "ファンキージャグラー2",
-          "diff": -2100
-        },
-        {
-          "machine_no": 1161,
-          "model": "ファンキージャグラー2",
-          "diff": 100
-        },
-        {
-          "machine_no": 1162,
-          "model": "ファンキージャグラー2",
-          "diff": -300
-        },
-        {
-          "machine_no": 1163,
-          "model": "ファンキージャグラー2",
-          "diff": 1200
-        },
-        {
-          "machine_no": 1164,
-          "model": "ファンキージャグラー2",
-          "diff": -100
-        },
-        {
-          "machine_no": 1165,
-          "model": "ファンキージャグラー2",
-          "diff": 1300
-        },
-        {
-          "machine_no": 1166,
-          "model": "ジャグラーガールズSS",
-          "diff": 100
-        },
-        {
-          "machine_no": 1167,
-          "model": "ジャグラーガールズSS",
-          "diff": 600
-        },
-        {
-          "machine_no": 1168,
-          "model": "ジャグラーガールズSS",
-          "diff": -1700
-        },
-        {
-          "machine_no": 1169,
-          "model": "ジャグラーガールズSS",
-          "diff": 1500
-        },
-        {
-          "machine_no": 1170,
-          "model": "ネオアイムジャグラー",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1171,
-          "model": "ファンキージャグラー2",
-          "diff": -2100
-        },
-        {
-          "machine_no": 1378,
-          "model": "新ハナビ",
-          "diff": 1000
-        },
-        {
-          "machine_no": 1379,
-          "model": "新ハナビ",
-          "diff": 0
-        },
-        {
-          "machine_no": 1380,
-          "model": "スマスロハナビ",
-          "diff": -200
-        },
-        {
-          "machine_no": 1381,
-          "model": "スマスロハナビ",
-          "diff": 700
-        },
-        {
-          "machine_no": 1382,
-          "model": "スマスロハナビ",
-          "diff": -100
-        },
-        {
-          "machine_no": 1383,
-          "model": "スマスロハナビ",
-          "diff": 600
-        },
-        {
-          "machine_no": 1384,
-          "model": "スマスロハナビ",
-          "diff": 300
-        }
-      ],
-      "中山ZoRoN": [
-        {
-          "machine_no": 601,
-          "model": "ハッピージャグラーVIII",
-          "diff": -793
-        },
-        {
-          "machine_no": 602,
-          "model": "ハッピージャグラーVIII",
-          "diff": 751
-        },
-        {
-          "machine_no": 603,
-          "model": "ハッピージャグラーVIII",
-          "diff": -372
-        },
-        {
-          "machine_no": 604,
-          "model": "ハッピージャグラーVIII",
-          "diff": 274
-        },
-        {
-          "machine_no": 605,
-          "model": "ハッピージャグラーVIII",
-          "diff": 807
-        },
-        {
-          "machine_no": 606,
-          "model": "ハッピージャグラーVIII",
-          "diff": 2706
-        },
-        {
-          "machine_no": 607,
-          "model": "新ハナビ",
-          "diff": -1004
-        },
-        {
-          "machine_no": 608,
-          "model": "新ハナビ",
-          "diff": 1677
-        },
-        {
-          "machine_no": 609,
-          "model": "クランキークレスト",
-          "diff": 2558
-        },
-        {
-          "machine_no": 610,
-          "model": "クランキークレスト",
-          "diff": -821
-        },
-        {
-          "machine_no": 611,
-          "model": "クランキークレスト",
-          "diff": -274
-        },
-        {
-          "machine_no": 747,
-          "model": "スマスロハナビ",
-          "diff": 807
-        },
-        {
-          "machine_no": 748,
-          "model": "スマスロハナビ",
-          "diff": 400
-        },
-        {
-          "machine_no": 749,
-          "model": "スマスロハナビ",
-          "diff": 625
-        },
-        {
-          "machine_no": 750,
-          "model": "スマスロハナビ",
-          "diff": -1270
-        },
-        {
-          "machine_no": 754,
-          "model": "バーサスリヴァイズ",
-          "diff": -470
-        },
-        {
-          "machine_no": 755,
-          "model": "バーサスリヴァイズ",
-          "diff": -540
-        },
-        {
-          "machine_no": 756,
-          "model": "バーサスリヴァイズ",
-          "diff": 526
-        },
-        {
-          "machine_no": 757,
-          "model": "バーサスリヴァイズ",
-          "diff": 793
-        },
-        {
-          "machine_no": 758,
-          "model": "ジャグラーガールズSS",
-          "diff": -119
-        },
-        {
-          "machine_no": 759,
-          "model": "ジャグラーガールズSS",
-          "diff": -975
-        },
-        {
-          "machine_no": 760,
-          "model": "ジャグラーガールズSS",
-          "diff": -1800
-        },
-        {
-          "machine_no": 761,
-          "model": "ファンキージャグラー2",
-          "diff": 470
-        },
-        {
-          "machine_no": 762,
-          "model": "ファンキージャグラー2",
-          "diff": 1074
-        },
-        {
-          "machine_no": 763,
-          "model": "ファンキージャグラー2",
-          "diff": 639
-        },
-        {
-          "machine_no": 764,
-          "model": "ファンキージャグラー2",
-          "diff": 498
-        },
-        {
-          "machine_no": 765,
-          "model": "ファンキージャグラー2",
-          "diff": -344
-        },
-        {
-          "machine_no": 766,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1677
-        },
-        {
-          "machine_no": 767,
-          "model": "ゴーゴージャグラー3",
-          "diff": -807
-        },
-        {
-          "machine_no": 768,
-          "model": "ゴーゴージャグラー3",
-          "diff": -540
-        },
-        {
-          "machine_no": 769,
-          "model": "ゴーゴージャグラー3",
-          "diff": -358
-        },
-        {
-          "machine_no": 770,
-          "model": "ゴーゴージャグラー3",
-          "diff": -751
-        },
-        {
-          "machine_no": 771,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1551
-        },
-        {
-          "machine_no": 772,
-          "model": "ゴーゴージャグラー3",
-          "diff": -42
-        },
-        {
-          "machine_no": 773,
-          "model": "ネオアイムジャグラー",
-          "diff": -42
-        },
-        {
-          "machine_no": 774,
-          "model": "ネオアイムジャグラー",
-          "diff": -70
-        },
-        {
-          "machine_no": 775,
-          "model": "ネオアイムジャグラー",
-          "diff": -540
-        },
-        {
-          "machine_no": 776,
-          "model": "ネオアイムジャグラー",
-          "diff": -161
-        },
-        {
-          "machine_no": 777,
-          "model": "ネオアイムジャグラー",
-          "diff": 302
-        },
-        {
-          "machine_no": 778,
-          "model": "ネオアイムジャグラー",
-          "diff": -667
-        },
-        {
-          "machine_no": 779,
-          "model": "ネオアイムジャグラー",
-          "diff": 2958
-        },
-        {
-          "machine_no": 780,
-          "model": "ネオアイムジャグラー",
-          "diff": -288
-        },
-        {
-          "machine_no": 781,
-          "model": "ネオアイムジャグラー",
-          "diff": 582
-        },
-        {
-          "machine_no": 782,
-          "model": "ネオアイムジャグラー",
-          "diff": 77
-        },
-        {
-          "machine_no": 783,
-          "model": "ネオアイムジャグラー",
-          "diff": -695
-        },
-        {
-          "machine_no": 784,
-          "model": "ネオアイムジャグラー",
-          "diff": -990
-        },
-        {
-          "machine_no": 785,
-          "model": "ネオアイムジャグラー",
-          "diff": 2748
-        },
-        {
-          "machine_no": 786,
-          "model": "ネオアイムジャグラー",
-          "diff": -358
-        },
-        {
-          "machine_no": 787,
-          "model": "ネオアイムジャグラー",
-          "diff": 1368
-        },
-        {
-          "machine_no": 788,
-          "model": "ネオアイムジャグラー",
-          "diff": 863
-        },
-        {
-          "machine_no": 789,
-          "model": "ネオアイムジャグラー",
-          "diff": -274
-        },
-        {
-          "machine_no": 790,
-          "model": "ネオアイムジャグラー",
-          "diff": -597
-        },
-        {
-          "machine_no": 791,
-          "model": "ネオアイムジャグラー",
-          "diff": 1439
-        },
-        {
-          "machine_no": 792,
-          "model": "ネオアイムジャグラー",
-          "diff": -1425
-        },
-        {
-          "machine_no": 793,
-          "model": "マイジャグラーV",
-          "diff": -695
-        },
-        {
-          "machine_no": 794,
-          "model": "マイジャグラーV",
-          "diff": 35
-        },
-        {
-          "machine_no": 795,
-          "model": "マイジャグラーV",
-          "diff": -568
-        },
-        {
-          "machine_no": 796,
-          "model": "マイジャグラーV",
-          "diff": -1242
-        },
-        {
-          "machine_no": 797,
-          "model": "マイジャグラーV",
-          "diff": 2216
-        },
-        {
-          "machine_no": 798,
-          "model": "マイジャグラーV",
-          "diff": 2558
-        },
-        {
-          "machine_no": 799,
-          "model": "マイジャグラーV",
-          "diff": -91
-        },
-        {
-          "machine_no": 800,
-          "model": "マイジャグラーV",
-          "diff": -2052
-        }
-      ],
-      "ギンザホール707": [
-        {
-          "machine_no": 328,
-          "model": "クランキークレスト",
-          "diff": 149
-        },
-        {
-          "machine_no": 331,
-          "model": "ネオアイムジャグラー",
-          "diff": 1647
-        },
-        {
-          "machine_no": 332,
-          "model": "ネオアイムジャグラー",
-          "diff": 84
-        },
-        {
-          "machine_no": 333,
-          "model": "ネオアイムジャグラー",
-          "diff": 794
-        },
-        {
-          "machine_no": 334,
-          "model": "ネオアイムジャグラー",
-          "diff": -726
-        },
-        {
-          "machine_no": 335,
-          "model": "ネオアイムジャグラー",
-          "diff": 2023
-        },
-        {
-          "machine_no": 336,
-          "model": "ネオアイムジャグラー",
-          "diff": 250
-        },
-        {
-          "machine_no": 337,
-          "model": "ネオアイムジャグラー",
-          "diff": -521
-        },
-        {
-          "machine_no": 338,
-          "model": "ネオアイムジャグラー",
-          "diff": 2039
-        },
-        {
-          "machine_no": 339,
-          "model": "ネオアイムジャグラー",
-          "diff": -1052
-        },
-        {
-          "machine_no": 344,
-          "model": "スマスロハナビ",
-          "diff": -2154
-        },
-        {
-          "machine_no": 361,
-          "model": "ジャグラーガールズSS",
-          "diff": -136
-        },
-        {
-          "machine_no": 362,
-          "model": "ジャグラーガールズSS",
-          "diff": 1489
-        },
-        {
-          "machine_no": 363,
-          "model": "ジャグラーガールズSS",
-          "diff": -1124
-        },
-        {
-          "machine_no": 364,
-          "model": "ジャグラーガールズSS",
-          "diff": -698
-        },
-        {
-          "machine_no": 365,
-          "model": "ジャグラーガールズSS",
-          "diff": -772
-        },
-        {
-          "machine_no": 366,
-          "model": "ジャグラーガールズSS",
-          "diff": 2689
-        },
-        {
-          "machine_no": 367,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1621
-        },
-        {
-          "machine_no": 368,
-          "model": "ゴーゴージャグラー3",
-          "diff": -998
-        },
-        {
-          "machine_no": 369,
-          "model": "ゴーゴージャグラー3",
-          "diff": -410
-        },
-        {
-          "machine_no": 370,
-          "model": "ゴーゴージャグラー3",
-          "diff": -499
-        },
-        {
-          "machine_no": 371,
-          "model": "ゴーゴージャグラー3",
-          "diff": 897
-        },
-        {
-          "machine_no": 372,
-          "model": "ゴーゴージャグラー3",
-          "diff": 2243
-        },
-        {
-          "machine_no": 373,
-          "model": "ファンキージャグラー2",
-          "diff": -553
-        },
-        {
-          "machine_no": 374,
-          "model": "ファンキージャグラー2",
-          "diff": -1869
-        },
-        {
-          "machine_no": 375,
-          "model": "ファンキージャグラー2",
-          "diff": 291
-        },
-        {
-          "machine_no": 376,
-          "model": "ファンキージャグラー2",
-          "diff": 197
-        },
-        {
-          "machine_no": 377,
-          "model": "ファンキージャグラー2",
-          "diff": 642
-        },
-        {
-          "machine_no": 378,
-          "model": "ミスタージャグラー",
-          "diff": -355
-        },
-        {
-          "machine_no": 379,
-          "model": "ミスタージャグラー",
-          "diff": 2231
-        },
-        {
-          "machine_no": 380,
-          "model": "ミスタージャグラー",
-          "diff": -1241
-        },
-        {
-          "machine_no": 381,
-          "model": "ミスタージャグラー",
-          "diff": -1002
-        },
-        {
-          "machine_no": 382,
-          "model": "マイジャグラーV",
-          "diff": -1749
-        },
-        {
-          "machine_no": 383,
-          "model": "マイジャグラーV",
-          "diff": 500
-        },
-        {
-          "machine_no": 384,
-          "model": "マイジャグラーV",
-          "diff": 2033
-        },
-        {
-          "machine_no": 385,
-          "model": "マイジャグラーV",
-          "diff": -502
-        },
-        {
-          "machine_no": 386,
-          "model": "マイジャグラーV",
-          "diff": -1567
-        },
-        {
-          "machine_no": 387,
-          "model": "マイジャグラーV",
-          "diff": -18
-        },
-        {
-          "machine_no": 388,
-          "model": "マイジャグラーV",
-          "diff": 1785
-        },
-        {
-          "machine_no": 389,
-          "model": "マイジャグラーV",
-          "diff": -1778
-        },
-        {
-          "machine_no": 390,
-          "model": "マイジャグラーV",
-          "diff": 815
-        },
-        {
-          "machine_no": 391,
-          "model": "マイジャグラーV",
-          "diff": -553
-        },
-        {
-          "machine_no": 392,
-          "model": "マイジャグラーV",
-          "diff": -563
-        },
-        {
-          "machine_no": 393,
-          "model": "ハッピージャグラーVIII",
-          "diff": 685
-        },
-        {
-          "machine_no": 394,
-          "model": "ハッピージャグラーVIII",
-          "diff": -1448
-        },
-        {
-          "machine_no": 395,
-          "model": "ハッピージャグラーVIII",
-          "diff": 1899
-        },
-        {
-          "machine_no": 396,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": -1408
-        },
-        {
-          "machine_no": 397,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": -1272
-        },
-        {
-          "machine_no": 398,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": 2150
-        },
-        {
-          "machine_no": 399,
-          "model": "ファンキージャグラー2",
-          "diff": 2024
-        },
-        {
-          "machine_no": 400,
-          "model": "ファンキージャグラー2",
-          "diff": -440
-        },
-        {
-          "machine_no": 401,
-          "model": "ファンキージャグラー2",
-          "diff": 1380
-        },
-        {
-          "machine_no": 402,
-          "model": "ファンキージャグラー2",
-          "diff": 632
-        },
-        {
-          "machine_no": 403,
-          "model": "ゴーゴージャグラー3",
-          "diff": -666
-        },
-        {
-          "machine_no": 404,
-          "model": "ゴーゴージャグラー3",
-          "diff": 319
-        },
-        {
-          "machine_no": 405,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1794
-        },
-        {
-          "machine_no": 406,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1564
-        },
-        {
-          "machine_no": 407,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1301
-        },
-        {
-          "machine_no": 408,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1122
-        }
-      ],
-      "ジアスセンター南": [
-        {
-          "machine_no": 395,
-          "model": "スマスロハナビ",
-          "diff": 1707
-        },
-        {
-          "machine_no": 396,
-          "model": "スマスロハナビ",
-          "diff": -234
-        },
-        {
-          "machine_no": 468,
-          "model": "ゴーゴージャグラー3",
-          "diff": 84
-        },
-        {
-          "machine_no": 469,
-          "model": "ゴーゴージャグラー3",
-          "diff": 161
-        },
-        {
-          "machine_no": 470,
-          "model": "ゴーゴージャグラー3",
-          "diff": -553
-        },
-        {
-          "machine_no": 471,
-          "model": "ゴーゴージャグラー3",
-          "diff": 405
-        },
-        {
-          "machine_no": 472,
-          "model": "ゴーゴージャグラー3",
-          "diff": 149
-        },
-        {
-          "machine_no": 473,
-          "model": "ゴーゴージャグラー3",
-          "diff": 709
-        },
-        {
-          "machine_no": 474,
-          "model": "ゴーゴージャグラー3",
-          "diff": 2432
-        },
-        {
-          "machine_no": 475,
-          "model": "ゴーゴージャグラー3",
-          "diff": 452
-        },
-        {
-          "machine_no": 476,
-          "model": "ゴーゴージャグラー3",
-          "diff": -492
-        },
-        {
-          "machine_no": 477,
-          "model": "ゴーゴージャグラー3",
-          "diff": -1700
-        },
-        {
-          "machine_no": 478,
-          "model": "ゴーゴージャグラー3",
-          "diff": -917
-        },
-        {
-          "machine_no": 479,
-          "model": "ゴーゴージャグラー3",
-          "diff": -365
-        },
-        {
-          "machine_no": 480,
-          "model": "ゴーゴージャグラー3",
-          "diff": -770
-        },
-        {
-          "machine_no": 481,
-          "model": "ゴーゴージャグラー3",
-          "diff": -15
-        },
-        {
-          "machine_no": 482,
-          "model": "ゴーゴージャグラー3",
-          "diff": 1578
-        },
-        {
-          "machine_no": 483,
-          "model": "ゴーゴージャグラー3",
-          "diff": -84
-        },
-        {
-          "machine_no": 484,
-          "model": "ゴーゴージャグラー3",
-          "diff": -683
-        },
-        {
-          "machine_no": 485,
-          "model": "ゴーゴージャグラー3",
-          "diff": 281
-        },
-        {
-          "machine_no": 486,
-          "model": "ミスタージャグラー",
-          "diff": -537
-        },
-        {
-          "machine_no": 487,
-          "model": "ファンキージャグラー2",
-          "diff": 90
-        },
-        {
-          "machine_no": 488,
-          "model": "ファンキージャグラー2",
-          "diff": -682
-        },
-        {
-          "machine_no": 489,
-          "model": "ファンキージャグラー2",
-          "diff": -845
-        },
-        {
-          "machine_no": 490,
-          "model": "ハッピージャグラーVIII",
-          "diff": -295
-        },
-        {
-          "machine_no": 491,
-          "model": "ハッピージャグラーVIII",
-          "diff": -283
-        },
-        {
-          "machine_no": 492,
-          "model": "ハッピージャグラーVIII",
-          "diff": 104
-        },
-        {
-          "machine_no": 493,
-          "model": "ハッピージャグラーVIII",
-          "diff": 323
-        },
-        {
-          "machine_no": 494,
-          "model": "ハッピージャグラーVIII",
-          "diff": 1411
-        },
-        {
-          "machine_no": 495,
-          "model": "ハッピージャグラーVIII",
-          "diff": -353
-        },
-        {
-          "machine_no": 496,
-          "model": "ハッピージャグラーVIII",
-          "diff": -301
-        },
-        {
-          "machine_no": 497,
-          "model": "ハッピージャグラーVIII",
-          "diff": 777
-        },
-        {
-          "machine_no": 528,
-          "model": "ネオアイムジャグラー",
-          "diff": -542
-        },
-        {
-          "machine_no": 529,
-          "model": "ネオアイムジャグラー",
-          "diff": 728
-        },
-        {
-          "machine_no": 530,
-          "model": "ネオアイムジャグラー",
-          "diff": 586
-        },
-        {
-          "machine_no": 531,
-          "model": "ネオアイムジャグラー",
-          "diff": -418
-        },
-        {
-          "machine_no": 532,
-          "model": "ネオアイムジャグラー",
-          "diff": -535
-        },
-        {
-          "machine_no": 533,
-          "model": "ネオアイムジャグラー",
-          "diff": -879
-        },
-        {
-          "machine_no": 534,
-          "model": "ネオアイムジャグラー",
-          "diff": 398
-        },
-        {
-          "machine_no": 535,
-          "model": "ネオアイムジャグラー",
-          "diff": 8
-        },
-        {
-          "machine_no": 536,
-          "model": "ネオアイムジャグラー",
-          "diff": -366
-        },
-        {
-          "machine_no": 537,
-          "model": "ネオアイムジャグラー",
-          "diff": -908
-        },
-        {
-          "machine_no": 538,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": -469
-        },
-        {
-          "machine_no": 539,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": -440
-        },
-        {
-          "machine_no": 540,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": -521
-        },
-        {
-          "machine_no": 541,
-          "model": "ジャグラーガールズSS",
-          "diff": -604
-        },
-        {
-          "machine_no": 542,
-          "model": "ジャグラーガールズSS",
-          "diff": 412
-        },
-        {
-          "machine_no": 543,
-          "model": "マイジャグラーV",
-          "diff": -1084
-        },
-        {
-          "machine_no": 544,
-          "model": "マイジャグラーV",
-          "diff": -435
-        },
-        {
-          "machine_no": 545,
-          "model": "マイジャグラーV",
-          "diff": 2619
-        },
-        {
-          "machine_no": 546,
-          "model": "マイジャグラーV",
-          "diff": 2050
-        },
-        {
-          "machine_no": 547,
-          "model": "マイジャグラーV",
-          "diff": -1211
-        },
-        {
-          "machine_no": 548,
-          "model": "マイジャグラーV",
-          "diff": 1025
-        },
-        {
-          "machine_no": 549,
-          "model": "マイジャグラーV",
-          "diff": -399
-        },
-        {
-          "machine_no": 550,
-          "model": "マイジャグラーV",
-          "diff": 465
-        },
-        {
-          "machine_no": 551,
-          "model": "マイジャグラーV",
-          "diff": -42
-        },
-        {
-          "machine_no": 552,
-          "model": "ネオアイムジャグラー",
-          "diff": 549
-        },
-        {
-          "machine_no": 553,
-          "model": "ネオアイムジャグラー",
-          "diff": -949
-        },
-        {
-          "machine_no": 554,
-          "model": "ネオアイムジャグラー",
-          "diff": 434
-        },
-        {
-          "machine_no": 555,
-          "model": "ネオアイムジャグラー",
-          "diff": 1452
-        },
-        {
-          "machine_no": 556,
-          "model": "ネオアイムジャグラー",
-          "diff": -176
-        },
-        {
-          "machine_no": 557,
-          "model": "ネオアイムジャグラー",
-          "diff": -889
-        }
-      ],
-      "マルハンメガシティ横浜町田": [
-        {
-          "machine_no": 993,
-          "model": "スマスロハナビ",
-          "diff": 900
-        },
-        {
-          "machine_no": 994,
-          "model": "スマスロハナビ",
-          "diff": 500
-        },
-        {
-          "machine_no": 995,
-          "model": "スマスロハナビ",
-          "diff": 1100
-        },
-        {
-          "machine_no": 996,
-          "model": "スマスロハナビ",
-          "diff": 4000
-        },
-        {
-          "machine_no": 997,
-          "model": "スマスロハナビ",
-          "diff": 2500
-        },
-        {
-          "machine_no": 1039,
-          "model": "ネオアイムジャグラー",
-          "diff": 2400
-        },
-        {
-          "machine_no": 1040,
-          "model": "ネオアイムジャグラー",
-          "diff": -800
-        },
-        {
-          "machine_no": 1041,
-          "model": "ネオアイムジャグラー",
-          "diff": 600
-        },
-        {
-          "machine_no": 1042,
-          "model": "ネオアイムジャグラー",
-          "diff": 600
-        },
-        {
-          "machine_no": 1043,
-          "model": "ネオアイムジャグラー",
-          "diff": -1300
-        },
-        {
-          "machine_no": 1044,
-          "model": "ネオアイムジャグラー",
-          "diff": 6100
-        },
-        {
-          "machine_no": 1045,
-          "model": "ネオアイムジャグラー",
-          "diff": -2300
-        },
-        {
-          "machine_no": 1046,
-          "model": "ネオアイムジャグラー",
-          "diff": -1100
-        },
-        {
-          "machine_no": 1047,
-          "model": "ネオアイムジャグラー",
-          "diff": -600
-        },
-        {
-          "machine_no": 1048,
-          "model": "ネオアイムジャグラー",
-          "diff": 1600
-        },
-        {
-          "machine_no": 1049,
-          "model": "ネオアイムジャグラー",
-          "diff": -2000
-        },
-        {
-          "machine_no": 1050,
-          "model": "ネオアイムジャグラー",
-          "diff": -400
-        },
-        {
-          "machine_no": 1094,
-          "model": "ゴーゴージャグラー3",
-          "diff": 2000
-        },
-        {
-          "machine_no": 1095,
-          "model": "ゴーゴージャグラー3",
-          "diff": -200
-        },
-        {
-          "machine_no": 1096,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": 2300
-        },
-        {
-          "machine_no": 1097,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": 2800
-        },
-        {
-          "machine_no": 1098,
-          "model": "ウルトラミラクルジャグラー",
-          "diff": 2500
-        },
-        {
-          "machine_no": 1099,
-          "model": "ミスタージャグラー",
-          "diff": 0
-        },
-        {
-          "machine_no": 1100,
-          "model": "ミスタージャグラー",
-          "diff": 2900
-        },
-        {
-          "machine_no": 1101,
-          "model": "ミスタージャグラー",
-          "diff": 1100
-        },
-        {
-          "machine_no": 1102,
-          "model": "ミスタージャグラー",
-          "diff": -3200
-        },
-        {
-          "machine_no": 1103,
-          "model": "ハッピージャグラーVIII",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1104,
-          "model": "ハッピージャグラーVIII",
-          "diff": 2000
-        },
-        {
-          "machine_no": 1105,
-          "model": "ハッピージャグラーVIII",
-          "diff": -2100
-        },
-        {
-          "machine_no": 1106,
-          "model": "ジャグラーガールズSS",
-          "diff": -200
-        },
-        {
-          "machine_no": 1107,
-          "model": "ジャグラーガールズSS",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1131,
-          "model": "ファンキージャグラー2",
-          "diff": -2900
-        },
-        {
-          "machine_no": 1132,
-          "model": "ファンキージャグラー2",
-          "diff": 2400
-        },
-        {
-          "machine_no": 1133,
-          "model": "ファンキージャグラー2",
-          "diff": 600
-        },
-        {
-          "machine_no": 1134,
-          "model": "ファンキージャグラー2",
-          "diff": 500
-        },
-        {
-          "machine_no": 1135,
-          "model": "ファンキージャグラー2",
-          "diff": 3100
-        },
-        {
-          "machine_no": 1136,
-          "model": "ファンキージャグラー2",
-          "diff": -1500
-        },
-        {
-          "machine_no": 1137,
-          "model": "ファンキージャグラー2",
-          "diff": 200
-        },
-        {
-          "machine_no": 1138,
-          "model": "ファンキージャグラー2",
-          "diff": 400
-        },
-        {
-          "machine_no": 1139,
-          "model": "ファンキージャグラー2",
-          "diff": -1500
-        },
-        {
-          "machine_no": 1140,
-          "model": "マイジャグラーV",
-          "diff": 900
-        },
-        {
-          "machine_no": 1141,
-          "model": "マイジャグラーV",
-          "diff": -1100
-        },
-        {
-          "machine_no": 1142,
-          "model": "マイジャグラーV",
-          "diff": 1900
-        },
-        {
-          "machine_no": 1143,
-          "model": "マイジャグラーV",
-          "diff": 600
-        },
-        {
-          "machine_no": 1144,
-          "model": "マイジャグラーV",
-          "diff": 5700
-        },
-        {
-          "machine_no": 1145,
-          "model": "マイジャグラーV",
-          "diff": -1700
-        },
-        {
-          "machine_no": 1146,
-          "model": "マイジャグラーV",
-          "diff": 1100
-        },
-        {
-          "machine_no": 1147,
-          "model": "ゴーゴージャグラー3",
-          "diff": -700
-        },
-        {
-          "machine_no": 1148,
-          "model": "ゴーゴージャグラー3",
-          "diff": 2600
-        },
-        {
-          "machine_no": 1149,
-          "model": "ゴーゴージャグラー3",
-          "diff": -900
-        },
-        {
-          "machine_no": 1150,
-          "model": "ゴーゴージャグラー3",
-          "diff": -2200
-        },
-        {
-          "machine_no": 1151,
-          "model": "マイジャグラーV",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1152,
-          "model": "マイジャグラーV",
-          "diff": 3400
-        },
-        {
-          "machine_no": 1153,
-          "model": "マイジャグラーV",
-          "diff": -500
-        },
-        {
-          "machine_no": 1154,
-          "model": "マイジャグラーV",
-          "diff": 2000
-        },
-        {
-          "machine_no": 1155,
-          "model": "マイジャグラーV",
-          "diff": 3200
-        },
-        {
-          "machine_no": 1156,
-          "model": "マイジャグラーV",
-          "diff": -400
-        },
-        {
-          "machine_no": 1157,
-          "model": "マイジャグラーV",
-          "diff": -700
-        },
-        {
-          "machine_no": 1158,
-          "model": "マイジャグラーV",
-          "diff": 600
-        },
-        {
-          "machine_no": 1159,
-          "model": "マイジャグラーV",
-          "diff": 700
-        },
-        {
-          "machine_no": 1160,
-          "model": "マイジャグラーV",
-          "diff": 100
-        },
-        {
-          "machine_no": 1161,
-          "model": "マイジャグラーV",
-          "diff": 700
-        },
-        {
-          "machine_no": 1183,
-          "model": "マイジャグラーV",
-          "diff": -1100
-        },
-        {
-          "machine_no": 1184,
-          "model": "マイジャグラーV",
-          "diff": -1300
-        },
-        {
-          "machine_no": 1185,
-          "model": "マイジャグラーV",
-          "diff": 100
-        },
-        {
-          "machine_no": 1186,
-          "model": "マイジャグラーV",
-          "diff": -100
-        },
-        {
-          "machine_no": 1187,
-          "model": "マイジャグラーV",
-          "diff": 200
-        },
-        {
-          "machine_no": 1188,
-          "model": "マイジャグラーV",
-          "diff": 4700
-        },
-        {
-          "machine_no": 1189,
-          "model": "マイジャグラーV",
-          "diff": 300
-        },
-        {
-          "machine_no": 1190,
-          "model": "マイジャグラーV",
-          "diff": -2100
-        },
-        {
-          "machine_no": 1191,
-          "model": "マイジャグラーV",
-          "diff": -2500
-        },
-        {
-          "machine_no": 1192,
-          "model": "マイジャグラーV",
-          "diff": 200
-        },
-        {
-          "machine_no": 1193,
-          "model": "マイジャグラーV",
-          "diff": -3300
-        },
-        {
-          "machine_no": 1194,
-          "model": "マイジャグラーV",
-          "diff": -700
-        },
-        {
-          "machine_no": 1195,
-          "model": "マイジャグラーV",
-          "diff": 2300
-        },
-        {
-          "machine_no": 1196,
-          "model": "マイジャグラーV",
-          "diff": -2600
-        },
-        {
-          "machine_no": 1197,
-          "model": "マイジャグラーV",
-          "diff": 0
-        },
-        {
-          "machine_no": 1198,
-          "model": "マイジャグラーV",
-          "diff": -1000
-        },
-        {
-          "machine_no": 1199,
-          "model": "マイジャグラーV",
-          "diff": 2900
-        },
-        {
-          "machine_no": 1200,
-          "model": "マイジャグラーV",
-          "diff": 3800
-        },
-        {
-          "machine_no": 1201,
-          "model": "マイジャグラーV",
-          "diff": -1400
-        },
-        {
-          "machine_no": 1202,
-          "model": "マイジャグラーV",
-          "diff": -1300
-        },
-        {
-          "machine_no": 1203,
-          "model": "マイジャグラーV",
-          "diff": -1700
-        },
-        {
-          "machine_no": 1204,
-          "model": "マイジャグラーV",
-          "diff": -3000
-        },
-        {
-          "machine_no": 1205,
-          "model": "マイジャグラーV",
-          "diff": 1700
-        },
-        {
-          "machine_no": 1206,
-          "model": "マイジャグラーV",
-          "diff": -1700
         }
       ]
     }
