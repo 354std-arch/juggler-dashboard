@@ -1,15 +1,13 @@
 import csv
 import json
 import os
-import subprocess
-import sys
 import argparse
 from datetime import datetime, timedelta, timezone
 
 import morning_compute as morning
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
-COMPUTE_PY = os.path.join(REPO_DIR, "compute.py")
+MORNING_DATA_JSON = os.path.join(REPO_DIR, "morning_data.json")
 STORE_MODEL_SUMMARY_CSV = os.path.join(REPO_DIR, "store_model_summary.csv")
 STORE_LIST_JSON = os.path.join(REPO_DIR, "store_list.json")
 RAW_DATA_CSV = os.path.join(REPO_DIR, "raw_data.csv")
@@ -158,17 +156,21 @@ def enrich_model_ranking_with_summary(payload):
     return payload
 
 
+def load_morning_payload():
+    if not os.path.exists(MORNING_DATA_JSON):
+        raise FileNotFoundError(
+            "morning_data.json が見つかりません。先に morning_compute.py を実行してください。"
+        )
+    with open(MORNING_DATA_JSON, "r", encoding="utf-8-sig") as f:
+        payload = json.load(f)
+    if not isinstance(payload, dict):
+        raise ValueError("morning_data.json の形式が不正です")
+    return payload
+
+
 def build_candidate_payload():
-    data, normalized_models, unsupported_models = morning.read_labeled_rows()
-    if morning.pd is None:
-        payload = morning.build_payload_fallback(data, normalized_models, unsupported_models)
-    else:
-        payload = morning.build_payload(data, normalized_models, unsupported_models)
+    payload = load_morning_payload()
     return enrich_model_ranking_with_summary(payload)
-
-
-def run_compute():
-    subprocess.run([sys.executable, COMPUTE_PY], check=True, cwd=REPO_DIR)
 
 
 def normalize_diff_value(value):
@@ -313,8 +315,6 @@ def main():
         help="日付付きのアーカイブJSON（candidate_data_YYYYMMDD.json）も生成する",
     )
     args = parser.parse_args()
-
-    run_compute()
 
     payload = build_candidate_payload()
     seat_payload = build_recent_seat_data_payload(day_window=30)
