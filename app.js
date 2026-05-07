@@ -62,6 +62,7 @@ let seatLayoutState = {
   notice: '',
   requestId: 0,
   bundleLoaded: false,
+  heatmapModelFilter: 'all',
 };
 const DESIGN_SYSTEM_SELECTORS = {
   buttons: 'button.btn,button.btn-primary,button.btn-secondary,button.btn-filter,button.filter-btn,button.period-btn,button.cal-nav-btn,button.target-day-btn,button.store-btn,button.save-btn,button.model-chip,button.recommendation-toggle',
@@ -2405,23 +2406,33 @@ function loadSeatLayoutBundle() {
     });
 }
 
-function getSeatLayoutDiffMap(store) {
-  const map = new Map();
+function getSeatLayoutRowsForStore(store) {
   const seatRows = seatLayoutState.seatData?.[store];
   if(Array.isArray(seatRows)) {
-    seatRows.forEach((row) => {
+    return seatRows.map((row) => {
       const tai = Number(row?.machine_no);
+      if(!Number.isFinite(tai)) return null;
       const diff = Number(row?.diff);
-      if(!Number.isFinite(tai)) return;
-      map.set(tai, Number.isFinite(diff) ? diff : null);
-    });
-    return map;
+      return {
+        tai,
+        model: String(row?.model || '').trim() || '不明',
+        diff: Number.isFinite(diff) ? diff : null,
+      };
+    }).filter(Boolean);
   }
-  Object.entries((seatRows && typeof seatRows === 'object') ? seatRows : {}).forEach(([taiRaw, diffRaw]) => {
+  return Object.entries((seatRows && typeof seatRows === 'object') ? seatRows : {}).map(([taiRaw, diffRaw]) => {
     const tai = Number(taiRaw);
+    if(!Number.isFinite(tai)) return null;
     const diff = Number(diffRaw);
-    if(!Number.isFinite(tai)) return;
-    map.set(tai, Number.isFinite(diff) ? diff : null);
+    const fallbackModel = seatLayoutState.cards.find((card) => Number(card.tai) === tai)?.model || '不明';
+    return { tai, model: fallbackModel, diff: Number.isFinite(diff) ? diff : null };
+  }).filter(Boolean);
+}
+
+function getSeatLayoutDiffMap(store) {
+  const map = new Map();
+  getSeatLayoutRowsForStore(store).forEach((row) => {
+    map.set(row.tai, row.diff);
   });
   return map;
 }
@@ -2436,10 +2447,12 @@ function getSeatLayoutColorClass(avgDiff) {
 
 function getSeatHeatmapColorClass(diff) {
   if(!Number.isFinite(diff)) return 'seat-heatmap-cell is-missing';
-  if(diff >= 3000) return 'seat-heatmap-cell is-high';
-  if(diff >= 1500) return 'seat-heatmap-cell is-mid';
-  if(diff >= 750) return 'seat-heatmap-cell is-low';
-  return 'seat-heatmap-cell is-flat';
+  if(diff >= 3000) return 'seat-heatmap-cell is-strong-plus';
+  if(diff >= 1000) return 'seat-heatmap-cell is-plus';
+  if(diff > 0) return 'seat-heatmap-cell is-small-plus';
+  if(diff <= -2000) return 'seat-heatmap-cell is-strong-minus';
+  if(diff <= -1000) return 'seat-heatmap-cell is-minus';
+  return 'seat-heatmap-cell is-neutral';
 }
 
 function formatSeatHeatmapDiff(diff) {
@@ -2447,48 +2460,94 @@ function formatSeatHeatmapDiff(diff) {
   return `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()}枚`;
 }
 
+function renderSeatHeatmapModelFilter(rows) {
+  const select = document.getElementById('seatHeatmapModelFilter');
+  if(!select) return;
+  const models = Array.from(new Set(rows.map((row) => row.model).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'ja'));
+  if(seatLayoutState.heatmapModelFilter !== 'all' && !models.includes(seatLayoutState.heatmapModelFilter)) {
+    seatLayoutState.heatmapModelFilter = 'all';
+  }
+  select.innerHTML = '<option value="all">全機種</option>' + models.map((model) =>
+    `<option value="${escapeHtml(model)}">${escapeHtml(model)}</option>`
+  ).join('');
+  select.value = seatLayoutState.heatmapModelFilter;
+}
+
+function renderSeatHeatmapSummary(rows, allCount) {
+  const summary = document.getElementById('seatHeatmapSummary');
+  if(!summary) return;
+  if(!rows.length) {
+    summary.innerHTML = '<div class="empty-msg">表示対象の台がありません</div>';
+    return;
+  }
+  const withDiff = rows.filter((row) => Number.isFinite(row.diff));
+  const plusCount = withDiff.filter((row) => row.diff > 0).length;
+  const strongPlusCount = withDiff.filter((row) => row.diff >= 1000).length;
+  const strongMinusCount = withDiff.filter((row) => row.diff <= -1000).length;
+  const totalDiff = withDiff.reduce((sum, row) => sum + row.diff, 0);
+  const avgDiff = withDiff.length ? totalDiff / withDiff.length : 0;
+  const plusRate = withDiff.length ? plusCount / withDiff.length * 100 : 0;
+  const valueColor = (v) => v >= 0 ? 'var(--plus)' : 'var(--minus)';
+  const stat = (label, value, color = 'var(--text)') => `
+    <div class="seat-heatmap-stat">
+      <div class="seat-heatmap-stat-label">${label}</div>
+      <div class="seat-heatmap-stat-value" style="color:${color}">${value}</div>
+    </div>`;
+  summary.innerHTML = [
+    stat('表示台数', `${rows.length}台${rows.length !== allCount ? ` / 全${allCount}台` : ''}`, 'var(--accent3)'),
+    stat('総差枚', formatSeatHeatmapDiff(totalDiff), valueColor(totalDiff)),
+    stat('平均差枚', formatSeatHeatmapDiff(avgDiff), valueColor(avgDiff)),
+    stat('勝率', `${Math.round(plusRate)}%`, plusRate >= 50 ? 'var(--plus)' : 'var(--minus)'),
+    stat('+1000以上', `${strongPlusCount}台`, 'var(--plus)'),
+    stat('-1000以下', `${strongMinusCount}台`, strongMinusCount ? 'var(--minus)' : 'var(--muted)'),
+  ].join('');
+}
+
 function renderSeatHeatmap(store) {
   const wrap = document.getElementById('seatHeatmapGrid');
+  const summary = document.getElementById('seatHeatmapSummary');
   if(!wrap) return;
   if(!store) {
+    if(summary) summary.textContent = '店舗を選択してください';
+    renderSeatHeatmapModelFilter([]);
     wrap.innerHTML = '<div class="empty-msg">店舗を選択してください</div>';
     return;
   }
 
-  const diffMap = getSeatLayoutDiffMap(store);
-  const modelMap = new Map();
-  const rows = seatLayoutState.seatData?.[store];
-  if(Array.isArray(rows)) {
-    rows.forEach((row) => {
-      const tai = Number(row?.machine_no);
-      if(!Number.isFinite(tai)) return;
-      const model = String(row?.model || '不明');
-      modelMap.set(tai, model);
-    });
-  }
-
-  const machineSet = new Set();
+  const rowsByTai = new Map();
+  getSeatLayoutRowsForStore(store).forEach((row) => rowsByTai.set(row.tai, row));
   seatLayoutState.cards.forEach((card) => {
     const tai = Number(card?.tai);
-    if(Number.isFinite(tai)) machineSet.add(tai);
+    if(!Number.isFinite(tai) || rowsByTai.has(tai)) return;
+    rowsByTai.set(tai, { tai, model: card.model || '不明', diff: null });
   });
-  diffMap.forEach((_, tai) => machineSet.add(tai));
 
-  const machines = Array.from(machineSet).sort((a, b) => a - b);
-  if(!machines.length) {
-    wrap.innerHTML = '<div class="empty-msg">ヒートマップデータなし</div>';
+  const allRows = Array.from(rowsByTai.values()).sort((a, b) => a.tai - b.tai);
+  renderSeatHeatmapModelFilter(allRows);
+  const modelFilter = seatLayoutState.heatmapModelFilter || 'all';
+  const rows = modelFilter === 'all' ? allRows : allRows.filter((row) => row.model === modelFilter);
+  renderSeatHeatmapSummary(rows, allRows.length);
+
+  if(!rows.length) {
+    wrap.innerHTML = '<div class="empty-msg">表示対象の台がありません</div>';
     return;
   }
 
-  wrap.innerHTML = machines.map((tai) => {
-    const diff = diffMap.get(tai);
-    const colorClass = getSeatHeatmapColorClass(diff);
-    const model = modelMap.get(tai) || (seatLayoutState.cards.find((card) => card.tai === tai)?.model || '不明');
-    return `<div class="${colorClass}" title="${escapeHtml(`${store} ${tai}番台 ${model}`)}">
-      <div class="seat-heatmap-tai">${tai}番台</div>
-      <div class="seat-heatmap-diff">${escapeHtml(formatSeatHeatmapDiff(diff))}</div>
+  wrap.innerHTML = rows.map((row) => {
+    const colorClass = getSeatHeatmapColorClass(row.diff);
+    const model = row.model || '不明';
+    return `<div class="${colorClass}" title="${escapeHtml(`${store} ${row.tai}番台 ${model} ${formatSeatHeatmapDiff(row.diff)}`)}">
+      <div class="seat-heatmap-tai">${row.tai}番台</div>
+      <div class="seat-heatmap-model">${escapeHtml(model)}</div>
+      <div class="seat-heatmap-diff">${escapeHtml(formatSeatHeatmapDiff(row.diff))}</div>
     </div>`;
   }).join('');
+}
+
+function onSeatHeatmapModelChange() {
+  const select = document.getElementById('seatHeatmapModelFilter');
+  seatLayoutState.heatmapModelFilter = select?.value || 'all';
+  renderSeatHeatmap(seatLayoutState.store);
 }
 
 function flashSeatLayoutNotice(message) {
@@ -2752,6 +2811,7 @@ function onSeatLayoutStoreChange() {
   seatLayoutState.store = select ? select.value : '';
   closeSeatLayoutDatePicker();
   seatLayoutState.selectedTai = null;
+  seatLayoutState.heatmapModelFilter = 'all';
   syncSeatLayoutCards(true);
   renderSeatLayoutTab();
 }

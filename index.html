@@ -696,9 +696,28 @@
       </div>
     </div>
     <div class="seat-heatmap-wrap">
-      <div class="seat-layout-subtitle">差枚ヒートマップ</div>
+      <div class="seat-heatmap-header">
+        <div>
+          <div class="seat-layout-subtitle">差枚ヒートマップ</div>
+          <div class="seat-heatmap-note">台番号順に並べ、プラス/マイナスを色で即判断できます。</div>
+        </div>
+        <label class="seat-heatmap-filter">
+          機種
+          <select id="seatHeatmapModelFilter" onchange="onSeatHeatmapModelChange()">
+            <option value="all">全機種</option>
+          </select>
+        </label>
+      </div>
+      <div id="seatHeatmapSummary" class="seat-heatmap-summary">店舗を選択してください</div>
       <div id="seatHeatmapGrid" class="seat-heatmap-grid">
         <div class="empty-msg">店舗を選択してください</div>
+      </div>
+      <div class="seat-heatmap-legend">
+        <span><i class="legend-box is-strong-plus"></i>+3000以上</span>
+        <span><i class="legend-box is-plus"></i>プラス</span>
+        <span><i class="legend-box is-neutral"></i>±999以内</span>
+        <span><i class="legend-box is-minus"></i>-1000以下</span>
+        <span><i class="legend-box is-strong-minus"></i>-2000以下</span>
       </div>
     </div>
   </div>
