@@ -14,7 +14,6 @@ git pull --rebase >> "$LOG_FILE" 2>&1 || echo "git pull failed, continuing" >> "
 
 # Run pipeline
 python3 scrape_juggler.py >> "$LOG_FILE" 2>&1
-python3 feedback.py >> "$LOG_FILE" 2>&1
 python3 compute.py >> "$LOG_FILE" 2>&1
 python3 morning_compute.py >> "$LOG_FILE" 2>&1
 python3 candidate_compute.py >> "$LOG_FILE" 2>&1
@@ -22,7 +21,7 @@ python3 candidate_compute.py >> "$LOG_FILE" 2>&1
 # Commit and push
 git config user.email "action@github.com"
 git config user.name "local-cron"
-git add data.json morning_data.json candidate_data.json raw_data.csv store_list.json feedback_data.json
+git add data.json morning_data.json candidate_data.json raw_data.csv store_list.json
 [ -f store_model_summary.csv ] && git add store_model_summary.csv
 [ -f store_freshness.json ] && git add store_freshness.json
 [ -f seat_data.json ] && git add seat_data.json

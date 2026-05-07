@@ -1,16 +1,17 @@
-name: Daily Scrape
+name: Validation
 
 on:
   workflow_dispatch:
+  pull_request:
 
 concurrency:
-  group: daily-scrape
-  cancel-in-progress: false
+  group: validation-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  compute:
+  validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v3
 
@@ -19,29 +20,26 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install pandas
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Run feedback
-        run: python feedback.py
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt pandas
 
-      - name: Run compute
-        run: python compute.py
+      - name: Python syntax check
+        run: python -m py_compile scrape_juggler.py compute.py morning_compute.py candidate_compute.py
 
-      - name: Run morning compute
-        run: python morning_compute.py
+      - name: JavaScript syntax check
+        run: node -e "const fs=require('fs');new Function(fs.readFileSync('app.js','utf8'));console.log('app.js syntax OK')"
 
-      - name: Run candidate compute
-        run: python candidate_compute.py
-
-      - name: Push data.json
+      - name: JSON sanity check
         run: |
-          git config user.email "action@github.com"
-          git config user.name "GitHub Actions"
-          git add data.json morning_data.json candidate_data.json store_list.json feedback_data.json
-          [ -f store_model_summary.csv ] && git add store_model_summary.csv || true
-          [ -f store_freshness.json ] && git add store_freshness.json || true
-          [ -f seat_data.json ] && git add seat_data.json || true
-          git add seat_data_*.json 2>/dev/null || true
-          git diff --cached --quiet || git commit -m "auto: update data.json $(date +'%Y-%m-%d')"
-          git push
+          python - <<'PY'
+          import json
+          for path in ['data.json', 'morning_data.json', 'candidate_data.json', 'seat_data.json', 'store_list.json']:
+              with open(path, encoding='utf-8-sig') as f:
+                  json.load(f)
+              print(f'{path} OK')
+          PY
