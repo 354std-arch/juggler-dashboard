@@ -17,10 +17,6 @@ let currentDayWdayMetric = 'avg';
 let targetDayMode = 'today';
 let SPECIAL_BY_STORE = {};
 const DEFAULT_SPECIAL = [1,6,7,11,16,17,22,26,27];
-const GITHUB_TOKEN_STORAGE_KEY = 'github_pat';
-const GITHUB_SESSIONS_REPO = '354std-arch/juggler-dashboard';
-const GITHUB_SESSIONS_BRANCH = 'main';
-const GITHUB_SESSIONS_PATH = 'sessions.json';
 const RECOMMENDATION_EXPANDED_STORAGE_KEY = 'juggler_recommendation_expanded';
 const SEAT_LAYOUT_STORAGE_PREFIX = 'juggler_seat_layout_';
 const DATA_EMPTY_STATE = {
@@ -66,11 +62,12 @@ let seatLayoutState = {
   notice: '',
   requestId: 0,
   bundleLoaded: false,
+  heatmapModelFilter: 'all',
 };
 const DESIGN_SYSTEM_SELECTORS = {
-  buttons: 'button.btn,button.btn-primary,button.btn-secondary,button.btn-filter,button.filter-btn,button.period-btn,button.cal-nav-btn,button.target-day-btn,button.store-btn,button.save-btn,button.model-chip,button.session-btn-sub,button.recommendation-toggle',
+  buttons: 'button.btn,button.btn-primary,button.btn-secondary,button.btn-filter,button.filter-btn,button.period-btn,button.cal-nav-btn,button.target-day-btn,button.store-btn,button.save-btn,button.model-chip,button.recommendation-toggle',
   badges: '.badge,.prediction-badge,.summary-badge,.store-freshness-badge,.answer-judge',
-  cards: '.card,.diag-box,.recommendation-card,.score-card,.cond-card,.win-box,.session-card,.withdraw-judge-popup,.summary-banner,.recommendation-section',
+  cards: '.card,.diag-box,.recommendation-card,.score-card,.cond-card,.win-box,.withdraw-judge-popup,.summary-banner,.recommendation-section',
   tables: '.data-table,.heat-table,.answer-table,.answer-rate-table',
 };
 
@@ -1438,285 +1435,6 @@ function stRestoreInputs() {
   renderModelHint(document.getElementById('stModel').value);
 }
 
-// ====== セッション保存 ======
-function getTodayDateStr() {
-  return toYmdLocal(getTodayLocalDate());
-}
-
-function setSessionStatus(msg, type = '') {
-  const el = document.getElementById('sessionStatus');
-  if(!el) return;
-  el.textContent = msg;
-  el.className = 'session-status';
-  if(type) el.classList.add(type);
-}
-
-function getGitHubToken() {
-  return localStorage.getItem(GITHUB_TOKEN_STORAGE_KEY) || '';
-}
-
-function setGitHubToken(token) {
-  localStorage.setItem(GITHUB_TOKEN_STORAGE_KEY, token);
-}
-
-function clearGitHubTokenStorage() {
-  localStorage.removeItem(GITHUB_TOKEN_STORAGE_KEY);
-}
-
-function setGitHubTokenStatus(msg, type = '') {
-  const el = document.getElementById('githubTokenStatus');
-  if(!el) return;
-  el.textContent = msg;
-  el.className = 'session-status';
-  if(type) el.classList.add(type);
-}
-
-function renderGitHubTokenUI() {
-  const input = document.getElementById('githubTokenInput');
-  const token = getGitHubToken();
-  if(input && !input.value) input.value = token;
-  if(token) {
-    setGitHubTokenStatus('設定済み（保存ボタンで更新可能）', 'ok');
-  } else {
-    setGitHubTokenStatus('未設定', 'warn');
-  }
-}
-
-function saveGitHubToken() {
-  const input = document.getElementById('githubTokenInput');
-  const token = (input?.value || '').trim();
-  if(!token) {
-    setGitHubTokenStatus('トークンを入力してください', 'warn');
-    return;
-  }
-  setGitHubToken(token);
-  setGitHubTokenStatus('トークンを保存しました', 'ok');
-  setSessionStatus('トークン設定後に保存できます', 'warn');
-}
-
-function clearGitHubToken() {
-  clearGitHubTokenStorage();
-  const input = document.getElementById('githubTokenInput');
-  if(input) input.value = '';
-  setGitHubTokenStatus('トークンを削除しました', 'warn');
-  setSessionStatus('GitHubトークン未設定です。設定タブで入力してください', 'warn');
-}
-
-function encodeBase64Utf8(text) {
-  const bytes = new TextEncoder().encode(text);
-  let binary = '';
-  bytes.forEach(b => { binary += String.fromCharCode(b); });
-  return btoa(binary);
-}
-
-function decodeBase64Utf8(base64Text) {
-  const normalized = (base64Text || '').replace(/\n/g, '');
-  const binary = atob(normalized);
-  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-}
-
-async function fetchSessionsFromGitHub(token) {
-  const url = `https://api.github.com/repos/${GITHUB_SESSIONS_REPO}/contents/${GITHUB_SESSIONS_PATH}?ref=${GITHUB_SESSIONS_BRANCH}`;
-  const res = await fetch(url, {
-    headers: {
-      'Accept': 'application/vnd.github+json',
-      'Authorization': `Bearer ${token}`,
-      'X-GitHub-Api-Version': '2022-11-28'
-    }
-  });
-
-  const body = await res.json();
-  if(res.status === 404) {
-    return { sessions: [], sha: null };
-  }
-  if(!res.ok) {
-    const msg = body?.message || `HTTP ${res.status}`;
-    throw new Error(`sessions.json取得失敗: ${msg}`);
-  }
-  const decoded = decodeBase64Utf8(body.content || '');
-  const parsed = decoded ? JSON.parse(decoded) : [];
-  if(!Array.isArray(parsed)) {
-    throw new Error('sessions.json が配列形式ではありません');
-  }
-  return { sessions: parsed, sha: body.sha };
-}
-
-async function pushSessionsToGitHub(token, sessions, sha) {
-  const url = `https://api.github.com/repos/${GITHUB_SESSIONS_REPO}/contents/${GITHUB_SESSIONS_PATH}`;
-  const content = encodeBase64Utf8(JSON.stringify(sessions, null, 2) + '\n');
-  const message = `chore: append session ${getTodayDateStr()}`;
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      'Accept': 'application/vnd.github+json',
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'X-GitHub-Api-Version': '2022-11-28'
-    },
-    body: JSON.stringify({
-      message,
-      content,
-      ...(sha ? { sha } : {}),
-      branch: GITHUB_SESSIONS_BRANCH
-    })
-  });
-  const body = await res.json();
-  if(!res.ok) {
-    const msg = body?.message || `HTTP ${res.status}`;
-    throw new Error(`sessions.json更新失敗: ${msg}`);
-  }
-  return body;
-}
-
-function setSessionInputIfNeeded(id, value, force = false) {
-  const el = document.getElementById(id);
-  if(!el || value === null || value === undefined) return;
-  if(force || !String(el.value || '').trim()) el.value = String(value);
-}
-
-function getCurrentSessionSnapshot() {
-  const model = document.getElementById('stModel')?.value || '';
-  const startG = parseInt(document.getElementById('stStartG')?.value, 10) || 0;
-  const startBIG = parseInt(document.getElementById('stStartBIG')?.value, 10) || 0;
-  const startREG = parseInt(document.getElementById('stStartREG')?.value, 10) || 0;
-  const g = startG + ST.g;
-  const big = startBIG + ST.big;
-  const reg = startREG + ST.reg;
-  const budo = ST.budo;
-  const cherry = model === 'マイジャグラーV' ? ST.nonCherry : ST.cherry;
-  const store = currentStore !== 'all' ? currentStore : (G.currentTargetContext?.store || '');
-  const tai = G.currentTargetContext?.tai || '';
-
-  let prob456 = null;
-  if(g >= 100 && model) {
-    const result = bayesEstimate(model, g, big, reg, ST.g, budo, cherry, ST.nonCherry, ST.soloBig, ST.soloReg, ST.kadoBig, ST.kadoReg);
-    if(result?.probs?.length === 6) {
-      prob456 = (result.probs[3] + result.probs[4] + result.probs[5]) * 100;
-    }
-  }
-  if(prob456 === null) {
-    const text = document.getElementById('stProb456')?.textContent || '';
-    const parsed = parseFloat(text.replace('%', '').trim());
-    if(Number.isFinite(parsed)) prob456 = parsed;
-  }
-
-  return {
-    date: getTodayDateStr(),
-    store,
-    tai,
-    model,
-    g,
-    big,
-    reg,
-    budo,
-    cherry,
-    soloBig: ST.soloBig,
-    soloReg: ST.soloReg,
-    kadoBig: ST.kadoBig,
-    kadoReg: ST.kadoReg,
-    prob456
-  };
-}
-
-function syncSessionFormFromCurrent(force = false) {
-  const snap = getCurrentSessionSnapshot();
-  setSessionInputIfNeeded('sessionDate', snap.date, force);
-  setSessionInputIfNeeded('sessionStore', snap.store, force);
-  setSessionInputIfNeeded('sessionTai', snap.tai, force);
-  setSessionInputIfNeeded('sessionModel', snap.model, force);
-  setSessionInputIfNeeded('sessionG', snap.g, force);
-  setSessionInputIfNeeded('sessionBig', snap.big, force);
-  setSessionInputIfNeeded('sessionReg', snap.reg, force);
-  setSessionInputIfNeeded('sessionBudo', snap.budo, force);
-  setSessionInputIfNeeded('sessionCherry', snap.cherry, force);
-  if(snap.prob456 !== null && Number.isFinite(snap.prob456)) {
-    setSessionInputIfNeeded('sessionBayes', snap.prob456.toFixed(1), force);
-  }
-  const autoOther = `単独BIG:${snap.soloBig} / 単独REG:${snap.soloReg} / チェリー重複BIG:${snap.kadoBig} / チェリー重複REG:${snap.kadoReg}`;
-  setSessionInputIfNeeded('sessionOtherKoyaku', autoOther, force);
-}
-
-function renderSessionStoreCandidates() {
-  const list = document.getElementById('sessionStoreList');
-  if(!list) return;
-  const stores = Array.isArray(G.stores) ? G.stores.filter(s => s && s !== 'all') : [];
-  list.innerHTML = stores.map(s => `<option value="${s}"></option>`).join('');
-}
-
-function renderSessionUI() {
-  const dateEl = document.getElementById('sessionDate');
-  if(dateEl && !dateEl.value) dateEl.value = getTodayDateStr();
-  renderSessionStoreCandidates();
-  syncSessionFormFromCurrent(false);
-  const token = getGitHubToken();
-  if(token) {
-    setSessionStatus('GitHub保存の準備完了', 'ok');
-  } else {
-    setSessionStatus('先に設定タブでGitHubトークンを設定してください', 'warn');
-  }
-}
-
-async function saveSessionRecord() {
-  const token = getGitHubToken();
-  if(!token) {
-    setSessionStatus('GitHubトークン未設定です。設定タブで入力してください', 'error');
-    return;
-  }
-
-  const date = document.getElementById('sessionDate')?.value || getTodayDateStr();
-  const store = (document.getElementById('sessionStore')?.value || '').trim();
-  const tai = (document.getElementById('sessionTai')?.value || '').trim();
-  const model = (document.getElementById('sessionModel')?.value || '').trim();
-  const g = parseInt(document.getElementById('sessionG')?.value, 10) || 0;
-  const big = parseInt(document.getElementById('sessionBig')?.value, 10) || 0;
-  const reg = parseInt(document.getElementById('sessionReg')?.value, 10) || 0;
-  const diff = parseInt(document.getElementById('sessionDiff')?.value, 10) || 0;
-  const budo = parseInt(document.getElementById('sessionBudo')?.value, 10) || 0;
-  const cherry = parseInt(document.getElementById('sessionCherry')?.value, 10) || 0;
-  const otherKoyaku = (document.getElementById('sessionOtherKoyaku')?.value || '').trim();
-  const bayesRaw = parseFloat(document.getElementById('sessionBayes')?.value);
-  const bayesProbOver4 = Number.isFinite(bayesRaw) ? Math.max(0, Math.min(100, Number(bayesRaw.toFixed(1)))) : null;
-  const withdrawalReason = document.getElementById('sessionWithdrawReason')?.value || '';
-
-  if(!store || !tai || !model) {
-    setSessionStatus('店舗名・台番号・機種名は必須です', 'error');
-    return;
-  }
-  if(!withdrawalReason) {
-    setSessionStatus('撤退理由を選択してください', 'warn');
-    return;
-  }
-
-  const record = {
-    date,
-    store,
-    tai,
-    model,
-    g,
-    big,
-    reg,
-    diff,
-    koyaku: {
-      budo,
-      cherry,
-      other: otherKoyaku
-    },
-    bayesProbOver4,
-    withdrawalReason
-  };
-  setSessionStatus('GitHubへ保存中...', 'warn');
-
-  try {
-    const { sessions, sha } = await fetchSessionsFromGitHub(token);
-    sessions.push(record);
-    await pushSessionsToGitHub(token, sessions, sha);
-    setSessionStatus(`GitHubに保存しました（合計 ${sessions.length} 件）`, 'ok');
-  } catch (err) {
-    setSessionStatus(`保存失敗: ${err.message}`, 'error');
-  }
-}
-
 function escapeHtml(text) {
   return String(text ?? '')
     .replace(/&/g, '&amp;')
@@ -1930,14 +1648,6 @@ function bindTargetDateInputEvents() {
   input.addEventListener('input', onDiagDateChange);
 }
 
-function getSessionBayesProbOver4(session) {
-  const raw = session?.bayesProbOver4;
-  const n = Number(raw);
-  if(!Number.isFinite(n)) return null;
-  return Math.max(0, Math.min(100, n));
-}
-
-// RB確率から推定設定（設定4以上のRB確率に相当するか判定）
 function isHighSetRBLead(model, g, bb, rb) {
   if(!g||!rb||!bb) return false;
   const synThreshold = getGoodSynThreshold(model);
@@ -2105,22 +1815,7 @@ function normalizeRow(date, dateStr, store, model, taiStr, g, diff, bb, rb) {
   };
 }
 
-// ====== GASからデータ取得 ======
-const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxkecyCx6PxoikwVdDYQxWqU9O0v4AjVZPskdvrvMsKy68MXwRc1V4H0bZ3pmxXloClGQ/exec';
-
-function restoreGasUrlInput() {
-  // 常にDEFAULT_GAS_URLを使う（localStorageの古いURLを無視）
-  const el = document.getElementById('gasUrlInput');
-  if(el) el.value = DEFAULT_GAS_URL;
-  localStorage.setItem('juggler_gas_url', DEFAULT_GAS_URL);
-}
-
-function saveGasUrlInput() {
-  // 常にDEFAULT_GAS_URLを返す
-  localStorage.setItem('juggler_gas_url', DEFAULT_GAS_URL);
-  return DEFAULT_GAS_URL;
-}
-
+// ====== 生成済みJSON/手動データ取得 ======
 function getAny(obj, keys) {
   for(const k of keys) {
     if(obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k];
@@ -2169,7 +1864,7 @@ function parseFlexibleDate(v) {
     if(dt) return { date: dt, dateStr: `${y}-${String(mm).padStart(2,'0')}-${String(d).padStart(2,'0')}` };
   }
 
-  // GASのDate.toString()形式: "Mon Feb 27 2026 00:00:00 GMT+0900"
+  // Date.toString()形式: "Mon Feb 27 2026 00:00:00 GMT+0900"
   const gasM = s.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+(\d{4})/);
   if(gasM) {
     const months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
@@ -2711,23 +2406,33 @@ function loadSeatLayoutBundle() {
     });
 }
 
-function getSeatLayoutDiffMap(store) {
-  const map = new Map();
+function getSeatLayoutRowsForStore(store) {
   const seatRows = seatLayoutState.seatData?.[store];
   if(Array.isArray(seatRows)) {
-    seatRows.forEach((row) => {
+    return seatRows.map((row) => {
       const tai = Number(row?.machine_no);
+      if(!Number.isFinite(tai)) return null;
       const diff = Number(row?.diff);
-      if(!Number.isFinite(tai)) return;
-      map.set(tai, Number.isFinite(diff) ? diff : null);
-    });
-    return map;
+      return {
+        tai,
+        model: String(row?.model || '').trim() || '不明',
+        diff: Number.isFinite(diff) ? diff : null,
+      };
+    }).filter(Boolean);
   }
-  Object.entries((seatRows && typeof seatRows === 'object') ? seatRows : {}).forEach(([taiRaw, diffRaw]) => {
+  return Object.entries((seatRows && typeof seatRows === 'object') ? seatRows : {}).map(([taiRaw, diffRaw]) => {
     const tai = Number(taiRaw);
+    if(!Number.isFinite(tai)) return null;
     const diff = Number(diffRaw);
-    if(!Number.isFinite(tai)) return;
-    map.set(tai, Number.isFinite(diff) ? diff : null);
+    const fallbackModel = seatLayoutState.cards.find((card) => Number(card.tai) === tai)?.model || '不明';
+    return { tai, model: fallbackModel, diff: Number.isFinite(diff) ? diff : null };
+  }).filter(Boolean);
+}
+
+function getSeatLayoutDiffMap(store) {
+  const map = new Map();
+  getSeatLayoutRowsForStore(store).forEach((row) => {
+    map.set(row.tai, row.diff);
   });
   return map;
 }
@@ -2742,10 +2447,12 @@ function getSeatLayoutColorClass(avgDiff) {
 
 function getSeatHeatmapColorClass(diff) {
   if(!Number.isFinite(diff)) return 'seat-heatmap-cell is-missing';
-  if(diff >= 3000) return 'seat-heatmap-cell is-high';
-  if(diff >= 1500) return 'seat-heatmap-cell is-mid';
-  if(diff >= 750) return 'seat-heatmap-cell is-low';
-  return 'seat-heatmap-cell is-flat';
+  if(diff >= 3000) return 'seat-heatmap-cell is-strong-plus';
+  if(diff >= 1000) return 'seat-heatmap-cell is-plus';
+  if(diff > 0) return 'seat-heatmap-cell is-small-plus';
+  if(diff <= -2000) return 'seat-heatmap-cell is-strong-minus';
+  if(diff <= -1000) return 'seat-heatmap-cell is-minus';
+  return 'seat-heatmap-cell is-neutral';
 }
 
 function formatSeatHeatmapDiff(diff) {
@@ -2753,48 +2460,94 @@ function formatSeatHeatmapDiff(diff) {
   return `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()}枚`;
 }
 
+function renderSeatHeatmapModelFilter(rows) {
+  const select = document.getElementById('seatHeatmapModelFilter');
+  if(!select) return;
+  const models = Array.from(new Set(rows.map((row) => row.model).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'ja'));
+  if(seatLayoutState.heatmapModelFilter !== 'all' && !models.includes(seatLayoutState.heatmapModelFilter)) {
+    seatLayoutState.heatmapModelFilter = 'all';
+  }
+  select.innerHTML = '<option value="all">全機種</option>' + models.map((model) =>
+    `<option value="${escapeHtml(model)}">${escapeHtml(model)}</option>`
+  ).join('');
+  select.value = seatLayoutState.heatmapModelFilter;
+}
+
+function renderSeatHeatmapSummary(rows, allCount) {
+  const summary = document.getElementById('seatHeatmapSummary');
+  if(!summary) return;
+  if(!rows.length) {
+    summary.innerHTML = '<div class="empty-msg">表示対象の台がありません</div>';
+    return;
+  }
+  const withDiff = rows.filter((row) => Number.isFinite(row.diff));
+  const plusCount = withDiff.filter((row) => row.diff > 0).length;
+  const strongPlusCount = withDiff.filter((row) => row.diff >= 1000).length;
+  const strongMinusCount = withDiff.filter((row) => row.diff <= -1000).length;
+  const totalDiff = withDiff.reduce((sum, row) => sum + row.diff, 0);
+  const avgDiff = withDiff.length ? totalDiff / withDiff.length : 0;
+  const plusRate = withDiff.length ? plusCount / withDiff.length * 100 : 0;
+  const valueColor = (v) => v >= 0 ? 'var(--plus)' : 'var(--minus)';
+  const stat = (label, value, color = 'var(--text)') => `
+    <div class="seat-heatmap-stat">
+      <div class="seat-heatmap-stat-label">${label}</div>
+      <div class="seat-heatmap-stat-value" style="color:${color}">${value}</div>
+    </div>`;
+  summary.innerHTML = [
+    stat('表示台数', `${rows.length}台${rows.length !== allCount ? ` / 全${allCount}台` : ''}`, 'var(--accent3)'),
+    stat('総差枚', formatSeatHeatmapDiff(totalDiff), valueColor(totalDiff)),
+    stat('平均差枚', formatSeatHeatmapDiff(avgDiff), valueColor(avgDiff)),
+    stat('勝率', `${Math.round(plusRate)}%`, plusRate >= 50 ? 'var(--plus)' : 'var(--minus)'),
+    stat('+1000以上', `${strongPlusCount}台`, 'var(--plus)'),
+    stat('-1000以下', `${strongMinusCount}台`, strongMinusCount ? 'var(--minus)' : 'var(--muted)'),
+  ].join('');
+}
+
 function renderSeatHeatmap(store) {
   const wrap = document.getElementById('seatHeatmapGrid');
+  const summary = document.getElementById('seatHeatmapSummary');
   if(!wrap) return;
   if(!store) {
+    if(summary) summary.textContent = '店舗を選択してください';
+    renderSeatHeatmapModelFilter([]);
     wrap.innerHTML = '<div class="empty-msg">店舗を選択してください</div>';
     return;
   }
 
-  const diffMap = getSeatLayoutDiffMap(store);
-  const modelMap = new Map();
-  const rows = seatLayoutState.seatData?.[store];
-  if(Array.isArray(rows)) {
-    rows.forEach((row) => {
-      const tai = Number(row?.machine_no);
-      if(!Number.isFinite(tai)) return;
-      const model = String(row?.model || '不明');
-      modelMap.set(tai, model);
-    });
-  }
-
-  const machineSet = new Set();
+  const rowsByTai = new Map();
+  getSeatLayoutRowsForStore(store).forEach((row) => rowsByTai.set(row.tai, row));
   seatLayoutState.cards.forEach((card) => {
     const tai = Number(card?.tai);
-    if(Number.isFinite(tai)) machineSet.add(tai);
+    if(!Number.isFinite(tai) || rowsByTai.has(tai)) return;
+    rowsByTai.set(tai, { tai, model: card.model || '不明', diff: null });
   });
-  diffMap.forEach((_, tai) => machineSet.add(tai));
 
-  const machines = Array.from(machineSet).sort((a, b) => a - b);
-  if(!machines.length) {
-    wrap.innerHTML = '<div class="empty-msg">ヒートマップデータなし</div>';
+  const allRows = Array.from(rowsByTai.values()).sort((a, b) => a.tai - b.tai);
+  renderSeatHeatmapModelFilter(allRows);
+  const modelFilter = seatLayoutState.heatmapModelFilter || 'all';
+  const rows = modelFilter === 'all' ? allRows : allRows.filter((row) => row.model === modelFilter);
+  renderSeatHeatmapSummary(rows, allRows.length);
+
+  if(!rows.length) {
+    wrap.innerHTML = '<div class="empty-msg">表示対象の台がありません</div>';
     return;
   }
 
-  wrap.innerHTML = machines.map((tai) => {
-    const diff = diffMap.get(tai);
-    const colorClass = getSeatHeatmapColorClass(diff);
-    const model = modelMap.get(tai) || (seatLayoutState.cards.find((card) => card.tai === tai)?.model || '不明');
-    return `<div class="${colorClass}" title="${escapeHtml(`${store} ${tai}番台 ${model}`)}">
-      <div class="seat-heatmap-tai">${tai}番台</div>
-      <div class="seat-heatmap-diff">${escapeHtml(formatSeatHeatmapDiff(diff))}</div>
+  wrap.innerHTML = rows.map((row) => {
+    const colorClass = getSeatHeatmapColorClass(row.diff);
+    const model = row.model || '不明';
+    return `<div class="${colorClass}" title="${escapeHtml(`${store} ${row.tai}番台 ${model} ${formatSeatHeatmapDiff(row.diff)}`)}">
+      <div class="seat-heatmap-tai">${row.tai}番台</div>
+      <div class="seat-heatmap-model">${escapeHtml(model)}</div>
+      <div class="seat-heatmap-diff">${escapeHtml(formatSeatHeatmapDiff(row.diff))}</div>
     </div>`;
   }).join('');
+}
+
+function onSeatHeatmapModelChange() {
+  const select = document.getElementById('seatHeatmapModelFilter');
+  seatLayoutState.heatmapModelFilter = select?.value || 'all';
+  renderSeatHeatmap(seatLayoutState.store);
 }
 
 function flashSeatLayoutNotice(message) {
@@ -3058,6 +2811,7 @@ function onSeatLayoutStoreChange() {
   seatLayoutState.store = select ? select.value : '';
   closeSeatLayoutDatePicker();
   seatLayoutState.selectedTai = null;
+  seatLayoutState.heatmapModelFilter = 'all';
   syncSeatLayoutCards(true);
   renderSeatLayoutTab();
 }
@@ -3112,15 +2866,6 @@ function resetSeatLayoutOrder() {
   if(seatLayoutState.store) saveSeatLayoutPlacement(seatLayoutState.store);
   flashSeatLayoutNotice('リセットしました');
   renderSeatLayoutTab();
-}
-
-function resetGasUrl() {
-  localStorage.removeItem('juggler_gas_url');
-  const el = document.getElementById('gasUrlInput');
-  if(el) el.value = DEFAULT_GAS_URL;
-  const status = document.getElementById('gasStatus');
-  if(status) { status.textContent = '✅ URLをリセットしました'; status.style.color = 'var(--plus)'; }
-  setTimeout(() => { if(status) status.textContent = ''; }, 2000);
 }
 
 function loadFromJSON() {
@@ -3697,71 +3442,6 @@ function renderRecommendations() {
   `;
 }
 
-function loadFromGAS() {
-  const btn = document.getElementById('gasLoadBtn');
-  const status = document.getElementById('gasStatus');
-  const baseUrl = saveGasUrlInput();
-  setDataEmptyState(DATA_EMPTY_STATE.LOADING);
-  setHeaderDataStatus('読込中...', 'loading');
-  btn.disabled = true;
-  btn.textContent = '⏳ 取得中...';
-  status.textContent = 'スプレッドシートに接続しています...';
-  status.style.color = 'var(--accent3)';
-  const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}_=${Date.now()}`;
-
-  fetch(url, { cache:'no-store' })
-    .then(r => {
-      return r.text().then(text => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        try {
-          return JSON.parse(text);
-        } catch(_) {
-          if(text.startsWith('<!DOCTYPE') || text.startsWith('<html')) {
-            throw new Error('GASの公開設定エラーの可能性（アクセス権を「全員」にして再デプロイ）');
-          }
-          throw new Error('レスポンスがJSONではありません');
-        }
-      });
-    })
-    .then(json => {
-      // デバッグ：最初の1件のキーとサンプル値をステータスに表示
-      const sampleKeys = (() => {
-        const arr = Array.isArray(json) ? json : (json?.rows || json?.data || []);
-        if(arr.length > 0) return Object.keys(arr[0]).slice(0,6).join(' / ');
-        return '不明';
-      })();
-      const rows = normalizeGasRows(json);
-      if (!rows.length) throw new Error(`データが空です（取得キー: ${sampleKeys}）`);
-      G.raw = rows;
-      if(!finishLoad()) throw new Error('データの処理に失敗しました');
-      const dates = G.raw.map(r=>r.dateStr).sort();
-      const dateRange = dates.length ? `${dates[0]}〜${dates[dates.length-1]}` : '';
-      status.textContent = `✅ ${G.raw.length.toLocaleString()}件取得完了 (${dateRange})`;
-      status.style.color = 'var(--plus)';
-      btn.textContent = '📡 スプシからデータを取得';
-      btn.disabled = false;
-      setDataEmptyState(DATA_EMPTY_STATE.LOADED);
-    })
-    .catch(err => {
-      const msg = String(err && err.message ? err.message : err);
-      const hint = /Failed to fetch|NetworkError|CORS/i.test(msg)
-        ? '（URL誤り・公開設定・CORSを確認）'
-        : '';
-      const emptyLike = /データが空|処理に失敗/i.test(msg);
-      status.textContent = `❌ エラー：${msg}${hint}`;
-      status.style.color = 'var(--minus)';
-      btn.textContent = '📡 スプシからデータを取得';
-      btn.disabled = false;
-      if(emptyLike) {
-        setDataEmptyState(DATA_EMPTY_STATE.EMPTY, msg);
-        setHeaderDataStatus('データ空', 'error');
-      } else {
-        setDataEmptyState(DATA_EMPTY_STATE.ERROR, msg);
-        setHeaderDataStatus('エラー', 'error');
-        showErrorToast(`データ読込失敗: ${msg}`);
-      }
-    });
-}
 
 // ====== ファイル読込 ======
 const dz = document.getElementById('dropZone');
@@ -7481,11 +7161,10 @@ function saveDataHTML() {
 
 // ====== 全レンダリング（アクティブタブのみ描画） ======
 const TAB_RENDER_MAP = {
-  'tab-data':     () => { renderSessionUI(); },
   'tab-days':     () => { renderDayBar(); },
   'tab-model':    () => { renderModelComp(); },
   'tab-tai':      () => { renderTaiFilter(); renderTaiList(); },
-  'tab-settings': () => { renderStoreSettings(); renderGitHubTokenUI(); },
+  'tab-settings': () => { renderStoreSettings(); },
   'tab-target':   () => { renderTarget(); },
   'tab-heat':     () => { renderHeatmap(); renderWeekMatrix(); renderDayWdayMatrix(); },
   'tab-calendar': () => { renderCalendar(); },
@@ -7630,7 +7309,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   updateRecommendationSectionVisibility(document.querySelector('.tab-content.active')?.id || '');
   initDesignSystemObserver();
   initStoreBarEvents();
-  restoreGasUrlInput();
   loadMorningDataJSON().finally(() => {
     const active = document.querySelector('.tab-content.active')?.id;
     if(active === 'tab-calendar') renderCalendar();
@@ -7656,8 +7334,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
   loadSpecialDaysFromStorage();
   stRestoreInputs();
-  renderSessionUI();
-  renderGitHubTokenUI();
 });
 
 // ====== カレンダー予報 ======
@@ -7682,7 +7358,7 @@ function renderMorningSummaryForCalendar() {
 
   const stores = getMorningStoreNames();
   if(!G.morningData || !G.morningData.stores || !stores.length) {
-    wrap.innerHTML = '<div class="empty-msg">本日の予報データがありません。GitHub Actionsの実行をお待ちください。</div>';
+    wrap.innerHTML = '<div class="empty-msg">本日の予報データがありません。Macローカルの自動更新後に再読み込みしてください。</div>';
     return;
   }
 
@@ -8132,56 +7808,15 @@ function runWithdrawJudge() {
   closeWithdrawPopup();
 }
 
-function openDataTabForSession() {
-  const tabBtn = document.querySelector('#mainNav button[onclick*="tab-data"]');
-  showTab('tab-data', tabBtn || null);
-}
-
-function syncSessionFormFromWithdrawJudge() {
-  const games = wdSafeNum(document.getElementById('withdrawGames')?.value);
-  const big = wdSafeNum(document.getElementById('withdrawBig')?.value);
-  const reg = wdSafeNum(document.getElementById('withdrawReg')?.value);
-  const investment = wdSafeNum(document.getElementById('withdrawInvestment')?.value);
-  const grape = wdSafeNum(document.getElementById('withdrawGrape')?.value);
-  const cherry = wdSafeNum(document.getElementById('withdrawCherry')?.value);
-
-  openDataTabForSession();
-  syncSessionFormFromCurrent(false);
-  setSessionInputIfNeeded('sessionG', games, true);
-  setSessionInputIfNeeded('sessionBig', big, true);
-  setSessionInputIfNeeded('sessionReg', reg, true);
-  setSessionInputIfNeeded('sessionBudo', grape, true);
-  setSessionInputIfNeeded('sessionCherry', cherry, true);
-  if(investment > 0) {
-    setSessionInputIfNeeded('sessionDiff', -Math.abs(investment), true);
-  }
-
-  const otherNotes = [];
-  if(investment > 0) otherNotes.push(`投資金額:${Math.round(investment)}円`);
-  if(grape > 0) otherNotes.push(`ブドウ:${Math.round(grape)}`);
-  if(cherry > 0) otherNotes.push(`チェリー:${Math.round(cherry)}`);
-  if(otherNotes.length) {
-    setSessionInputIfNeeded('sessionOtherKoyaku', otherNotes.join(' / '), true);
-  }
-
-  const reasonEl = document.getElementById('sessionWithdrawReason');
-  if(reasonEl) {
-    if(investment >= 20000) reasonEl.value = '損切りライン到達（-2万円）';
-    else if(!reasonEl.value) reasonEl.value = 'その他';
-  }
-  setSessionStatus('撤退判定の入力値をセッション保存フォームへ反映しました', 'warn');
-}
-
 function initWithdrawJudgeUI() {
   const fab = document.getElementById('withdrawJudgeFab');
   const overlay = document.getElementById('withdrawJudgeOverlay');
   const popup = overlay ? overlay.querySelector('.withdraw-judge-popup') : null;
   const runBtn = document.getElementById('withdrawJudgeRunBtn');
   const bannerClose = document.getElementById('withdrawJudgeBannerClose');
-  const bannerToSession = document.getElementById('withdrawJudgeToSessionBtn');
   const banner = document.getElementById('withdrawJudgeBanner');
 
-  if(!fab || !overlay || !popup || !runBtn || !bannerClose || !banner || !bannerToSession) return;
+  if(!fab || !overlay || !popup || !runBtn || !bannerClose || !banner) return;
 
   fab.addEventListener('click', () => {
     overlay.classList.add('open');
@@ -8196,7 +7831,6 @@ function initWithdrawJudgeUI() {
   bannerClose.addEventListener('click', () => {
     banner.classList.remove('show');
   });
-  bannerToSession.addEventListener('click', syncSessionFormFromWithdrawJudge);
 }
 
 document.addEventListener('DOMContentLoaded', initWithdrawJudgeUI);

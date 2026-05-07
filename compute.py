@@ -6,7 +6,6 @@ REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_CSV  = os.path.join(REPO_DIR, "raw_data.csv")
 STORE_FRESHNESS_JSON = os.path.join(REPO_DIR, "store_freshness.json")
 STORE_LIST_JSON = os.path.join(REPO_DIR, "store_list.json")
-FEEDBACK_JSON = os.path.join(REPO_DIR, "feedback_data.json")
 JST = timezone(timedelta(hours=9))
 
 WEEKDAY_COEFF = {0:1.0, 1:1.0, 2:1.0, 3:1.0, 4:1.1, 5:1.2, 6:1.2}
@@ -61,13 +60,6 @@ MODEL_GOOD_SYN_THRESHOLD = {
     "スマスロハナビ": 161,
 }
 
-FEEDBACK_PRIOR = {
-    "alpha": 1.0,
-    "beta": 1.0,
-    "highProb": 0.5,
-    "source": "default",
-}
-
 STORE_EXCHANGE_RATE = {
     "鶴見UNO": 4.9,
     "マルハン都築": 5.0,
@@ -83,7 +75,6 @@ PRIOR_DETAIL_MIN_SAMPLES = 10
 PRIOR_MODEL_MIN_SAMPLES = 5
 HOLDOVER_BONUS_MAX = 8.0
 DEFAULT_SPECIAL_DAYS = [1, 11, 21, 31]
-FEEDBACK_KEY_SEP = "||"
 G_WEIGHT_FULL_THRESHOLD = 3000
 G_WEIGHT_HALF_THRESHOLD = 1500
 G_WEIGHT_FULL = 1.0
@@ -144,9 +135,6 @@ def weighted_sum_with_factor(rows, key, factor_fn):
 
 def weighted_total_with_factor(rows, factor_fn):
     return sum(row_w(r) * factor_fn(r) for r in rows)
-
-def make_feedback_condition_key(*parts):
-    return FEEDBACK_KEY_SEP.join(str(p) for p in parts)
 
 def parse_num(s):
     if not s: return 0
@@ -317,26 +305,6 @@ def build_analytics_cache(rows):
 def get_daytype_token(is_special):
     return "special" if bool(is_special) else "normal"
 
-def get_feedback_condition_prior(store, model, tai, is_special):
-    priors = FEEDBACK_PRIOR.get("condition_priors", {}) if isinstance(FEEDBACK_PRIOR, dict) else {}
-    by_tai = priors.get("store_model_tai_daytype", {}) if isinstance(priors, dict) else {}
-    by_model = priors.get("store_model_daytype", {}) if isinstance(priors, dict) else {}
-    by_store = priors.get("store_daytype", {}) if isinstance(priors, dict) else {}
-    day_type = get_daytype_token(is_special)
-    key_tai = make_feedback_condition_key(store, model, tai, day_type)
-    key_model = make_feedback_condition_key(store, model, day_type)
-    key_store = make_feedback_condition_key(store, day_type)
-    tai_prior = by_tai.get(key_tai) if isinstance(by_tai, dict) else None
-    if isinstance(tai_prior, dict) and int(tai_prior.get("samples", 0)) >= 20:
-        return tai_prior, "feedback_store_model_tai_daytype"
-    model_prior = by_model.get(key_model) if isinstance(by_model, dict) else None
-    if isinstance(model_prior, dict) and int(model_prior.get("samples", 0)) >= 5:
-        return model_prior, "feedback_store_model_daytype"
-    store_prior = by_store.get(key_store) if isinstance(by_store, dict) else None
-    if isinstance(store_prior, dict) and int(store_prior.get("samples", 0)) > 0:
-        return store_prior, "feedback_store_daytype"
-    return None, None
-
 def get_dynamic_prior_high_prob(store, model, weekday, is_special, tai=None):
     cache = ANALYTICS_CACHE or {}
     l4 = cache.get("prior_l4", {})
@@ -366,25 +334,7 @@ def get_dynamic_prior_high_prob(store, model, weekday, is_special, tai=None):
                 raw_source = "store_daytype"
                 raw_samples = int(stat["total"])
 
-    feedback_prior, feedback_source = get_feedback_condition_prior(store, model, tai, is_special)
-    if not feedback_prior:
-        return raw_prob, raw_source, raw_samples
-
-    fb_alpha = max(0.0, parse_num(feedback_prior.get("alpha")) - parse_num(FEEDBACK_PRIOR.get("base_alpha", 1.0)))
-    fb_beta = max(0.0, parse_num(feedback_prior.get("beta")) - parse_num(FEEDBACK_PRIOR.get("base_beta", 1.0)))
-    dyn_alpha = raw_prob * raw_samples
-    dyn_beta = (1.0 - raw_prob) * raw_samples
-    total_alpha = dyn_alpha + fb_alpha
-    total_beta = dyn_beta + fb_beta
-    if total_alpha + total_beta <= 0:
-        return raw_prob, raw_source, raw_samples
-    combined_prob = clamp(total_alpha / (total_alpha + total_beta), 0.01, 0.99)
-    fb_weighted_samples = parse_num(feedback_prior.get("weighted_samples"))
-    combined_samples = raw_samples + (fb_weighted_samples if fb_weighted_samples > 0 else parse_num(feedback_prior.get("samples")))
-    source = raw_source if raw_samples > 0 else "default"
-    if feedback_source:
-        source = f"{source}+{feedback_source}" if source != "default" else feedback_source
-    return combined_prob, source, r1(combined_samples)
+    return raw_prob, raw_source, raw_samples
 
 def get_holdover_rate(store):
     data = (ANALYTICS_CACHE or {}).get("holdover_rate", {}).get(store, {})
@@ -418,73 +368,6 @@ def build_store_display_order(stores_with_data):
             ordered.append(name)
             seen.add(name)
     return ordered
-
-def load_feedback_prior():
-    default = {
-        "alpha": 1.0,
-        "beta": 1.0,
-        "highProb": 0.5,
-        "source": "default",
-        "base_alpha": 1.0,
-        "base_beta": 1.0,
-        "condition_priors": {
-            "store_model_tai_daytype": {},
-            "store_model_daytype": {},
-            "store_daytype": {},
-        },
-    }
-    if not os.path.exists(FEEDBACK_JSON):
-        return default
-    try:
-        with open(FEEDBACK_JSON, encoding="utf-8-sig") as f:
-            data = json.load(f)
-    except Exception as e:
-        print(f"⚠️ feedback_data.json読み込み失敗: {e}")
-        return default
-    if not isinstance(data, dict):
-        return default
-    alpha = parse_num(data.get("alpha"))
-    beta = parse_num(data.get("beta"))
-    if alpha <= 0 or beta <= 0:
-        alpha = default["alpha"]
-        beta = default["beta"]
-    high_prob = alpha / (alpha + beta)
-    high_prob = max(0.05, min(0.95, high_prob))
-    condition_priors = data.get("condition_priors", {})
-    if not isinstance(condition_priors, dict):
-        condition_priors = {}
-    normalized_condition_priors = {}
-    for key in ["store_model_tai_daytype", "store_model_daytype", "store_daytype"]:
-        src = condition_priors.get(key, {})
-        if not isinstance(src, dict):
-            src = {}
-        normalized = {}
-        for cond_key, payload in src.items():
-            if not isinstance(payload, dict):
-                continue
-            ca = parse_num(payload.get("alpha"))
-            cb = parse_num(payload.get("beta"))
-            cs = parse_num(payload.get("samples"))
-            cws = parse_num(payload.get("weighted_samples"))
-            if not ca or not cb or ca <= 0 or cb <= 0:
-                continue
-            normalized[str(cond_key)] = {
-                "alpha": ca,
-                "beta": cb,
-                "samples": int(cs) if cs > 0 else 0,
-                "weighted_samples": cws if cws > 0 else 0.0,
-                "posterior_mean": clamp(ca / (ca + cb), 0.0, 1.0),
-            }
-        normalized_condition_priors[key] = normalized
-    return {
-        "alpha": alpha,
-        "beta": beta,
-        "highProb": high_prob,
-        "source": "feedback_data.json",
-        "base_alpha": parse_num(data.get("base_alpha")) or 1.0,
-        "base_beta": parse_num(data.get("base_beta")) or 1.0,
-        "condition_priors": normalized_condition_priors,
-    }
 
 def build_setting_priors(model, high_prob=0.5):
     high_prob = clamp(float(high_prob), 0.01, 0.99)
@@ -1232,12 +1115,6 @@ def build_store_accuracy(by_store, answer_check):
 
 if __name__ == "__main__":
     print("=== compute.py 開始 ===")
-    FEEDBACK_PRIOR = load_feedback_prior()
-    print(
-        "feedback prior:"
-        f" source={FEEDBACK_PRIOR.get('source')}"
-        f" highProb={round(FEEDBACK_PRIOR.get('highProb', 0.5) * 100, 1)}%"
-    )
     store_cfg = load_store_configs()
     for store_name, rate in store_cfg.get("exchangeRateByStore", {}).items():
         STORE_EXCHANGE_RATE[normalize_store_name(store_name)] = rate
