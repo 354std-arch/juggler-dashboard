@@ -316,6 +316,36 @@ main{padding:12px;max-width:760px;margin:0 auto;}
   color:var(--muted);
   line-height:1.6;
 }
+.seat-layout-batch{
+  margin:0 0 12px;
+  border:1px solid rgba(141,160,198,.24);
+  border-radius:12px;
+  padding:10px;
+  background:linear-gradient(180deg,rgba(31,39,56,.95),rgba(21,27,40,.95));
+}
+.seat-layout-batch-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+  gap:8px;
+}
+.seat-layout-batch-grid label{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  font-size:11px;
+  color:var(--muted);
+}
+.seat-layout-batch-grid input,.seat-layout-batch-grid select{
+  background:linear-gradient(180deg,#222b3d,#171f2f);
+  color:var(--text);
+  border:1px solid rgba(123,147,191,.36);
+  border-radius:10px;
+  min-height:38px;
+  padding:8px 9px;
+  font-family:'Zen Kaku Gothic New',sans-serif;
+}
+.seat-layout-batch-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;}
+.seat-layout-batch-note{font-size:11px;color:var(--muted);line-height:1.5;}
 .seat-layout-body{
   display:grid;
   grid-template-columns:150px minmax(0,1fr);

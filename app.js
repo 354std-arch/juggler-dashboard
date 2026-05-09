@@ -2242,6 +2242,107 @@ function syncSeatLayoutCards(forceReloadStorePlacement = false) {
   if(!exists || isPlaced) seatLayoutState.selectedTai = null;
 }
 
+function setSeatBatchInputIfEmpty(id, value) {
+  const el = document.getElementById(id);
+  if(!el || el.value) return;
+  el.value = String(value);
+}
+
+function syncSeatLayoutBatchDefaults() {
+  const cards = Array.isArray(seatLayoutState.cards) ? seatLayoutState.cards : [];
+  if(cards.length) {
+    const tais = cards.map((card) => Number(card.tai)).filter((tai) => Number.isFinite(tai)).sort((a, b) => a - b);
+    if(tais.length) {
+      setSeatBatchInputIfEmpty('seatBatchStartTai', tais[0]);
+      setSeatBatchInputIfEmpty('seatBatchEndTai', tais[tais.length - 1]);
+    }
+  }
+  setSeatBatchInputIfEmpty('seatBatchStartRow', 1);
+  setSeatBatchInputIfEmpty('seatBatchStartCol', 1);
+  setSeatBatchInputIfEmpty('seatBatchPerRow', seatLayoutState.cols || 8);
+}
+
+function readSeatBatchInt(id) {
+  const raw = document.getElementById(id)?.value;
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.round(n) : null;
+}
+
+function applySeatLayoutBatchPlacement() {
+  if(!seatLayoutState.store) {
+    flashSeatLayoutNotice('店舗を選択してください');
+    return;
+  }
+  const startTai = readSeatBatchInt('seatBatchStartTai');
+  const endTai = readSeatBatchInt('seatBatchEndTai');
+  const startRow = readSeatBatchInt('seatBatchStartRow');
+  const startCol = readSeatBatchInt('seatBatchStartCol');
+  const perRow = readSeatBatchInt('seatBatchPerRow');
+  const direction = document.getElementById('seatBatchDirection')?.value || 'right';
+  if([startTai, endTai, startRow, startCol, perRow].some((v) => !Number.isFinite(v))) {
+    flashSeatLayoutNotice('一括配置の入力を確認してください');
+    return;
+  }
+  if(startRow < 1 || startCol < 1 || perRow < 1) {
+    flashSeatLayoutNotice('行・列・折返し台数は1以上で入力してください');
+    return;
+  }
+
+  const step = startTai <= endTai ? 1 : -1;
+  const tais = [];
+  for(let tai = startTai; step > 0 ? tai <= endTai : tai >= endTai; tai += step) {
+    tais.push(tai);
+    if(tais.length > 1000) break;
+  }
+
+  const cardByTai = new Map(seatLayoutState.cards.map((card) => [Number(card.tai), card]));
+  const placements = { ...seatLayoutState.placements };
+  let placed = 0;
+  let skipped = 0;
+  let outOfBounds = 0;
+  const startRowIdx = startRow - 1;
+  const startColIdx = startCol - 1;
+
+  tais.forEach((tai, index) => {
+    if(!cardByTai.has(tai)) {
+      skipped += 1;
+      return;
+    }
+    const rowOffset = Math.floor(index / perRow);
+    const pos = index % perRow;
+    const row = startRowIdx + rowOffset;
+    let col = startColIdx + pos;
+    if(direction === 'left') {
+      col = startColIdx - pos;
+    } else if(direction === 'snake') {
+      col = rowOffset % 2 === 0 ? startColIdx + pos : startColIdx + perRow - 1 - pos;
+    }
+    if(row < 0 || row >= seatLayoutState.rows || col < 0 || col >= seatLayoutState.cols) {
+      outOfBounds += 1;
+      return;
+    }
+    Object.keys(placements).forEach((key) => {
+      if(Number(placements[key]) === tai) delete placements[key];
+    });
+    placements[String(row * seatLayoutState.cols + col)] = tai;
+    placed += 1;
+  });
+
+  seatLayoutState.placements = sanitizeSeatLayoutPlacements(
+    seatLayoutState.cards,
+    placements,
+    getSeatLayoutCellCount()
+  );
+  saveSeatLayoutPlacement(seatLayoutState.store);
+  seatLayoutState.selectedTai = null;
+  syncSeatLayoutCards(false);
+  renderSeatLayoutTab();
+  const notes = [`${placed}台配置`];
+  if(skipped) notes.push(`${skipped}台スキップ`);
+  if(outOfBounds) notes.push(`${outOfBounds}台範囲外`);
+  flashSeatLayoutNotice(notes.join(' / '));
+}
+
 function getSeatLayoutDatesFromBundle() {
   const dates = seatLayoutState.seatDataBundle?.dates;
   if(!Array.isArray(dates)) return [];
@@ -2685,6 +2786,7 @@ function renderSeatLayoutTab() {
   if(colsEl) colsEl.value = String(seatLayoutState.cols);
   if(rowsEl) rowsEl.value = String(seatLayoutState.rows);
   renderSeatLayoutDatePicker();
+  syncSeatLayoutBatchDefaults();
 
   if(!seatLayoutState.store) {
     statusEl.textContent = '店舗を選択してください';

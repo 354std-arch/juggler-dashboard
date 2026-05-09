@@ -680,6 +680,27 @@
       <button class="btn" onclick="saveSeatLayoutState()">保存</button>
       <button class="btn btn-secondary" onclick="resetSeatLayoutOrder()">リセット</button>
     </div>
+    <div class="seat-layout-batch">
+      <div class="seat-layout-subtitle">連番一括配置</div>
+      <div class="seat-layout-batch-grid">
+        <label>開始台<input type="number" id="seatBatchStartTai" inputmode="numeric" placeholder="例: 401"></label>
+        <label>終了台<input type="number" id="seatBatchEndTai" inputmode="numeric" placeholder="例: 420"></label>
+        <label>開始行<input type="number" id="seatBatchStartRow" inputmode="numeric" min="1" value="1"></label>
+        <label>開始列<input type="number" id="seatBatchStartCol" inputmode="numeric" min="1" value="1"></label>
+        <label>折返し台数<input type="number" id="seatBatchPerRow" inputmode="numeric" min="1" value="8"></label>
+        <label>方向
+          <select id="seatBatchDirection">
+            <option value="right">右へ</option>
+            <option value="left">左へ</option>
+            <option value="snake">蛇行（右始まり）</option>
+          </select>
+        </label>
+      </div>
+      <div class="seat-layout-batch-actions">
+        <button class="btn" type="button" onclick="applySeatLayoutBatchPlacement()">連番を配置</button>
+        <div class="seat-layout-batch-note">例: 401〜420 / 折返し10台なら、実店舗の島をまとめて作れます。</div>
+      </div>
+    </div>
     <div id="seatLayoutStatus" class="seat-layout-status">店舗を選択してください</div>
     <div class="seat-layout-body">
       <div class="seat-layout-pool-wrap">
