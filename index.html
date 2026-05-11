@@ -654,8 +654,7 @@
 
 <div id="tab-layout" class="tab-content">
   <div class="card seat-layout-card">
-    <div class="card-title">🗂️ 席配置</div>
-    <p class="section-note">未配置カードをグリッドへ配置し、日付ごとの差枚を色分け表示します。</p>
+    <div class="card-title">🗂️ 席配置ヒートマップ</div>
     <div class="seat-layout-toolbar">
       <select id="seatLayoutStore" onchange="onSeatLayoutStoreChange()">
         <option value="">店舗を選択</option>
@@ -669,46 +668,31 @@
           <div class="seat-date-picker-list" id="seatLayoutDateList"></div>
         </div>
       </div>
-      <label class="seat-layout-size-label">
-        列
-        <input type="number" id="seatLayoutCols" min="1" max="30" value="8" onchange="onSeatLayoutGridSizeChange()">
-      </label>
-      <label class="seat-layout-size-label">
-        行
-        <input type="number" id="seatLayoutRows" min="1" max="30" value="6" onchange="onSeatLayoutGridSizeChange()">
-      </label>
       <button class="btn" onclick="saveSeatLayoutState()">保存</button>
-      <button class="btn btn-secondary" onclick="resetSeatLayoutOrder()">リセット</button>
+      <button class="btn btn-secondary" onclick="resetSeatLayoutOrder()">初期配置に戻す</button>
+      <button class="btn btn-secondary" onclick="addSeatLayoutBlankCell()">小余白追加</button>
+      <button class="btn btn-secondary" onclick="addSeatLayoutHorizontalAisle()">横通路追加</button>
+      <button class="btn btn-secondary" onclick="addSeatLayoutVerticalAisle()">縦通路追加</button>
+      <button class="btn btn-secondary" onclick="removeSeatLayoutBlankCells()">余白削除</button>
     </div>
     <div id="seatLayoutStatus" class="seat-layout-status">店舗を選択してください</div>
-    <div class="seat-layout-body">
-      <div class="seat-layout-pool-wrap">
-        <div class="seat-layout-subtitle">未配置台</div>
-        <div id="seatLayoutUnplaced" class="seat-layout-pool">
-          <div class="empty-msg">店舗を選択してください</div>
-        </div>
-      </div>
-      <div class="seat-layout-grid-wrap">
-        <div class="seat-layout-subtitle">配置グリッド</div>
-        <div id="seatLayoutGrid" class="seat-layout-grid">
-          <div class="empty-msg">店舗を選択してください</div>
-        </div>
-      </div>
-    </div>
     <div class="seat-heatmap-wrap">
       <div class="seat-heatmap-header">
         <div>
-          <div class="seat-layout-subtitle">差枚ヒートマップ</div>
-          <div class="seat-heatmap-note">台番号順に並べ、プラス/マイナスを色で即判断できます。</div>
+          <div class="seat-layout-subtitle">席配置ヒートマップ</div>
         </div>
-        <label class="seat-heatmap-filter">
-          機種
-          <select id="seatHeatmapModelFilter" onchange="onSeatHeatmapModelChange()">
-            <option value="all">全機種</option>
-          </select>
-        </label>
+        <div class="seat-heatmap-controls">
+          <input type="search" id="seatLayoutSearch" placeholder="台番・機種で検索" oninput="onSeatLayoutPoolFilterChange()">
+          <label class="seat-heatmap-filter">
+            機種
+            <select id="seatHeatmapModelFilter" onchange="onSeatHeatmapModelChange()">
+              <option value="all">全機種</option>
+            </select>
+          </label>
+        </div>
       </div>
       <div id="seatHeatmapSummary" class="seat-heatmap-summary">店舗を選択してください</div>
+      <div id="seatHeatmapSelection" class="seat-heatmap-selection" hidden></div>
       <div id="seatHeatmapGrid" class="seat-heatmap-grid">
         <div class="empty-msg">店舗を選択してください</div>
       </div>
@@ -766,6 +750,6 @@
   <button id="withdrawJudgeBannerClose" class="withdraw-judge-banner-close" type="button" aria-label="閉じる">✕</button>
 </div>
 
-<script src="app.js"></script>
+<script src="app.js?v=seat-layout-11"></script>
 </body>
 </html>

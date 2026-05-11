@@ -63,6 +63,10 @@ let seatLayoutState = {
   requestId: 0,
   bundleLoaded: false,
   heatmapModelFilter: 'all',
+  poolQuery: '',
+  dragTai: null,
+  dragCellIndex: null,
+  selectedCellIndex: null,
 };
 const DESIGN_SYSTEM_SELECTORS = {
   buttons: 'button.btn,button.btn-primary,button.btn-secondary,button.btn-filter,button.filter-btn,button.period-btn,button.cal-nav-btn,button.target-day-btn,button.store-btn,button.save-btn,button.model-chip,button.recommendation-toggle',
@@ -2088,32 +2092,184 @@ function getSeatLayoutCardModelInitial(model) {
   return text ? text[0] : '？';
 }
 
-function getSeatLayoutCellCount() {
-  return Math.max(1, seatLayoutState.cols * seatLayoutState.rows);
+function getSeatLayoutCardByTai(tai) {
+  const t = Number(tai);
+  if(!Number.isFinite(t)) return null;
+  return seatLayoutState.cards.find((card) => Number(card?.tai) === t) || null;
 }
 
-function sanitizeSeatLayoutPlacements(cards, placements, cellCount) {
+function createSeatLayoutSpacer(type = 'blank') {
+  const t = ['blank', 'aisle-x', 'aisle-y'].includes(String(type || '')) ? String(type) : 'blank';
+  return { type: t };
+}
+
+function isSeatLayoutSpacer(value) {
+  return !!(value && typeof value === 'object' && ['blank', 'aisle-x', 'aisle-y'].includes(String(value.type || '')));
+}
+
+function getSeatLayoutSpacerType(value) {
+  return isSeatLayoutSpacer(value) ? String(value.type) : '';
+}
+
+function normalizeSeatLayoutCellValue(value) {
+  if(isSeatLayoutSpacer(value)) return createSeatLayoutSpacer(value.type);
+  if(value === null || value === undefined || value === '') return createSeatLayoutSpacer('blank');
+  const tai = Number(value);
+  return Number.isFinite(tai) && tai > 0 ? tai : createSeatLayoutSpacer('blank');
+}
+
+function getSeatLayoutCellsFromPlacements(placements) {
+  const source = placements && typeof placements === 'object' ? placements : {};
+  const keys = Object.keys(source)
+    .map((key) => Number(key))
+    .filter((idx) => Number.isInteger(idx) && idx >= 0)
+    .sort((a, b) => a - b);
+  if(!keys.length) return [];
+  const maxIndex = keys[keys.length - 1];
+  return Array.from({ length: maxIndex + 1 }, (_, idx) => {
+    return normalizeSeatLayoutCellValue(source[String(idx)]);
+  });
+}
+
+function cellsToSeatLayoutPlacements(cells) {
+  const placements = {};
+  (Array.isArray(cells) ? cells : []).forEach((value, idx) => {
+    if(isSeatLayoutSpacer(value)) {
+      placements[String(idx)] = createSeatLayoutSpacer(value.type);
+      return;
+    }
+    const tai = Number(value);
+    placements[String(idx)] = Number.isFinite(tai) && tai > 0 ? tai : createSeatLayoutSpacer('blank');
+  });
+  return placements;
+}
+
+function buildDefaultSeatLayoutCells(cards) {
+  const sortedTai = (Array.isArray(cards) ? cards : [])
+    .slice()
+    .sort((a, b) => Number(a.tai) - Number(b.tai))
+    .map((card) => Number(card.tai));
+  const cells = [];
+  sortedTai.forEach((tai, idx) => {
+    cells.push(tai);
+    const seatIndex = idx + 1;
+    const hasMore = idx < sortedTai.length - 1;
+    if(!hasMore) return;
+    if(seatIndex % 16 === 0) {
+      cells.push(createSeatLayoutSpacer('aisle-y'));
+      return;
+    }
+    if(seatIndex % 8 === 0) {
+      cells.push(createSeatLayoutSpacer('aisle-x'));
+      return;
+    }
+    if(seatIndex % 2 === 0) {
+      cells.push(createSeatLayoutSpacer('blank'));
+    }
+  });
+  return cells;
+}
+
+function sanitizeSeatLayoutPlacements(cards, placements) {
   const validTai = new Set((Array.isArray(cards) ? cards : []).map((card) => Number(card?.tai)));
-  const next = {};
+  const nextCells = [];
   const usedTai = new Set();
-  Object.entries(placements && typeof placements === 'object' ? placements : {}).forEach(([idxRaw, taiRaw]) => {
-    const idx = Number(idxRaw);
-    const tai = Number(taiRaw);
-    if(!Number.isInteger(idx) || idx < 0 || idx >= cellCount) return;
+  getSeatLayoutCellsFromPlacements(placements).forEach((value) => {
+    if(isSeatLayoutSpacer(value)) {
+      nextCells.push(createSeatLayoutSpacer(value.type));
+      return;
+    }
+    const tai = Number(value);
     if(!Number.isFinite(tai) || !validTai.has(tai) || usedTai.has(tai)) return;
-    next[String(idx)] = tai;
+    nextCells.push(tai);
     usedTai.add(tai);
   });
-  return next;
+  buildDefaultSeatLayoutCells(cards).forEach((value) => {
+    if(isSeatLayoutSpacer(value)) return;
+    const tai = Number(value);
+    if(Number.isFinite(tai) && !usedTai.has(tai)) nextCells.push(tai);
+  });
+  return cellsToSeatLayoutPlacements(nextCells);
+}
+
+function getSeatLayoutCellCount() {
+  return Math.max(0, getSeatLayoutCellsFromPlacements(seatLayoutState.placements).length);
+}
+
+function getSeatLayoutCellValue(cellIndex) {
+  const idx = Number(cellIndex);
+  if(!Number.isInteger(idx) || idx < 0) return undefined;
+  return getSeatLayoutCellsFromPlacements(seatLayoutState.placements)[idx];
+}
+
+function getSeatLayoutPreviousCellKey(tai) {
+  const t = Number(tai);
+  if(!Number.isFinite(t)) return undefined;
+  return Object.keys(seatLayoutState.placements)
+    .find((key) => Number(seatLayoutState.placements[key]) === t);
+}
+
+function moveSeatLayoutTaiToCell(tai, cellIndex) {
+  const t = Number(tai);
+  const idx = Number(cellIndex);
+  const cells = getSeatLayoutCellsFromPlacements(seatLayoutState.placements);
+  if(!Number.isFinite(t) || !getSeatLayoutCardByTai(t)) return false;
+  if(!Number.isInteger(idx) || idx < 0 || idx >= cells.length) return false;
+  const fromIdx = cells.findIndex((value) => Number(value) === t);
+  const targetValue = cells[idx];
+  if(fromIdx === idx) {
+    seatLayoutState.selectedTai = null;
+    seatLayoutState.selectedCellIndex = null;
+    return true;
+  }
+  if(fromIdx >= 0) cells[fromIdx] = isSeatLayoutSpacer(targetValue)
+    ? createSeatLayoutSpacer(targetValue.type)
+    : targetValue;
+  cells[idx] = t;
+  seatLayoutState.placements = sanitizeSeatLayoutPlacements(
+    seatLayoutState.cards,
+    cellsToSeatLayoutPlacements(cells)
+  );
+  seatLayoutState.selectedTai = null;
+  seatLayoutState.selectedCellIndex = null;
+  return true;
 }
 
 function buildSeatLayoutCards(store) {
   const map = new Map();
-  if(Array.isArray(G.taiDetail)) {
+
+  const addSeatRows = (seatRows) => {
+    if(Array.isArray(seatRows)) {
+      seatRows.forEach((row) => {
+        const tai = Number(row?.machine_no);
+        if(!Number.isFinite(tai) || map.has(tai)) return;
+        map.set(tai, {
+          tai,
+          model: String(row?.model || '').trim() || '不明',
+        });
+      });
+      return;
+    }
+    Object.keys((seatRows && typeof seatRows === 'object') ? seatRows : {}).forEach((taiRaw) => {
+      const tai = Number(taiRaw);
+      if(!Number.isFinite(tai) || map.has(tai)) return;
+      map.set(tai, { tai, model: '不明' });
+    });
+  };
+
+  const latestYmd = getSeatLayoutDatesFromBundle()[0] || '';
+  const latestSeatData = latestYmd ? getSeatLayoutDataByDate(latestYmd) : null;
+  addSeatRows(latestSeatData?.[store]);
+
+  if(!map.size) {
+    addSeatRows(seatLayoutState.seatData?.[store]);
+  }
+
+  if(!map.size && Array.isArray(G.taiDetail)) {
     G.taiDetail
       .filter((row) => String(row?.store || '') === String(store || ''))
       .forEach((row) => {
-        const tai = Number(row?.tai);
+        const tai = Number(row?.tai ?? row?.taiNum);
         if(!Number.isFinite(tai)) return;
         if(map.has(tai)) return;
         map.set(tai, {
@@ -2123,34 +2279,11 @@ function buildSeatLayoutCards(store) {
       });
   }
 
-  if(!map.size) {
-    const fallbackSeats = seatLayoutState.seatData?.[store];
-    if(Array.isArray(fallbackSeats)) {
-      fallbackSeats.forEach((row) => {
-        const tai = Number(row?.machine_no);
-        if(!Number.isFinite(tai) || map.has(tai)) return;
-        map.set(tai, {
-          tai,
-          model: String(row?.model || '不明'),
-        });
-      });
-    } else {
-      Object.keys((fallbackSeats && typeof fallbackSeats === 'object') ? fallbackSeats : {}).forEach((taiRaw) => {
-        const tai = Number(taiRaw);
-        if(!Number.isFinite(tai) || map.has(tai)) return;
-        map.set(tai, {
-          tai,
-          model: '不明',
-        });
-      });
-    }
-  }
-
   return Array.from(map.values()).sort((a, b) => a.tai - b.tai);
 }
 
 function loadSeatLayoutPlacement(store, cards) {
-  const defaults = { cols: 8, rows: 6, placements: {} };
+  const defaults = { placements: cellsToSeatLayoutPlacements(buildDefaultSeatLayoutCells(cards)) };
   if(!store) return defaults;
   let parsed = null;
   try {
@@ -2163,41 +2296,45 @@ function loadSeatLayoutPlacement(store, cards) {
 
   const cardTaiSet = new Set((Array.isArray(cards) ? cards : []).map((card) => Number(card?.tai)));
   const fromArray = () => {
-    const placements = {};
-    let i = 0;
+    const cells = [];
     parsed.forEach((taiRaw) => {
       const tai = Number(taiRaw);
       if(!Number.isFinite(tai) || !cardTaiSet.has(tai)) return;
-      placements[String(i)] = tai;
-      i += 1;
+      cells.push(tai);
     });
     return {
-      cols: defaults.cols,
-      rows: defaults.rows,
-      placements: sanitizeSeatLayoutPlacements(cards, placements, defaults.cols * defaults.rows),
+      placements: sanitizeSeatLayoutPlacements(cards, cellsToSeatLayoutPlacements(cells)),
     };
   };
 
   if(Array.isArray(parsed)) return fromArray();
   if(!parsed || typeof parsed !== 'object') return defaults;
 
-  const cols = clampSeatLayoutSize(parsed.cols, defaults.cols);
-  const rows = clampSeatLayoutSize(parsed.rows, defaults.rows);
-  const cellCount = cols * rows;
-  const placements = sanitizeSeatLayoutPlacements(cards, parsed.placements, cellCount);
-  return { cols, rows, placements };
+  if(Number(parsed.version) < 10) {
+    return defaults;
+  }
+
+  let sourcePlacements = parsed.placements;
+  if(sourcePlacements && typeof sourcePlacements === 'object' && (parsed.cols || parsed.rows)) {
+    const cols = clampSeatLayoutSize(parsed.cols, 8);
+    const rows = clampSeatLayoutSize(parsed.rows, 6);
+    const legacyCells = Array.from({ length: cols * rows }, (_, idx) => {
+      const value = sourcePlacements[String(idx)];
+      return value === undefined ? null : Number(value);
+    });
+    sourcePlacements = cellsToSeatLayoutPlacements(legacyCells);
+  }
+  const placements = sanitizeSeatLayoutPlacements(cards, sourcePlacements);
+  return { placements };
 }
 
 function saveSeatLayoutPlacement(store) {
   if(!store) return;
   const payload = {
-    version: 2,
-    cols: clampSeatLayoutSize(seatLayoutState.cols, 8),
-    rows: clampSeatLayoutSize(seatLayoutState.rows, 6),
+    version: 10,
     placements: sanitizeSeatLayoutPlacements(
       seatLayoutState.cards,
-      seatLayoutState.placements,
-      getSeatLayoutCellCount()
+      seatLayoutState.placements
     ),
   };
   try {
@@ -2220,26 +2357,42 @@ function syncSeatLayoutCards(forceReloadStorePlacement = false) {
   const storeChanged = forceReloadStorePlacement || seatLayoutState._placementStore !== store;
   if(storeChanged) {
     const saved = loadSeatLayoutPlacement(store, cards);
-    seatLayoutState.cols = saved.cols;
-    seatLayoutState.rows = saved.rows;
     seatLayoutState.placements = saved.placements;
     seatLayoutState._placementStore = store;
   } else {
     seatLayoutState.placements = sanitizeSeatLayoutPlacements(
       cards,
-      seatLayoutState.placements,
-      getSeatLayoutCellCount()
+      seatLayoutState.placements
     );
   }
 
   const selectedTai = Number(seatLayoutState.selectedTai);
   if(!Number.isFinite(selectedTai)) {
     seatLayoutState.selectedTai = null;
+    seatLayoutState.selectedCellIndex = null;
     return;
   }
   const exists = cards.some((card) => card.tai === selectedTai);
-  const isPlaced = Object.values(seatLayoutState.placements).some((tai) => Number(tai) === selectedTai);
-  if(!exists || isPlaced) seatLayoutState.selectedTai = null;
+  if(!exists) {
+    seatLayoutState.selectedTai = null;
+    seatLayoutState.selectedCellIndex = null;
+  }
+}
+
+function renderSeatLayoutSearchInput() {
+  const searchEl = document.getElementById('seatLayoutSearch');
+  if(searchEl && searchEl.value !== seatLayoutState.poolQuery) {
+    searchEl.value = seatLayoutState.poolQuery || '';
+  }
+}
+
+function doesSeatLayoutCardMatchFilters(card) {
+  const query = String(seatLayoutState.poolQuery || '').trim().toLowerCase();
+  const modelFilter = seatLayoutState.heatmapModelFilter || 'all';
+  const model = String(card?.model || '');
+  if(modelFilter !== 'all' && model !== modelFilter) return false;
+  if(!query) return true;
+  return String(card?.tai || '').includes(query) || model.toLowerCase().includes(query);
 }
 
 function getSeatLayoutDatesFromBundle() {
@@ -2437,14 +2590,6 @@ function getSeatLayoutDiffMap(store) {
   return map;
 }
 
-function getSeatLayoutColorClass(avgDiff) {
-  if(!Number.isFinite(avgDiff)) return 'seat-layout-color-none';
-  if(avgDiff >= 3000) return 'seat-layout-color-high';
-  if(avgDiff >= 1500) return 'seat-layout-color-mid';
-  if(avgDiff >= 750) return 'seat-layout-color-low';
-  return 'seat-layout-color-none';
-}
-
 function getSeatHeatmapColorClass(diff) {
   if(!Number.isFinite(diff)) return 'seat-heatmap-cell is-missing';
   if(diff >= 3000) return 'seat-heatmap-cell is-strong-plus';
@@ -2458,6 +2603,28 @@ function getSeatHeatmapColorClass(diff) {
 function formatSeatHeatmapDiff(diff) {
   if(!Number.isFinite(diff)) return 'データなし';
   return `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()}枚`;
+}
+
+function formatSeatHeatmapModelLabel(model) {
+  const text = String(model || '').trim();
+  if(!text || text === '不明') return '';
+  const map = [
+    ['ゴーゴージャグラー3', 'ゴージャグ'],
+    ['ジャグラーガールズSS', 'ガールズ'],
+    ['ファンキージャグラー2', 'ファンキー'],
+    ['ハッピージャグラーVIII', 'ハッピー'],
+    ['マイジャグラーV', 'マイV'],
+    ['ネオアイムジャグラー', 'アイム'],
+    ['ミスタージャグラー', 'ミスター'],
+    ['スマスロハナビ', 'スマハナ'],
+  ];
+  const match = map.find(([name]) => text.includes(name));
+  if(match) return match[1];
+  return text
+    .replace(/ジャグラー/g, '')
+    .replace(/スマスロ/g, 'スマ')
+    .replace(/ネオ/g, '')
+    .slice(0, 6) || text.slice(0, 6);
 }
 
 function renderSeatHeatmapModelFilter(rows) {
@@ -2503,6 +2670,28 @@ function renderSeatHeatmapSummary(rows, allCount) {
   ].join('');
 }
 
+function renderSeatHeatmapSelection(row) {
+  const el = document.getElementById('seatHeatmapSelection');
+  if(!el) return;
+  if(!row) {
+    el.hidden = true;
+    el.innerHTML = '';
+    return;
+  }
+  const diff = Number(row.diff);
+  const diffColor = Number.isFinite(diff)
+    ? (diff >= 0 ? 'var(--plus)' : 'var(--minus)')
+    : 'var(--muted)';
+  el.hidden = false;
+  const model = String(row.model || '').trim();
+  el.innerHTML = `
+    <div class="seat-selection-main">
+      <span class="seat-selection-tai">${escapeHtml(String(row.tai))}</span>
+      <span class="seat-selection-model">${escapeHtml(model && model !== '不明' ? model : '機種未取得')}</span>
+    </div>
+    <div class="seat-selection-diff" style="color:${diffColor}">${escapeHtml(formatSeatHeatmapDiff(row.diff))}</div>`;
+}
+
 function renderSeatHeatmap(store) {
   const wrap = document.getElementById('seatHeatmapGrid');
   const summary = document.getElementById('seatHeatmapSummary');
@@ -2510,6 +2699,7 @@ function renderSeatHeatmap(store) {
   if(!store) {
     if(summary) summary.textContent = '店舗を選択してください';
     renderSeatHeatmapModelFilter([]);
+    renderSeatHeatmapSelection(null);
     wrap.innerHTML = '<div class="empty-msg">店舗を選択してください</div>';
     return;
   }
@@ -2524,30 +2714,76 @@ function renderSeatHeatmap(store) {
 
   const allRows = Array.from(rowsByTai.values()).sort((a, b) => a.tai - b.tai);
   renderSeatHeatmapModelFilter(allRows);
-  const modelFilter = seatLayoutState.heatmapModelFilter || 'all';
-  const rows = modelFilter === 'all' ? allRows : allRows.filter((row) => row.model === modelFilter);
+  const matchingTai = new Set();
+  allRows.forEach((row) => {
+    if(doesSeatLayoutCardMatchFilters(row)) matchingTai.add(Number(row.tai));
+  });
+  const rows = allRows.filter((row) => matchingTai.has(Number(row.tai)));
   renderSeatHeatmapSummary(rows, allRows.length);
+  const selectedTai = Number(seatLayoutState.selectedTai);
+  renderSeatHeatmapSelection(Number.isFinite(selectedTai) ? rowsByTai.get(selectedTai) : null);
 
-  if(!rows.length) {
+  const cells = getSeatLayoutCellsFromPlacements(seatLayoutState.placements);
+  if(!cells.length) {
+    renderSeatHeatmapSelection(null);
+    wrap.innerHTML = '<div class="empty-msg">台データがありません</div>';
+    return;
+  }
+  if(!rows.length && (seatLayoutState.poolQuery || seatLayoutState.heatmapModelFilter !== 'all')) {
+    renderSeatHeatmapSelection(null);
     wrap.innerHTML = '<div class="empty-msg">表示対象の台がありません</div>';
     return;
   }
 
-  wrap.innerHTML = rows.map((row) => {
+  wrap.innerHTML = cells.map((value, idx) => {
+    const taiValue = Number(value);
+    const hasSeatCard = Number.isFinite(taiValue) && !!getSeatLayoutCardByTai(taiValue);
+    const spacerType = getSeatLayoutSpacerType(value) || (!hasSeatCard ? 'blank' : '');
+    if(spacerType) {
+      const blankSelected = seatLayoutState.selectedCellIndex === idx && !seatLayoutState.selectedTai;
+      const spacerLabel = spacerType === 'aisle-y' ? '縦通路' : (spacerType === 'aisle-x' ? '横通路' : '小余白');
+      return `<button type="button"
+        class="seat-heatmap-cell is-blank is-${spacerType}${seatLayoutState.selectedTai ? ' is-drop-ready' : ''}${blankSelected ? ' is-selected' : ''}"
+        data-cell-index="${idx}"
+        data-spacer-type="${escapeHtml(spacerType)}"
+        onclick="onSeatLayoutCellClick(${idx})"
+        ondragover="onSeatLayoutCellDragOver(event, ${idx})"
+        ondragleave="this.classList.remove('is-hover')"
+        ondrop="onSeatLayoutCellDrop(event, ${idx})">
+        <span class="seat-heatmap-blank-label">${spacerLabel}</span>
+      </button>`;
+    }
+    const tai = taiValue;
+    const row = rowsByTai.get(tai) || { tai, model: getSeatLayoutCardByTai(tai)?.model || '不明', diff: null };
+    const card = getSeatLayoutCardByTai(tai) || { tai, model: row.model || '不明' };
+    const matches = matchingTai.has(tai);
     const colorClass = getSeatHeatmapColorClass(row.diff);
-    const model = row.model || '不明';
-    return `<div class="${colorClass}" title="${escapeHtml(`${store} ${row.tai}番台 ${model} ${formatSeatHeatmapDiff(row.diff)}`)}">
-      <div class="seat-heatmap-tai">${row.tai}番台</div>
-      <div class="seat-heatmap-model">${escapeHtml(model)}</div>
-      <div class="seat-heatmap-diff">${escapeHtml(formatSeatHeatmapDiff(row.diff))}</div>
-    </div>`;
+    const selectedClass = seatLayoutState.selectedTai === tai ? ' is-selected' : '';
+    const hiddenClass = matches ? '' : ' is-filtered-out';
+    const model = row.model || card.model || '不明';
+    const shortModel = formatSeatHeatmapModelLabel(model);
+    return `<button type="button"
+      class="${colorClass}${selectedClass}${hiddenClass}"
+      data-cell-index="${idx}"
+      draggable="true"
+      title="${escapeHtml(`${store} ${tai}番台 ${model} ${formatSeatHeatmapDiff(row.diff)}`)}"
+      onclick="onSeatLayoutCardClick(event, ${idx})"
+      ontouchstart="onSeatLayoutCardTouchStart(event, ${tai}, ${idx})"
+      ondragstart="onSeatLayoutDragStart(event, ${tai}, ${idx})"
+      ondragend="onSeatLayoutDragEnd(event)"
+      ondragover="onSeatLayoutCellDragOver(event, ${idx})"
+      ondragleave="this.classList.remove('is-hover')"
+      ondrop="onSeatLayoutCellDrop(event, ${idx})">
+      <div class="seat-heatmap-tai">${tai}</div>
+      ${shortModel ? `<div class="seat-heatmap-model">${escapeHtml(shortModel)}</div>` : ''}
+    </button>`;
   }).join('');
 }
 
 function onSeatHeatmapModelChange() {
   const select = document.getElementById('seatHeatmapModelFilter');
   seatLayoutState.heatmapModelFilter = select?.value || 'all';
-  renderSeatHeatmap(seatLayoutState.store);
+  renderSeatLayoutTab();
 }
 
 function flashSeatLayoutNotice(message) {
@@ -2562,22 +2798,70 @@ function flashSeatLayoutNotice(message) {
 function setSeatLayoutTouchHoverCell(nextCellIndex) {
   const prev = seatLayoutState.touchHoverCell;
   if(prev === nextCellIndex) return;
-  const gridEl = document.getElementById('seatLayoutGrid');
+  const gridEl = document.getElementById('seatHeatmapGrid');
   if(gridEl) {
     if(Number.isInteger(prev)) {
-      const prevEl = gridEl.querySelector(`.seat-layout-cell[data-cell-index="${prev}"]`);
+      const prevEl = gridEl.querySelector(`.seat-heatmap-cell[data-cell-index="${prev}"]`);
       prevEl?.classList?.remove('is-hover');
     }
     if(Number.isInteger(nextCellIndex)) {
-      const nextEl = gridEl.querySelector(`.seat-layout-cell[data-cell-index="${nextCellIndex}"]`);
+      const nextEl = gridEl.querySelector(`.seat-heatmap-cell[data-cell-index="${nextCellIndex}"]`);
       nextEl?.classList?.add('is-hover');
     }
   }
   seatLayoutState.touchHoverCell = Number.isInteger(nextCellIndex) ? nextCellIndex : null;
 }
 
+function clearSeatLayoutDragHover() {
+  document.querySelectorAll('#seatHeatmapGrid .seat-heatmap-cell.is-hover')
+    .forEach((el) => el.classList.remove('is-hover'));
+}
+
+function onSeatLayoutDragStart(event, tai, cellIndex) {
+  const t = Number(tai);
+  if(!Number.isFinite(t)) return;
+  seatLayoutState.dragTai = t;
+  seatLayoutState.dragCellIndex = Number(cellIndex);
+  seatLayoutState.selectedTai = t;
+  seatLayoutState.selectedCellIndex = Number(cellIndex);
+  if(event?.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(t));
+  }
+  event.currentTarget?.classList?.add('is-dragging');
+}
+
+function onSeatLayoutDragEnd(event) {
+  event?.currentTarget?.classList?.remove('is-dragging');
+  seatLayoutState.dragTai = null;
+  seatLayoutState.dragCellIndex = null;
+  clearSeatLayoutDragHover();
+}
+
+function onSeatLayoutCellDragOver(event, cellIndex) {
+  const idx = Number(cellIndex);
+  if(!Number.isInteger(idx) || idx < 0) return;
+  event.preventDefault();
+  if(event?.dataTransfer) event.dataTransfer.dropEffect = 'move';
+  clearSeatLayoutDragHover();
+  event.currentTarget?.classList?.add('is-hover');
+}
+
+function onSeatLayoutCellDrop(event, cellIndex) {
+  event.preventDefault();
+  const dataTai = event?.dataTransfer?.getData('text/plain');
+  const tai = Number(dataTai || seatLayoutState.dragTai || seatLayoutState.selectedTai);
+  if(moveSeatLayoutTaiToCell(tai, cellIndex)) {
+    flashSeatLayoutNotice(`${tai}番台を配置しました`);
+  }
+  seatLayoutState.dragTai = null;
+  seatLayoutState.dragCellIndex = null;
+  clearSeatLayoutDragHover();
+  renderSeatLayoutTab();
+}
+
 function clearSeatLayoutTouchDragState() {
-  document.querySelectorAll('#seatLayoutUnplaced .seat-layout-item.is-dragging')
+  document.querySelectorAll('#seatHeatmapGrid .seat-heatmap-cell.is-dragging')
     .forEach((el) => el.classList.remove('is-dragging'));
   seatLayoutState.touchTai = null;
   setSeatLayoutTouchHoverCell(null);
@@ -2591,7 +2875,7 @@ function bindSeatLayoutTouchEvents() {
     const touch = event.touches && event.touches[0];
     if(!touch) return;
     const target = document.elementFromPoint(touch.clientX, touch.clientY);
-    const cell = target && target.closest ? target.closest('#seatLayoutGrid .seat-layout-cell') : null;
+    const cell = target && target.closest ? target.closest('#seatHeatmapGrid .seat-heatmap-cell') : null;
     const idx = Number(cell?.dataset?.cellIndex);
     setSeatLayoutTouchHoverCell(Number.isInteger(idx) && idx >= 0 ? idx : null);
     event.preventDefault();
@@ -2602,14 +2886,7 @@ function bindSeatLayoutTouchEvents() {
     if(!Number.isFinite(tai)) return;
     const hoverCell = Number(seatLayoutState.touchHoverCell);
     if(Number.isInteger(hoverCell) && hoverCell >= 0) {
-      const previousCellKey = Object.keys(seatLayoutState.placements)
-        .find((key) => Number(seatLayoutState.placements[key]) === tai);
-      if(previousCellKey !== undefined) delete seatLayoutState.placements[previousCellKey];
-      const occupantTai = Number(seatLayoutState.placements[String(hoverCell)]);
-      if(Number.isFinite(occupantTai) && occupantTai === seatLayoutState.selectedTai) seatLayoutState.selectedTai = null;
-      seatLayoutState.placements[String(hoverCell)] = tai;
-      seatLayoutState.selectedTai = null;
-      syncSeatLayoutCards(false);
+      moveSeatLayoutTaiToCell(tai, hoverCell);
     }
     clearSeatLayoutTouchDragState();
     renderSeatLayoutTab();
@@ -2621,63 +2898,64 @@ function bindSeatLayoutTouchEvents() {
   seatLayoutState.touchBound = true;
 }
 
-function onSeatLayoutCardTouchStart(event, tai) {
+function onSeatLayoutCardTouchStart(event, tai, cellIndex) {
   const t = Number(tai);
   if(!Number.isFinite(t)) return;
-  const alreadyPlaced = Object.values(seatLayoutState.placements).some((v) => Number(v) === t);
-  if(alreadyPlaced) return;
   seatLayoutState.selectedTai = t;
+  seatLayoutState.selectedCellIndex = Number(cellIndex);
   seatLayoutState.touchTai = t;
   event.currentTarget?.classList?.add('is-dragging');
   event.preventDefault();
 }
 
-function onSeatLayoutUnplacedCardClick(tai) {
-  const t = Number(tai);
-  if(!Number.isFinite(t)) return;
-  seatLayoutState.selectedTai = seatLayoutState.selectedTai === t ? null : t;
+function onSeatLayoutCardClick(event, cellIndex) {
+  event.stopPropagation();
+  const idx = Number(cellIndex);
+  const tai = Number(getSeatLayoutCellValue(idx));
+  if(!Number.isInteger(idx) || idx < 0 || !Number.isFinite(tai)) return;
+  const selectedTai = Number(seatLayoutState.selectedTai);
+  if(Number.isFinite(selectedTai) && getSeatLayoutCardByTai(selectedTai) && selectedTai !== tai) {
+    moveSeatLayoutTaiToCell(selectedTai, idx);
+    renderSeatLayoutTab();
+    return;
+  }
+  if(seatLayoutState.selectedTai === tai) {
+    seatLayoutState.selectedTai = null;
+    seatLayoutState.selectedCellIndex = null;
+  } else {
+    seatLayoutState.selectedTai = tai;
+    seatLayoutState.selectedCellIndex = idx;
+  }
   renderSeatLayoutTab();
 }
 
 function onSeatLayoutCellClick(cellIndex) {
   const idx = Number(cellIndex);
   const selectedTai = Number(seatLayoutState.selectedTai);
+  const hasSelectedTai = Number.isFinite(selectedTai) && !!getSeatLayoutCardByTai(selectedTai);
   if(!Number.isInteger(idx) || idx < 0 || idx >= getSeatLayoutCellCount()) return;
-  if(!Number.isFinite(selectedTai)) return;
-  const previousCellKey = Object.keys(seatLayoutState.placements)
-    .find((key) => Number(seatLayoutState.placements[key]) === selectedTai);
-  if(previousCellKey !== undefined) delete seatLayoutState.placements[previousCellKey];
-  seatLayoutState.placements[String(idx)] = selectedTai;
-  seatLayoutState.selectedTai = null;
-  syncSeatLayoutCards(false);
-  renderSeatLayoutTab();
-}
-
-function onSeatLayoutPlacedCardClick(event, cellIndex) {
-  event.stopPropagation();
-  const idx = Number(cellIndex);
-  if(!Number.isInteger(idx) || idx < 0) return;
-  delete seatLayoutState.placements[String(idx)];
+  if(!hasSelectedTai) {
+    if(isSeatLayoutSpacer(getSeatLayoutCellValue(idx))) {
+      seatLayoutState.selectedCellIndex = idx;
+      renderSeatLayoutTab();
+    }
+    return;
+  }
+  moveSeatLayoutTaiToCell(selectedTai, idx);
   renderSeatLayoutTab();
 }
 
 function renderSeatLayoutTab() {
   const statusEl = document.getElementById('seatLayoutStatus');
-  const gridEl = document.getElementById('seatLayoutGrid');
-  const poolEl = document.getElementById('seatLayoutUnplaced');
-  const colsEl = document.getElementById('seatLayoutCols');
-  const rowsEl = document.getElementById('seatLayoutRows');
-  if(!statusEl || !gridEl || !poolEl) return;
+  const heatmapEl = document.getElementById('seatHeatmapGrid');
+  if(!statusEl || !heatmapEl) return;
 
-  if(colsEl) colsEl.value = String(seatLayoutState.cols);
-  if(rowsEl) rowsEl.value = String(seatLayoutState.rows);
   renderSeatLayoutDatePicker();
+  renderSeatLayoutSearchInput();
 
   if(!seatLayoutState.store) {
     statusEl.textContent = '店舗を選択してください';
     statusEl.style.color = 'var(--muted)';
-    poolEl.innerHTML = '<div class="empty-msg">店舗を選択してください</div>';
-    gridEl.innerHTML = '<div class="empty-msg">店舗を選択してください</div>';
     renderSeatHeatmap('');
     return;
   }
@@ -2685,54 +2963,15 @@ function renderSeatLayoutTab() {
   if(!seatLayoutState.cards.length) {
     statusEl.textContent = `${seatLayoutState.store} の台データがありません`;
     statusEl.style.color = 'var(--muted)';
-    poolEl.innerHTML = '<div class="empty-msg">台データなし</div>';
-    gridEl.innerHTML = '<div class="empty-msg">台データなし</div>';
     renderSeatHeatmap(seatLayoutState.store);
     return;
   }
 
-  const diffMap = getSeatLayoutDiffMap(seatLayoutState.store);
-  const placedTaiSet = new Set(
-    Object.values(seatLayoutState.placements)
-      .map((v) => Number(v))
-      .filter((v) => Number.isFinite(v))
-  );
-  const unplacedCards = seatLayoutState.cards.filter((card) => !placedTaiSet.has(card.tai));
-
-  poolEl.innerHTML = unplacedCards.length
-    ? unplacedCards.map((card) => {
-        const selectedClass = seatLayoutState.selectedTai === card.tai ? ' is-selected' : '';
-        const colorClass = getSeatLayoutColorClass(diffMap.get(card.tai));
-        return `<button type="button"
-          class="seat-layout-item ${colorClass}${selectedClass}"
-          onclick="onSeatLayoutUnplacedCardClick(${card.tai})"
-          ontouchstart="onSeatLayoutCardTouchStart(event, ${card.tai})">
-          <span class="seat-layout-tai">${card.tai}</span>
-          <span class="seat-layout-model-initial">${escapeHtml(getSeatLayoutCardModelInitial(card.model))}</span>
-        </button>`;
-      }).join('')
-    : '<div class="empty-msg">未配置台なし</div>';
-
-  const cellCount = getSeatLayoutCellCount();
-  gridEl.style.setProperty('--seat-grid-cols', String(seatLayoutState.cols));
-  gridEl.style.setProperty('--seat-grid-rows', String(seatLayoutState.rows));
-  gridEl.innerHTML = Array.from({ length: cellCount }, (_, idx) => {
-    const tai = Number(seatLayoutState.placements[String(idx)]);
-    const card = seatLayoutState.cards.find((c) => c.tai === tai) || null;
-    if(!card) {
-      return `<div class="seat-layout-cell" data-cell-index="${idx}" onclick="onSeatLayoutCellClick(${idx})"></div>`;
-    }
-    const colorClass = getSeatLayoutColorClass(diffMap.get(card.tai));
-    return `<div class="seat-layout-cell" data-cell-index="${idx}" onclick="onSeatLayoutCellClick(${idx})">
-      <button type="button" class="seat-layout-item ${colorClass}" onclick="onSeatLayoutPlacedCardClick(event, ${idx})">
-        <span class="seat-layout-tai">${card.tai}</span>
-        <span class="seat-layout-model-initial">${escapeHtml(getSeatLayoutCardModelInitial(card.model))}</span>
-      </button>
-    </div>`;
-  }).join('');
   renderSeatHeatmap(seatLayoutState.store);
 
-  const placedCount = placedTaiSet.size;
+  const cells = getSeatLayoutCellsFromPlacements(seatLayoutState.placements);
+  const placedCount = cells.filter((value) => getSeatLayoutCardByTai(value)).length;
+  const blankCount = cells.length - placedCount;
   const notice = seatLayoutState.notice ? ` / ${seatLayoutState.notice}` : '';
   if(seatLayoutState.error) {
     statusEl.textContent = `読込エラー: ${seatLayoutState.error}${notice}`;
@@ -2744,7 +2983,9 @@ function renderSeatLayoutTab() {
     statusEl.textContent = `${seatLayoutState.dateYmd} はデータなし（seat_data.json）${notice}`;
     statusEl.style.color = 'var(--accent4)';
   } else {
-    statusEl.textContent = `${seatLayoutState.store} / ${seatLayoutState.dateYmd} / 配置 ${placedCount}台 / 未配置 ${unplacedCards.length}台${notice}`;
+    const filterActive = seatLayoutState.poolQuery || seatLayoutState.heatmapModelFilter !== 'all';
+    const filterNote = filterActive ? ' / 絞り込み中' : '';
+    statusEl.textContent = `${seatLayoutState.store} / ${seatLayoutState.dateYmd} / ${placedCount}台 / 余白 ${blankCount}${filterNote}${notice}`;
     statusEl.style.color = 'var(--text)';
   }
 }
@@ -2811,8 +3052,15 @@ function onSeatLayoutStoreChange() {
   seatLayoutState.store = select ? select.value : '';
   closeSeatLayoutDatePicker();
   seatLayoutState.selectedTai = null;
+  seatLayoutState.selectedCellIndex = null;
   seatLayoutState.heatmapModelFilter = 'all';
+  seatLayoutState.poolQuery = '';
   syncSeatLayoutCards(true);
+  renderSeatLayoutTab();
+}
+
+function onSeatLayoutPoolFilterChange() {
+  seatLayoutState.poolQuery = document.getElementById('seatLayoutSearch')?.value || '';
   renderSeatLayoutTab();
 }
 
@@ -2843,13 +3091,80 @@ function selectSeatLayoutDate(ymd) {
 }
 
 function onSeatLayoutGridSizeChange() {
-  seatLayoutState.cols = clampSeatLayoutSize(document.getElementById('seatLayoutCols')?.value, seatLayoutState.cols || 8);
-  seatLayoutState.rows = clampSeatLayoutSize(document.getElementById('seatLayoutRows')?.value, seatLayoutState.rows || 6);
+  renderSeatLayoutTab();
+}
+
+function autoArrangeSeatLayout(mode) {
+  if(!seatLayoutState.store || !seatLayoutState.cards.length) return;
+  seatLayoutState.placements = cellsToSeatLayoutPlacements(buildDefaultSeatLayoutCells(seatLayoutState.cards));
+  seatLayoutState.selectedTai = null;
+  seatLayoutState.selectedCellIndex = null;
+  flashSeatLayoutNotice(mode === 'reset' ? '初期配置に戻しました' : '初期配置にしました');
+  renderSeatLayoutTab();
+}
+
+function getSeatLayoutInsertIndex(cells) {
+  const list = Array.isArray(cells) ? cells : [];
+  const selectedIndex = Number(seatLayoutState.selectedCellIndex);
+  if(Number.isInteger(selectedIndex) && selectedIndex >= 0 && selectedIndex < list.length) {
+    return selectedIndex + 1;
+  }
+  const selectedTai = Number(seatLayoutState.selectedTai);
+  if(Number.isFinite(selectedTai)) {
+    const idx = list.findIndex((value) => Number(value) === selectedTai);
+    if(idx >= 0) return idx + 1;
+  }
+  return list.length;
+}
+
+function addSeatLayoutSpacerCell(type, label) {
+  if(!seatLayoutState.store) return;
+  const cells = getSeatLayoutCellsFromPlacements(seatLayoutState.placements);
+  const insertIndex = getSeatLayoutInsertIndex(cells);
+  cells.splice(insertIndex, 0, createSeatLayoutSpacer(type));
+  seatLayoutState.placements = cellsToSeatLayoutPlacements(cells);
+  seatLayoutState.selectedCellIndex = insertIndex;
+  seatLayoutState.selectedTai = null;
+  flashSeatLayoutNotice(label || '余白を追加しました');
+  renderSeatLayoutTab();
+}
+
+function addSeatLayoutBlankCell() {
+  addSeatLayoutSpacerCell('blank', '小余白を追加しました');
+}
+
+function addSeatLayoutHorizontalAisle() {
+  addSeatLayoutSpacerCell('aisle-x', '横通路を追加しました');
+}
+
+function addSeatLayoutVerticalAisle() {
+  addSeatLayoutSpacerCell('aisle-y', '縦通路を追加しました');
+}
+
+function addSeatLayoutAisleCells() {
+  addSeatLayoutHorizontalAisle();
+}
+
+function removeSeatLayoutBlankCells() {
+  if(!seatLayoutState.store) return;
+  const cells = getSeatLayoutCellsFromPlacements(seatLayoutState.placements);
+  const selectedIndex = Number(seatLayoutState.selectedCellIndex);
+  let removeIndex = -1;
+  if(Number.isInteger(selectedIndex) && isSeatLayoutSpacer(cells[selectedIndex])) {
+    removeIndex = selectedIndex;
+  } else {
+    removeIndex = cells.map((value, idx) => isSeatLayoutSpacer(value) ? idx : -1).filter((idx) => idx >= 0).pop() ?? -1;
+  }
+  const removed = removeIndex >= 0;
+  const nextCells = cells.slice();
+  if(removed) nextCells.splice(removeIndex, 1);
   seatLayoutState.placements = sanitizeSeatLayoutPlacements(
     seatLayoutState.cards,
-    seatLayoutState.placements,
-    getSeatLayoutCellCount()
+    cellsToSeatLayoutPlacements(nextCells)
   );
+  seatLayoutState.selectedTai = null;
+  seatLayoutState.selectedCellIndex = null;
+  flashSeatLayoutNotice(removed ? '余白を削除しました' : '余白はありません');
   renderSeatLayoutTab();
 }
 
@@ -2861,11 +3176,8 @@ function saveSeatLayoutState() {
 }
 
 function resetSeatLayoutOrder() {
-  seatLayoutState.placements = {};
+  autoArrangeSeatLayout('reset');
   seatLayoutState.selectedTai = null;
-  if(seatLayoutState.store) saveSeatLayoutPlacement(seatLayoutState.store);
-  flashSeatLayoutNotice('リセットしました');
-  renderSeatLayoutTab();
 }
 
 function loadFromJSON() {
