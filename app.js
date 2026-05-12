@@ -19,6 +19,35 @@ let SPECIAL_BY_STORE = {};
 const DEFAULT_SPECIAL = [1,6,7,11,16,17,22,26,27];
 const RECOMMENDATION_EXPANDED_STORAGE_KEY = 'juggler_recommendation_expanded';
 const SEAT_LAYOUT_STORAGE_PREFIX = 'juggler_seat_layout_';
+const SEAT_LAYOUT_UI_STORAGE_KEY = 'juggler_seat_layout_ui';
+const SEAT_LAYOUT_VIEW_MODES = new Set(['view', 'edit']);
+const SEAT_LAYOUT_DENSITIES = new Set(['normal', 'compact', 'tiny']);
+function normalizeSeatLayoutViewMode(value) {
+  return SEAT_LAYOUT_VIEW_MODES.has(String(value || '')) ? String(value) : 'view';
+}
+function normalizeSeatLayoutDensity(value) {
+  return SEAT_LAYOUT_DENSITIES.has(String(value || '')) ? String(value) : 'compact';
+}
+function loadSeatLayoutUiPreference() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SEAT_LAYOUT_UI_STORAGE_KEY) || '{}');
+    return {
+      viewMode: normalizeSeatLayoutViewMode(parsed.viewMode),
+      density: normalizeSeatLayoutDensity(parsed.density),
+    };
+  } catch(_) {
+    return { viewMode: 'view', density: 'compact' };
+  }
+}
+function saveSeatLayoutUiPreference() {
+  try {
+    localStorage.setItem(SEAT_LAYOUT_UI_STORAGE_KEY, JSON.stringify({
+      viewMode: normalizeSeatLayoutViewMode(seatLayoutState.viewMode),
+      density: normalizeSeatLayoutDensity(seatLayoutState.density),
+    }));
+  } catch(_) {}
+}
+const SEAT_LAYOUT_INITIAL_UI = loadSeatLayoutUiPreference();
 const DATA_EMPTY_STATE = {
   UNLOADED: 'unloaded',
   LOADING: 'loading',
@@ -67,6 +96,9 @@ let seatLayoutState = {
   dragTai: null,
   dragCellIndex: null,
   selectedCellIndex: null,
+  undoStack: [],
+  viewMode: SEAT_LAYOUT_INITIAL_UI.viewMode,
+  density: SEAT_LAYOUT_INITIAL_UI.density,
 };
 const DESIGN_SYSTEM_SELECTORS = {
   buttons: 'button.btn,button.btn-primary,button.btn-secondary,button.btn-filter,button.filter-btn,button.period-btn,button.cal-nav-btn,button.target-day-btn,button.store-btn,button.save-btn,button.model-chip,button.recommendation-toggle',
@@ -2098,24 +2130,23 @@ function getSeatLayoutCardByTai(tai) {
   return seatLayoutState.cards.find((card) => Number(card?.tai) === t) || null;
 }
 
-function createSeatLayoutSpacer(type = 'blank') {
-  const t = ['blank', 'aisle-x', 'aisle-y'].includes(String(type || '')) ? String(type) : 'blank';
-  return { type: t };
+function createSeatLayoutSpacer() {
+  return { type: 'blank' };
 }
 
 function isSeatLayoutSpacer(value) {
-  return !!(value && typeof value === 'object' && ['blank', 'aisle-x', 'aisle-y'].includes(String(value.type || '')));
+  return !!(value && typeof value === 'object' && String(value.type || ''));
 }
 
 function getSeatLayoutSpacerType(value) {
-  return isSeatLayoutSpacer(value) ? String(value.type) : '';
+  return isSeatLayoutSpacer(value) ? 'blank' : '';
 }
 
 function normalizeSeatLayoutCellValue(value) {
-  if(isSeatLayoutSpacer(value)) return createSeatLayoutSpacer(value.type);
-  if(value === null || value === undefined || value === '') return createSeatLayoutSpacer('blank');
+  if(isSeatLayoutSpacer(value)) return createSeatLayoutSpacer();
+  if(value === null || value === undefined || value === '') return createSeatLayoutSpacer();
   const tai = Number(value);
-  return Number.isFinite(tai) && tai > 0 ? tai : createSeatLayoutSpacer('blank');
+  return Number.isFinite(tai) && tai > 0 ? tai : createSeatLayoutSpacer();
 }
 
 function getSeatLayoutCellsFromPlacements(placements) {
@@ -2135,13 +2166,26 @@ function cellsToSeatLayoutPlacements(cells) {
   const placements = {};
   (Array.isArray(cells) ? cells : []).forEach((value, idx) => {
     if(isSeatLayoutSpacer(value)) {
-      placements[String(idx)] = createSeatLayoutSpacer(value.type);
+      placements[String(idx)] = createSeatLayoutSpacer();
       return;
     }
     const tai = Number(value);
-    placements[String(idx)] = Number.isFinite(tai) && tai > 0 ? tai : createSeatLayoutSpacer('blank');
+    placements[String(idx)] = Number.isFinite(tai) && tai > 0 ? tai : createSeatLayoutSpacer();
   });
   return placements;
+}
+
+function cloneSeatLayoutPlacements(placements) {
+  return cellsToSeatLayoutPlacements(getSeatLayoutCellsFromPlacements(placements));
+}
+
+function pushSeatLayoutUndoState() {
+  if(!seatLayoutState.store) return;
+  const snapshot = cloneSeatLayoutPlacements(seatLayoutState.placements);
+  const latest = seatLayoutState.undoStack[seatLayoutState.undoStack.length - 1];
+  if(latest && JSON.stringify(latest) === JSON.stringify(snapshot)) return;
+  seatLayoutState.undoStack.push(snapshot);
+  if(seatLayoutState.undoStack.length > 30) seatLayoutState.undoStack.shift();
 }
 
 function buildDefaultSeatLayoutCells(cards) {
@@ -2152,21 +2196,15 @@ function buildDefaultSeatLayoutCells(cards) {
   const cells = [];
   sortedTai.forEach((tai, idx) => {
     cells.push(tai);
-    const seatIndex = idx + 1;
     const hasMore = idx < sortedTai.length - 1;
-    if(!hasMore) return;
-    if(seatIndex % 16 === 0) {
-      cells.push(createSeatLayoutSpacer('aisle-y'));
-      return;
-    }
-    if(seatIndex % 8 === 0) {
-      cells.push(createSeatLayoutSpacer('aisle-x'));
-      return;
-    }
-    if(seatIndex % 2 === 0) {
-      cells.push(createSeatLayoutSpacer('blank'));
+    if(hasMore) {
+      cells.push(createSeatLayoutSpacer());
     }
   });
+  const tailBlankCount = Math.max(16, Math.ceil(sortedTai.length * 0.35));
+  for(let i = 0; i < tailBlankCount; i++) {
+    cells.push(createSeatLayoutSpacer());
+  }
   return cells;
 }
 
@@ -2176,7 +2214,7 @@ function sanitizeSeatLayoutPlacements(cards, placements) {
   const usedTai = new Set();
   getSeatLayoutCellsFromPlacements(placements).forEach((value) => {
     if(isSeatLayoutSpacer(value)) {
-      nextCells.push(createSeatLayoutSpacer(value.type));
+      nextCells.push(createSeatLayoutSpacer());
       return;
     }
     const tai = Number(value);
@@ -2222,8 +2260,9 @@ function moveSeatLayoutTaiToCell(tai, cellIndex) {
     seatLayoutState.selectedCellIndex = null;
     return true;
   }
+  pushSeatLayoutUndoState();
   if(fromIdx >= 0) cells[fromIdx] = isSeatLayoutSpacer(targetValue)
-    ? createSeatLayoutSpacer(targetValue.type)
+    ? createSeatLayoutSpacer()
     : targetValue;
   cells[idx] = t;
   seatLayoutState.placements = sanitizeSeatLayoutPlacements(
@@ -2310,7 +2349,7 @@ function loadSeatLayoutPlacement(store, cards) {
   if(Array.isArray(parsed)) return fromArray();
   if(!parsed || typeof parsed !== 'object') return defaults;
 
-  if(Number(parsed.version) < 10) {
+  if(Number(parsed.version) < 12) {
     return defaults;
   }
 
@@ -2331,7 +2370,7 @@ function loadSeatLayoutPlacement(store, cards) {
 function saveSeatLayoutPlacement(store) {
   if(!store) return;
   const payload = {
-    version: 10,
+    version: 12,
     placements: sanitizeSeatLayoutPlacements(
       seatLayoutState.cards,
       seatLayoutState.placements
@@ -2348,6 +2387,7 @@ function syncSeatLayoutCards(forceReloadStorePlacement = false) {
     seatLayoutState.cards = [];
     seatLayoutState.placements = {};
     seatLayoutState.selectedTai = null;
+    seatLayoutState.undoStack = [];
     seatLayoutState._placementStore = '';
     return;
   }
@@ -2359,6 +2399,7 @@ function syncSeatLayoutCards(forceReloadStorePlacement = false) {
     const saved = loadSeatLayoutPlacement(store, cards);
     seatLayoutState.placements = saved.placements;
     seatLayoutState._placementStore = store;
+    seatLayoutState.undoStack = [];
   } else {
     seatLayoutState.placements = sanitizeSeatLayoutPlacements(
       cards,
@@ -2605,7 +2646,7 @@ function formatSeatHeatmapDiff(diff) {
   return `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()}枚`;
 }
 
-function formatSeatHeatmapModelLabel(model) {
+function formatSeatHeatmapModelLabel(model, density = seatLayoutState.density) {
   const text = String(model || '').trim();
   if(!text || text === '不明') return '';
   const map = [
@@ -2619,12 +2660,12 @@ function formatSeatHeatmapModelLabel(model) {
     ['スマスロハナビ', 'スマハナ'],
   ];
   const match = map.find(([name]) => text.includes(name));
-  if(match) return match[1];
-  return text
+  const label = match ? match[1] : text
     .replace(/ジャグラー/g, '')
     .replace(/スマスロ/g, 'スマ')
-    .replace(/ネオ/g, '')
-    .slice(0, 6) || text.slice(0, 6);
+    .replace(/ネオ/g, '');
+  if(normalizeSeatLayoutDensity(density) === 'tiny') return label.slice(0, 3) || text.slice(0, 3);
+  return label.slice(0, 6) || text.slice(0, 6);
 }
 
 function renderSeatHeatmapModelFilter(rows) {
@@ -2695,6 +2736,8 @@ function renderSeatHeatmapSelection(row) {
 function renderSeatHeatmap(store) {
   const wrap = document.getElementById('seatHeatmapGrid');
   const summary = document.getElementById('seatHeatmapSummary');
+  const editMode = isSeatLayoutEditMode();
+  const density = normalizeSeatLayoutDensity(seatLayoutState.density);
   if(!wrap) return;
   if(!store) {
     if(summary) summary.textContent = '店舗を選択してください';
@@ -2741,16 +2784,15 @@ function renderSeatHeatmap(store) {
     const spacerType = getSeatLayoutSpacerType(value) || (!hasSeatCard ? 'blank' : '');
     if(spacerType) {
       const blankSelected = seatLayoutState.selectedCellIndex === idx && !seatLayoutState.selectedTai;
-      const spacerLabel = spacerType === 'aisle-y' ? '縦通路' : (spacerType === 'aisle-x' ? '横通路' : '小余白');
       return `<button type="button"
-        class="seat-heatmap-cell is-blank is-${spacerType}${seatLayoutState.selectedTai ? ' is-drop-ready' : ''}${blankSelected ? ' is-selected' : ''}"
+        class="seat-heatmap-cell is-blank${editMode && seatLayoutState.selectedTai ? ' is-drop-ready' : ''}${blankSelected ? ' is-selected' : ''}"
         data-cell-index="${idx}"
-        data-spacer-type="${escapeHtml(spacerType)}"
+        data-spacer-type="blank"
         onclick="onSeatLayoutCellClick(${idx})"
         ondragover="onSeatLayoutCellDragOver(event, ${idx})"
         ondragleave="this.classList.remove('is-hover')"
         ondrop="onSeatLayoutCellDrop(event, ${idx})">
-        <span class="seat-heatmap-blank-label">${spacerLabel}</span>
+        <span class="seat-heatmap-blank-label">空きマス</span>
       </button>`;
     }
     const tai = taiValue;
@@ -2761,11 +2803,11 @@ function renderSeatHeatmap(store) {
     const selectedClass = seatLayoutState.selectedTai === tai ? ' is-selected' : '';
     const hiddenClass = matches ? '' : ' is-filtered-out';
     const model = row.model || card.model || '不明';
-    const shortModel = formatSeatHeatmapModelLabel(model);
+    const shortModel = formatSeatHeatmapModelLabel(model, density);
     return `<button type="button"
       class="${colorClass}${selectedClass}${hiddenClass}"
       data-cell-index="${idx}"
-      draggable="true"
+      draggable="${editMode ? 'true' : 'false'}"
       title="${escapeHtml(`${store} ${tai}番台 ${model} ${formatSeatHeatmapDiff(row.diff)}`)}"
       onclick="onSeatLayoutCardClick(event, ${idx})"
       ontouchstart="onSeatLayoutCardTouchStart(event, ${tai}, ${idx})"
@@ -2795,6 +2837,51 @@ function flashSeatLayoutNotice(message) {
   }, 1800);
 }
 
+function isSeatLayoutEditMode() {
+  return normalizeSeatLayoutViewMode(seatLayoutState.viewMode) === 'edit';
+}
+
+function setSeatLayoutViewMode(mode) {
+  seatLayoutState.viewMode = normalizeSeatLayoutViewMode(mode);
+  seatLayoutState.selectedTai = null;
+  seatLayoutState.selectedCellIndex = null;
+  clearSeatLayoutDragHover();
+  saveSeatLayoutUiPreference();
+  renderSeatLayoutTab();
+}
+
+function setSeatLayoutDensity(density) {
+  seatLayoutState.density = normalizeSeatLayoutDensity(density);
+  saveSeatLayoutUiPreference();
+  renderSeatLayoutTab();
+}
+
+function renderSeatLayoutChromeState() {
+  const viewMode = normalizeSeatLayoutViewMode(seatLayoutState.viewMode);
+  const density = normalizeSeatLayoutDensity(seatLayoutState.density);
+  seatLayoutState.viewMode = viewMode;
+  seatLayoutState.density = density;
+
+  document.querySelector('.seat-layout-card')?.classList.toggle('is-edit-mode', viewMode === 'edit');
+  document.querySelector('.seat-heatmap-wrap')?.classList.toggle('is-edit-mode', viewMode === 'edit');
+
+  const grid = document.getElementById('seatHeatmapGrid');
+  if(grid) {
+    grid.classList.toggle('is-view-mode', viewMode !== 'edit');
+    grid.classList.toggle('is-edit-mode', viewMode === 'edit');
+    ['normal', 'compact', 'tiny'].forEach((name) => {
+      grid.classList.toggle(`is-density-${name}`, density === name);
+    });
+  }
+
+  document.querySelectorAll('[data-seat-layout-mode]').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.seatLayoutMode === viewMode);
+  });
+  document.querySelectorAll('[data-seat-layout-density]').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.seatLayoutDensity === density);
+  });
+}
+
 function setSeatLayoutTouchHoverCell(nextCellIndex) {
   const prev = seatLayoutState.touchHoverCell;
   if(prev === nextCellIndex) return;
@@ -2818,6 +2905,10 @@ function clearSeatLayoutDragHover() {
 }
 
 function onSeatLayoutDragStart(event, tai, cellIndex) {
+  if(!isSeatLayoutEditMode()) {
+    event?.preventDefault?.();
+    return;
+  }
   const t = Number(tai);
   if(!Number.isFinite(t)) return;
   seatLayoutState.dragTai = t;
@@ -2839,6 +2930,7 @@ function onSeatLayoutDragEnd(event) {
 }
 
 function onSeatLayoutCellDragOver(event, cellIndex) {
+  if(!isSeatLayoutEditMode()) return;
   const idx = Number(cellIndex);
   if(!Number.isInteger(idx) || idx < 0) return;
   event.preventDefault();
@@ -2848,6 +2940,7 @@ function onSeatLayoutCellDragOver(event, cellIndex) {
 }
 
 function onSeatLayoutCellDrop(event, cellIndex) {
+  if(!isSeatLayoutEditMode()) return;
   event.preventDefault();
   const dataTai = event?.dataTransfer?.getData('text/plain');
   const tai = Number(dataTai || seatLayoutState.dragTai || seatLayoutState.selectedTai);
@@ -2899,6 +2992,7 @@ function bindSeatLayoutTouchEvents() {
 }
 
 function onSeatLayoutCardTouchStart(event, tai, cellIndex) {
+  if(!isSeatLayoutEditMode()) return;
   const t = Number(tai);
   if(!Number.isFinite(t)) return;
   seatLayoutState.selectedTai = t;
@@ -2913,6 +3007,12 @@ function onSeatLayoutCardClick(event, cellIndex) {
   const idx = Number(cellIndex);
   const tai = Number(getSeatLayoutCellValue(idx));
   if(!Number.isInteger(idx) || idx < 0 || !Number.isFinite(tai)) return;
+  if(!isSeatLayoutEditMode()) {
+    seatLayoutState.selectedTai = seatLayoutState.selectedTai === tai ? null : tai;
+    seatLayoutState.selectedCellIndex = seatLayoutState.selectedTai ? idx : null;
+    renderSeatLayoutTab();
+    return;
+  }
   const selectedTai = Number(seatLayoutState.selectedTai);
   if(Number.isFinite(selectedTai) && getSeatLayoutCardByTai(selectedTai) && selectedTai !== tai) {
     moveSeatLayoutTaiToCell(selectedTai, idx);
@@ -2930,6 +3030,7 @@ function onSeatLayoutCardClick(event, cellIndex) {
 }
 
 function onSeatLayoutCellClick(cellIndex) {
+  if(!isSeatLayoutEditMode()) return;
   const idx = Number(cellIndex);
   const selectedTai = Number(seatLayoutState.selectedTai);
   const hasSelectedTai = Number.isFinite(selectedTai) && !!getSeatLayoutCardByTai(selectedTai);
@@ -2949,6 +3050,9 @@ function renderSeatLayoutTab() {
   const statusEl = document.getElementById('seatLayoutStatus');
   const heatmapEl = document.getElementById('seatHeatmapGrid');
   if(!statusEl || !heatmapEl) return;
+  renderSeatLayoutChromeState();
+  const undoBtn = document.getElementById('seatLayoutUndoBtn');
+  if(undoBtn) undoBtn.disabled = !seatLayoutState.store || !seatLayoutState.undoStack.length;
 
   renderSeatLayoutDatePicker();
   renderSeatLayoutSearchInput();
@@ -2985,7 +3089,7 @@ function renderSeatLayoutTab() {
   } else {
     const filterActive = seatLayoutState.poolQuery || seatLayoutState.heatmapModelFilter !== 'all';
     const filterNote = filterActive ? ' / 絞り込み中' : '';
-    statusEl.textContent = `${seatLayoutState.store} / ${seatLayoutState.dateYmd} / ${placedCount}台 / 余白 ${blankCount}${filterNote}${notice}`;
+    statusEl.textContent = `${seatLayoutState.store} / ${seatLayoutState.dateYmd} / ${placedCount}台 / 空きマス ${blankCount}${filterNote}${notice}`;
     statusEl.style.color = 'var(--text)';
   }
 }
@@ -3096,6 +3200,7 @@ function onSeatLayoutGridSizeChange() {
 
 function autoArrangeSeatLayout(mode) {
   if(!seatLayoutState.store || !seatLayoutState.cards.length) return;
+  pushSeatLayoutUndoState();
   seatLayoutState.placements = cellsToSeatLayoutPlacements(buildDefaultSeatLayoutCells(seatLayoutState.cards));
   seatLayoutState.selectedTai = null;
   seatLayoutState.selectedCellIndex = null;
@@ -3117,32 +3222,23 @@ function getSeatLayoutInsertIndex(cells) {
   return list.length;
 }
 
-function addSeatLayoutSpacerCell(type, label) {
+function addSeatLayoutBlankCells(count = 1) {
   if(!seatLayoutState.store) return;
+  const addCount = Math.max(1, Math.min(30, Math.round(Number(count) || 1)));
   const cells = getSeatLayoutCellsFromPlacements(seatLayoutState.placements);
   const insertIndex = getSeatLayoutInsertIndex(cells);
-  cells.splice(insertIndex, 0, createSeatLayoutSpacer(type));
+  pushSeatLayoutUndoState();
+  const blanks = Array.from({ length: addCount }, () => createSeatLayoutSpacer());
+  cells.splice(insertIndex, 0, ...blanks);
   seatLayoutState.placements = cellsToSeatLayoutPlacements(cells);
-  seatLayoutState.selectedCellIndex = insertIndex;
+  seatLayoutState.selectedCellIndex = insertIndex + addCount - 1;
   seatLayoutState.selectedTai = null;
-  flashSeatLayoutNotice(label || '余白を追加しました');
+  flashSeatLayoutNotice(addCount === 1 ? '空きマスを追加しました' : `空きマスを${addCount}個追加しました`);
   renderSeatLayoutTab();
 }
 
 function addSeatLayoutBlankCell() {
-  addSeatLayoutSpacerCell('blank', '小余白を追加しました');
-}
-
-function addSeatLayoutHorizontalAisle() {
-  addSeatLayoutSpacerCell('aisle-x', '横通路を追加しました');
-}
-
-function addSeatLayoutVerticalAisle() {
-  addSeatLayoutSpacerCell('aisle-y', '縦通路を追加しました');
-}
-
-function addSeatLayoutAisleCells() {
-  addSeatLayoutHorizontalAisle();
+  addSeatLayoutBlankCells(1);
 }
 
 function removeSeatLayoutBlankCells() {
@@ -3157,14 +3253,27 @@ function removeSeatLayoutBlankCells() {
   }
   const removed = removeIndex >= 0;
   const nextCells = cells.slice();
-  if(removed) nextCells.splice(removeIndex, 1);
+  if(removed) {
+    pushSeatLayoutUndoState();
+    nextCells.splice(removeIndex, 1);
+  }
   seatLayoutState.placements = sanitizeSeatLayoutPlacements(
     seatLayoutState.cards,
     cellsToSeatLayoutPlacements(nextCells)
   );
   seatLayoutState.selectedTai = null;
   seatLayoutState.selectedCellIndex = null;
-  flashSeatLayoutNotice(removed ? '余白を削除しました' : '余白はありません');
+  flashSeatLayoutNotice(removed ? '空きマスを削除しました' : '空きマスはありません');
+  renderSeatLayoutTab();
+}
+
+function undoSeatLayoutChange() {
+  if(!seatLayoutState.store || !seatLayoutState.undoStack.length) return;
+  const previous = seatLayoutState.undoStack.pop();
+  seatLayoutState.placements = sanitizeSeatLayoutPlacements(seatLayoutState.cards, previous);
+  seatLayoutState.selectedTai = null;
+  seatLayoutState.selectedCellIndex = null;
+  flashSeatLayoutNotice('直前の操作を戻しました');
   renderSeatLayoutTab();
 }
 

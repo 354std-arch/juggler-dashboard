@@ -260,6 +260,13 @@ main{padding:12px;max-width:760px;margin:0 auto;}
   gap:10px;
   margin-bottom:12px;
 }
+.seat-layout-toolbar .btn,
+.seat-layout-toolbar .btn-secondary{
+  width:auto;
+  min-height:38px;
+  padding:8px 12px;
+  font-size:12px;
+}
 .seat-layout-toolbar select,
 .seat-layout-toolbar input{
   background:linear-gradient(180deg,#222b3d,#171f2f);
@@ -271,6 +278,38 @@ main{padding:12px;max-width:760px;margin:0 auto;}
   font-size:13px;
   font-family:'Zen Kaku Gothic New',sans-serif;
 }
+.seat-layout-segment{
+  display:inline-flex;
+  align-items:center;
+  gap:2px;
+  min-height:38px;
+  padding:3px;
+  border:1px solid rgba(123,147,191,.3);
+  border-radius:999px;
+  background:rgba(255,255,255,.045);
+}
+.seat-layout-segment-btn{
+  border:0;
+  border-radius:999px;
+  min-height:30px;
+  padding:6px 10px;
+  background:transparent;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:900;
+  font-family:'Zen Kaku Gothic New',sans-serif;
+  cursor:pointer;
+}
+.seat-layout-segment-btn.active{
+  background:var(--accent3);
+  color:#06111f;
+}
+.seat-layout-edit-actions{
+  display:none;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.seat-layout-card.is-edit-mode .seat-layout-edit-actions{display:flex;}
 .seat-layout-size-label{
   display:flex;
   align-items:center;
@@ -409,21 +448,51 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .seat-selection-model{font-size:12px;font-weight:800;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .seat-selection-diff{font-family:'Share Tech Mono',monospace;font-size:16px;font-weight:900;white-space:nowrap;}
 .seat-heatmap-grid{
+  --seat-cell-w:46px;
+  --seat-cell-h:42px;
+  --seat-grid-gap:10px;
+  --seat-grid-pad:28px;
+  --seat-tai-size:12px;
+  --seat-model-size:8px;
   display:grid;
-  grid-template-columns:repeat(auto-fill,58px);
-  gap:6px;
+  grid-template-columns:repeat(auto-fill,var(--seat-cell-w));
+  gap:var(--seat-grid-gap);
   align-items:stretch;
   justify-content:start;
   min-height:360px;
-  padding:20px;
+  padding:var(--seat-grid-pad);
   border-radius:4px;
   border:1px solid rgba(255,255,255,.06);
   background:rgba(0,0,0,.18);
 }
+.seat-heatmap-grid.is-density-normal{
+  --seat-cell-w:58px;
+  --seat-cell-h:50px;
+  --seat-grid-gap:6px;
+  --seat-grid-pad:20px;
+  --seat-tai-size:14px;
+  --seat-model-size:9px;
+}
+.seat-heatmap-grid.is-density-compact{
+  --seat-cell-w:46px;
+  --seat-cell-h:42px;
+  --seat-grid-gap:10px;
+  --seat-grid-pad:28px;
+  --seat-tai-size:12px;
+  --seat-model-size:8px;
+}
+.seat-heatmap-grid.is-density-tiny{
+  --seat-cell-w:34px;
+  --seat-cell-h:31px;
+  --seat-grid-gap:9px;
+  --seat-grid-pad:30px;
+  --seat-tai-size:10px;
+  --seat-model-size:7px;
+}
 .seat-heatmap-cell{
-  width:58px;
-  height:50px;
-  min-height:50px;
+  width:var(--seat-cell-w);
+  height:var(--seat-cell-h);
+  min-height:var(--seat-cell-h);
   border-radius:2px;
   border:1px solid rgba(255,255,255,.2);
   padding:4px 3px;
@@ -464,38 +533,28 @@ button.seat-heatmap-cell{
   filter:saturate(.35);
 }
 .seat-heatmap-cell.is-blank{
-  background:transparent;
+  background:rgba(255,255,255,.028);
   color:transparent;
-  border:1px dashed transparent;
+  border:1px solid rgba(255,255,255,.055);
   box-shadow:none;
 }
-.seat-heatmap-cell.is-aisle-x{
-  grid-column:span 2;
-  width:auto;
-}
-.seat-heatmap-cell.is-aisle-y{
-  grid-column:1 / -1;
-  width:100%;
-  height:82px;
-  min-height:82px;
+.seat-heatmap-grid.is-view-mode .seat-heatmap-cell.is-blank{
+  background:transparent;
+  border-color:transparent;
+  pointer-events:none;
 }
 .seat-heatmap-cell.is-blank.is-drop-ready{
   color:transparent;
-  border-color:transparent;
-  background:transparent;
+  border-color:rgba(130,143,255,.2);
+  background:rgba(130,143,255,.055);
 }
 .seat-heatmap-cell.is-blank .seat-heatmap-blank-label{display:none;}
 .seat-heatmap-cell.is-blank.is-hover,
 .seat-heatmap-cell.is-blank:hover{
-  border-color:transparent;
-  background:transparent;
+  transform:none;
+  border-color:rgba(130,143,255,.28);
+  background:rgba(130,143,255,.08);
   box-shadow:none;
-}
-.seat-heatmap-cell.is-aisle-x.is-hover,
-.seat-heatmap-cell.is-aisle-x:hover,
-.seat-heatmap-cell.is-aisle-y.is-hover,
-.seat-heatmap-cell.is-aisle-y:hover{
-  background:transparent;
 }
 .seat-heatmap-cell.is-blank.is-selected{
   border-color:#828fff;
@@ -514,18 +573,19 @@ button.seat-heatmap-cell{
 .seat-heatmap-cell.is-minus{background:#42a5f5;color:#061522;border-color:#90caf9;}
 .seat-heatmap-cell.is-strong-minus{background:#1565c0;color:#fff;border-color:#64b5f6;}
 .seat-heatmap-cell.is-missing{background:#616977;color:#fff;border-color:#8f98a6;}
-.seat-heatmap-tai{font-size:14px;font-weight:900;}
+.seat-heatmap-tai{font-size:var(--seat-tai-size);font-weight:900;}
 .seat-heatmap-model{
   width:100%;
-  margin-top:3px;
+  margin-top:2px;
   font-family:'Zen Kaku Gothic New',sans-serif;
-  font-size:9px;
+  font-size:var(--seat-model-size);
   font-weight:900;
   letter-spacing:0;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
+.seat-heatmap-grid.is-density-tiny .seat-heatmap-model{display:none;}
 .seat-heatmap-diff{display:none;}
 .seat-heatmap-legend{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:10px;font-size:10px;color:var(--muted);}
 .seat-heatmap-legend span{display:inline-flex;align-items:center;gap:4px;}
@@ -552,21 +612,17 @@ button.seat-heatmap-cell{
     grid-template-columns:auto 1fr;
   }
   .seat-heatmap-grid{
-    grid-template-columns:repeat(auto-fill,54px);
-    gap:5px;
-    padding:14px;
+    grid-template-columns:repeat(auto-fill,var(--seat-cell-w));
+    padding:18px;
   }
-  .seat-heatmap-cell{
-    width:54px;
-    height:48px;
-    min-height:48px;
-    padding:4px 3px;
+  .seat-heatmap-grid.is-density-normal{
+    --seat-cell-w:54px;
+    --seat-cell-h:48px;
+    --seat-grid-gap:5px;
   }
-  .seat-heatmap-cell.is-aisle-y{
-    height:62px;
-    min-height:62px;
-  }
-  .seat-heatmap-tai{font-size:13px;}
+  .seat-layout-segment,
+  .seat-layout-edit-actions{width:100%;}
+  .seat-layout-segment{justify-content:center;}
   .seat-selection-diff{font-size:14px;}
 }
 /* ヒートマップ */

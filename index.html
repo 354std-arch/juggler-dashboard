@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ジャグラー分析</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=hall-map-1">
 </head>
 <body>
 
@@ -33,7 +33,7 @@
   <button onclick="showTab('tab-period',this)">📈 期間分析</button>
   <button onclick="showTab('tab-calendar',this)">📅 予報</button>
   <button onclick="showTab('tab-settings',this)">⚙️ 設定</button>
-  <button onclick="showTab('tab-layout',this)">🗂️ 席配置</button>
+  <button onclick="showTab('tab-layout',this)">🗺️ ホール図</button>
   <button id="detailMenuBtn" onclick="toggleDetailMenu(this)">🔍 詳細 ▾</button>
 </nav>
 
@@ -654,7 +654,7 @@
 
 <div id="tab-layout" class="tab-content">
   <div class="card seat-layout-card">
-    <div class="card-title">🗂️ 席配置ヒートマップ</div>
+    <div class="card-title">🗺️ ホール図ビューア</div>
     <div class="seat-layout-toolbar">
       <select id="seatLayoutStore" onchange="onSeatLayoutStoreChange()">
         <option value="">店舗を選択</option>
@@ -668,18 +668,30 @@
           <div class="seat-date-picker-list" id="seatLayoutDateList"></div>
         </div>
       </div>
-      <button class="btn" onclick="saveSeatLayoutState()">保存</button>
-      <button class="btn btn-secondary" onclick="resetSeatLayoutOrder()">初期配置に戻す</button>
-      <button class="btn btn-secondary" onclick="addSeatLayoutBlankCell()">小余白追加</button>
-      <button class="btn btn-secondary" onclick="addSeatLayoutHorizontalAisle()">横通路追加</button>
-      <button class="btn btn-secondary" onclick="addSeatLayoutVerticalAisle()">縦通路追加</button>
-      <button class="btn btn-secondary" onclick="removeSeatLayoutBlankCells()">余白削除</button>
+      <div class="seat-layout-segment" aria-label="ホール図モード">
+        <button type="button" class="seat-layout-segment-btn" data-seat-layout-mode="view" onclick="setSeatLayoutViewMode('view')">閲覧</button>
+        <button type="button" class="seat-layout-segment-btn" data-seat-layout-mode="edit" onclick="setSeatLayoutViewMode('edit')">編集</button>
+      </div>
+      <div class="seat-layout-segment" aria-label="表示密度">
+        <button type="button" class="seat-layout-segment-btn" data-seat-layout-density="normal" onclick="setSeatLayoutDensity('normal')">標準</button>
+        <button type="button" class="seat-layout-segment-btn" data-seat-layout-density="compact" onclick="setSeatLayoutDensity('compact')">小さめ</button>
+        <button type="button" class="seat-layout-segment-btn" data-seat-layout-density="tiny" onclick="setSeatLayoutDensity('tiny')">極小</button>
+      </div>
+      <div class="seat-layout-edit-actions">
+        <button class="btn" onclick="saveSeatLayoutState()">保存</button>
+        <button class="btn btn-secondary" id="seatLayoutUndoBtn" onclick="undoSeatLayoutChange()" disabled>戻す</button>
+        <button class="btn btn-secondary" onclick="resetSeatLayoutOrder()">初期配置に戻す</button>
+        <button class="btn btn-secondary" onclick="addSeatLayoutBlankCell()">空きマス追加</button>
+        <button class="btn btn-secondary" onclick="addSeatLayoutBlankCells(10)">空きマス10追加</button>
+        <button class="btn btn-secondary" onclick="removeSeatLayoutBlankCells()">空きマス削除</button>
+      </div>
     </div>
     <div id="seatLayoutStatus" class="seat-layout-status">店舗を選択してください</div>
     <div class="seat-heatmap-wrap">
       <div class="seat-heatmap-header">
         <div>
-          <div class="seat-layout-subtitle">席配置ヒートマップ</div>
+          <div class="seat-layout-subtitle">ホール図</div>
+          <div class="seat-heatmap-note">差枚色を重ねて、ホール全体の強弱を視覚で見る</div>
         </div>
         <div class="seat-heatmap-controls">
           <input type="search" id="seatLayoutSearch" placeholder="台番・機種で検索" oninput="onSeatLayoutPoolFilterChange()">
@@ -750,6 +762,6 @@
   <button id="withdrawJudgeBannerClose" class="withdraw-judge-banner-close" type="button" aria-label="閉じる">✕</button>
 </div>
 
-<script src="app.js?v=seat-layout-11"></script>
+<script src="app.js?v=seat-layout-14"></script>
 </body>
 </html>
