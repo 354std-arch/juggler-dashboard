@@ -69,15 +69,44 @@
       "backfilled_date": "2026-04-04"
     },
     {
-      "name": "SKIP関内店",
-      "area": "横浜",
+      "name": "楽園蒲田店",
+      "area": "蒲田",
       "source": "minrepo",
-      "added_date": "2026-04-04",
+      "added_date": "2026-05-13",
       "score": 0.0,
-      "exchange_rate": 5.0,
-      "slug": "skip%e3%82%b9%e3%83%ad%e3%83%83%e3%83%88%e3%82%af%e3%83%a9%e3%83%96%e9%96%a2%e5%86%85%e5%ba%97",
-      "backfilled": true,
-      "backfilled_date": "2026-04-04"
+      "exchange_rate": 5.0
+    },
+    {
+      "name": "マルハンメガシティ2000-蒲田7",
+      "area": "蒲田",
+      "source": "minrepo",
+      "added_date": "2026-05-13",
+      "score": 0.0,
+      "exchange_rate": 5.0
+    },
+    {
+      "name": "マルハンメガシティ2000-蒲田1",
+      "area": "蒲田",
+      "source": "minrepo",
+      "added_date": "2026-05-13",
+      "score": 0.0,
+      "exchange_rate": 5.0
+    },
+    {
+      "name": "ヒロキ蒲田西口店",
+      "area": "蒲田",
+      "source": "minrepo",
+      "added_date": "2026-05-13",
+      "score": 0.0,
+      "exchange_rate": 5.0
+    },
+    {
+      "name": "ヒロキmax蒲田店",
+      "area": "蒲田",
+      "source": "minrepo",
+      "added_date": "2026-05-13",
+      "score": 0.0,
+      "exchange_rate": 5.0
     }
   ]
 }
