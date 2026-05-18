@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ジャグラー分析</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=hall-map-1">
+<link rel="stylesheet" href="style.css?v=hall-map-12">
 </head>
 <body>
 
@@ -653,68 +653,125 @@
 </div>
 
 <div id="tab-layout" class="tab-content">
-  <div class="card seat-layout-card">
-    <div class="card-title">🗺️ ホール図ビューア</div>
-    <div class="seat-layout-toolbar">
-      <select id="seatLayoutStore" onchange="onSeatLayoutStoreChange()">
-        <option value="">店舗を選択</option>
-      </select>
-      <div class="seat-date-picker" id="seatLayoutDatePicker">
-        <button type="button" class="seat-date-picker-btn" id="seatLayoutDatePickerBtn" onclick="toggleSeatLayoutDatePicker()">
-          <span id="seatLayoutDatePickerLabel">日付を選択</span>
-          <span>▾</span>
-        </button>
-        <div class="seat-date-picker-panel" id="seatLayoutDatePickerPanel">
-          <div class="seat-date-picker-list" id="seatLayoutDateList"></div>
+  <div class="seat-layout-shell seat-layout-card">
+    <div class="seat-layout-topbar">
+      <div class="seat-layout-title-block">
+        <div class="card-title">🗺️ ホール図ビューア</div>
+        <div id="seatLayoutStatus" class="seat-layout-status">店舗を選択してください</div>
+      </div>
+      <div class="seat-layout-toolbar">
+        <select id="seatLayoutStore" onchange="onSeatLayoutStoreChange()">
+          <option value="">店舗を選択</option>
+        </select>
+        <div class="seat-date-picker" id="seatLayoutDatePicker">
+          <button type="button" class="seat-date-picker-btn" id="seatLayoutDatePickerBtn" onclick="toggleSeatLayoutDatePicker()">
+            <span id="seatLayoutDatePickerLabel">日付を選択</span>
+            <span>▾</span>
+          </button>
+          <div class="seat-date-picker-panel" id="seatLayoutDatePickerPanel">
+            <div class="seat-date-picker-list" id="seatLayoutDateList"></div>
+          </div>
         </div>
-      </div>
-      <div class="seat-layout-segment" aria-label="ホール図モード">
-        <button type="button" class="seat-layout-segment-btn" data-seat-layout-mode="view" onclick="setSeatLayoutViewMode('view')">閲覧</button>
-        <button type="button" class="seat-layout-segment-btn" data-seat-layout-mode="edit" onclick="setSeatLayoutViewMode('edit')">編集</button>
-      </div>
-      <div class="seat-layout-segment" aria-label="表示密度">
-        <button type="button" class="seat-layout-segment-btn" data-seat-layout-density="normal" onclick="setSeatLayoutDensity('normal')">標準</button>
-        <button type="button" class="seat-layout-segment-btn" data-seat-layout-density="compact" onclick="setSeatLayoutDensity('compact')">小さめ</button>
-        <button type="button" class="seat-layout-segment-btn" data-seat-layout-density="tiny" onclick="setSeatLayoutDensity('tiny')">極小</button>
+        <div class="seat-layout-day-filter" id="seatLayoutDayFilterBtns" aria-label="ホール図の日付フィルター"></div>
+        <div class="seat-layout-segment" aria-label="ホール図モード">
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-mode="view" onclick="setSeatLayoutViewMode('view')">閲覧</button>
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-mode="edit" onclick="setSeatLayoutViewMode('edit')">編集</button>
+        </div>
+        <div class="seat-layout-segment seat-layout-density-control" aria-label="表示密度">
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-density="normal" onclick="setSeatLayoutDensity('normal')">標準</button>
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-density="compact" onclick="setSeatLayoutDensity('compact')">小さめ</button>
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-density="tiny" onclick="setSeatLayoutDensity('tiny')">極小</button>
+        </div>
+        <div class="seat-layout-map-actions" aria-label="ホール図表示">
+          <button type="button" class="seat-layout-icon-btn" onclick="shiftSeatLayoutDate(-1)" title="キーボードの←でも前日に移動">前日</button>
+          <button type="button" class="seat-layout-icon-btn" onclick="fitSeatLayoutToViewport()" title="キーボードのFでも全体表示">全体</button>
+          <button type="button" class="seat-layout-icon-btn" onclick="adjustSeatLayoutZoom(-0.08)">−</button>
+          <span id="seatLayoutZoomLabel" class="seat-layout-control-label">100%</span>
+          <button type="button" class="seat-layout-icon-btn" onclick="adjustSeatLayoutZoom(0.08)">＋</button>
+          <button type="button" class="seat-layout-icon-btn" onclick="shiftSeatLayoutDate(1)" title="キーボードの→でも翌日に移動">翌日</button>
+          <button type="button" class="seat-layout-icon-btn" id="seatLayoutPanelToggleBtn" onclick="toggleSeatLayoutSidePanel()">パネル</button>
+        </div>
+        <div class="seat-layout-state-row">
+          <span id="seatLayoutSaveState" class="seat-layout-save-state">保存済み</span>
+          <span id="seatLayoutColsLabel" class="seat-layout-control-label">12列</span>
+          <span id="seatLayoutGroupStatus" class="seat-layout-group-status"></span>
+        </div>
       </div>
       <div class="seat-layout-edit-actions">
         <button class="btn" onclick="saveSeatLayoutState()">保存</button>
         <button class="btn btn-secondary" id="seatLayoutUndoBtn" onclick="undoSeatLayoutChange()" disabled>戻す</button>
-        <button class="btn btn-secondary" onclick="resetSeatLayoutOrder()">初期配置に戻す</button>
-        <button class="btn btn-secondary" onclick="addSeatLayoutBlankCell()">空きマス追加</button>
-        <button class="btn btn-secondary" onclick="addSeatLayoutBlankCells(10)">空きマス10追加</button>
-        <button class="btn btn-secondary" onclick="removeSeatLayoutBlankCells()">空きマス削除</button>
+        <button class="btn btn-secondary" onclick="resetSeatLayoutOrder()">初期配置</button>
+        <button class="btn btn-secondary" onclick="addSeatLayoutBlankCell()">空きマス</button>
+        <button class="btn btn-secondary" onclick="addSeatLayoutBlankCells(10)">空き10</button>
+        <button class="btn btn-secondary" onclick="removeSeatLayoutBlankCells()">削除</button>
+        <button class="btn btn-secondary" onclick="saveSeatLayoutForAnalysis()">分析へ保存</button>
       </div>
     </div>
-    <div id="seatLayoutStatus" class="seat-layout-status">店舗を選択してください</div>
-    <div class="seat-heatmap-wrap">
-      <div class="seat-heatmap-header">
-        <div>
-          <div class="seat-layout-subtitle">ホール図</div>
-          <div class="seat-heatmap-note">差枚色を重ねて、ホール全体の強弱を視覚で見る</div>
+
+    <div class="seat-layout-workspace">
+      <section class="seat-layout-stage">
+        <div class="seat-heatmap-wrap">
+          <div class="seat-heatmap-header">
+            <div class="seat-layout-subtitle">ホール図</div>
+          </div>
+          <div id="seatHallViewport" class="seat-hall-viewport">
+            <div id="seatHeatmapGrid" class="seat-heatmap-grid" onclick="onSeatLayoutGridClick(event)">
+              <div class="empty-msg">店舗を選択してください</div>
+            </div>
+          </div>
         </div>
-        <div class="seat-heatmap-controls">
-          <input type="search" id="seatLayoutSearch" placeholder="台番・機種で検索" oninput="onSeatLayoutPoolFilterChange()">
-          <label class="seat-heatmap-filter">
-            機種
-            <select id="seatHeatmapModelFilter" onchange="onSeatHeatmapModelChange()">
-              <option value="all">全機種</option>
-            </select>
-          </label>
-        </div>
-      </div>
-      <div id="seatHeatmapSummary" class="seat-heatmap-summary">店舗を選択してください</div>
-      <div id="seatHeatmapSelection" class="seat-heatmap-selection" hidden></div>
-      <div id="seatHeatmapGrid" class="seat-heatmap-grid">
-        <div class="empty-msg">店舗を選択してください</div>
-      </div>
-      <div class="seat-heatmap-legend">
-        <span><i class="legend-box is-strong-plus"></i>+3000以上</span>
-        <span><i class="legend-box is-plus"></i>プラス</span>
-        <span><i class="legend-box is-neutral"></i>±999以内</span>
-        <span><i class="legend-box is-minus"></i>-1000以下</span>
-        <span><i class="legend-box is-strong-minus"></i>-2000以下</span>
-      </div>
+      </section>
+
+      <aside class="seat-layout-side-panel">
+        <section class="seat-side-section">
+          <div class="seat-side-title">選択台</div>
+          <div id="seatHeatmapSelection" class="seat-heatmap-selection"></div>
+        </section>
+        <section class="seat-side-section seat-side-section-evidence">
+          <div class="seat-side-title">検証済み根拠</div>
+          <div id="seatEvidenceBacktest" class="seat-evidence-panel">店舗を選択してください</div>
+        </section>
+        <section class="seat-side-section">
+          <div class="seat-side-title">当日サマリー</div>
+          <div id="seatHeatmapSummary" class="seat-heatmap-summary">店舗を選択してください</div>
+        </section>
+        <section class="seat-side-section">
+          <div class="seat-side-title">見立て</div>
+          <div id="seatHeatmapInsight" class="seat-heatmap-insight">店舗を選択してください</div>
+        </section>
+        <section class="seat-side-section seat-side-section-analysis">
+          <div class="seat-side-title">分析メモ</div>
+          <div id="seatHeatmapPatternInsight" class="seat-heatmap-patterns">店舗を選択してください</div>
+        </section>
+        <section class="seat-side-section">
+          <div class="seat-side-title">絞り込み</div>
+          <div class="seat-heatmap-controls">
+            <input type="search" id="seatLayoutSearch" placeholder="台番・機種で検索" oninput="onSeatLayoutPoolFilterChange()">
+            <label class="seat-heatmap-filter">
+              機種
+              <select id="seatHeatmapModelFilter" onchange="onSeatHeatmapModelChange()">
+                <option value="all">全機種</option>
+              </select>
+            </label>
+          </div>
+        </section>
+        <section class="seat-side-section">
+          <div class="seat-side-title">凡例</div>
+          <div class="seat-heatmap-legend">
+            <span><i class="legend-box is-strong-plus"></i>+3000以上</span>
+            <span><i class="legend-box is-plus"></i>プラス</span>
+            <span><i class="legend-box is-neutral"></i>±999以内</span>
+            <span><i class="legend-box is-minus"></i>-1000以下</span>
+            <span><i class="legend-box is-strong-minus"></i>-2000以下</span>
+          </div>
+        </section>
+      </aside>
+    </div>
+    <div class="seat-layout-mobile-dock" aria-label="スマホ用ホール図操作">
+      <button type="button" onclick="shiftSeatLayoutDate(-1)">前日</button>
+      <button type="button" onclick="fitSeatLayoutToViewport()">全体</button>
+      <button type="button" onclick="shiftSeatLayoutDate(1)">翌日</button>
+      <button type="button" onclick="setSeatLayoutViewMode(isSeatLayoutEditMode() ? 'view' : 'edit')">編集</button>
     </div>
   </div>
 </div>
@@ -762,6 +819,6 @@
   <button id="withdrawJudgeBannerClose" class="withdraw-judge-banner-close" type="button" aria-label="閉じる">✕</button>
 </div>
 
-<script src="app.js?v=seat-layout-14"></script>
+<script src="app.js?v=seat-layout-32"></script>
 </body>
 </html>
