@@ -1701,6 +1701,228 @@ function getEvidenceSuppressionText() {
   return `${decision.label || '根拠不足'}: ${decision.message || '検証上、候補を出す根拠が弱いです。'}`;
 }
 
+function getCurrentStorePrecomputedData() {
+  if(!G._precomputed || currentStore === 'all') return null;
+  return G._precomputed.byStore?.[currentStore] || null;
+}
+
+function getCurrentStoreEvidenceBacktest() {
+  return getCurrentStorePrecomputedData()?.evidenceBacktest || null;
+}
+
+function getCurrentStoreTodayAnalysis() {
+  return normalizeTodayAnalysisRecord(getCurrentStorePrecomputedData()?.todayAnalysis) || G.todayAnalysis || null;
+}
+
+function formatTargetSigned枚(value) {
+  const n = Number(value);
+  if(!Number.isFinite(n)) return '—';
+  const rounded = Math.round(n);
+  return `${rounded > 0 ? '+' : ''}${rounded.toLocaleString()}枚`;
+}
+
+function formatTargetPercent(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? `${round1(n)}%` : '—';
+}
+
+function getTargetDecisionTone(decision) {
+  const level = String(decision?.level || '').toLowerCase();
+  if(decision?.actionable === false || ['skip', 'relative', 'period_mixed', 'no_data'].includes(level)) return 'danger';
+  if(['main', 'stable'].includes(level) || decision?.actionable === true) return level === 'main' ? 'strong' : 'ok';
+  return 'neutral';
+}
+
+function renderTargetEvidenceChip(item, index = 0) {
+  const validation = item?.validation || item || {};
+  const lift = validation.lift ?? item?.validationLift ?? item?.lift;
+  const avgValue = validation.avg ?? item?.validationAvg ?? item?.avg;
+  const count = validation.count ?? item?.validationCount ?? item?.count;
+  const topHit = validation.topHitRate ?? item?.topHitRate;
+  const verdict = item?.validationVerdict || item?.verdict || {};
+  return `
+    <div class="target-evidence-chip">
+      <div class="target-evidence-chip-head">
+        <span>${index + 1}. ${escapeHtml(item?.label || '根拠')}</span>
+        <b>${escapeHtml(verdict.label || (item?.validated ? '予測実績あり' : '参考'))}</b>
+      </div>
+      <div class="target-evidence-chip-meta">
+        <span>平均との差 ${escapeHtml(formatTargetSigned枚(lift))}</span>
+        <span>平均 ${escapeHtml(formatTargetSigned枚(avgValue))}</span>
+        <span>${escapeHtml(count ?? '—')}回</span>
+        <span>上位20% ${escapeHtml(formatTargetPercent(topHit))}</span>
+      </div>
+    </div>`;
+}
+
+function renderTargetCandidateDigest(targets) {
+  if(!Array.isArray(targets) || !targets.length) {
+    return '<div class="target-empty-note">この日・この店舗では、検証を通った候補台はまだ出ていません。</div>';
+  }
+  return targets.slice(0, 4).map((t) => {
+    const evidenceCount = Array.isArray(t.evidence) ? t.evidence.length : 0;
+    const cautionCount = Array.isArray(t.cautions) ? t.cautions.length : 0;
+    const rankClass = t.rank === '本命' ? 'is-main' : t.rank === '対抗' ? 'is-sub' : 'is-hold';
+    const evidenceText = Array.isArray(t.evidence) && t.evidence.length
+      ? t.evidence.slice(0, 2).map(e => e.label).join(' / ')
+      : (Array.isArray(t.reasons) ? t.reasons.slice(0, 2).map(r => r.label).join(' / ') : '');
+    return `
+      <div class="target-candidate-digest ${rankClass}">
+        <div>
+          <strong>${escapeHtml(String(t.tai || t.taiNum || '-'))}番 ${escapeHtml(t.model || '')}</strong>
+          <span>${escapeHtml(evidenceText || '根拠詳細なし')}</span>
+        </div>
+        <div class="target-candidate-score">
+          <b>${escapeHtml(t.rank || '候補')}</b>
+          <small>${escapeHtml(String(round1(Number(t.totalScore || 0))))}pt / 根拠${evidenceCount}${cautionCount ? ` / 注意${cautionCount}` : ''}</small>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderTargetCandidateEvidenceDetails(t) {
+  const evidence = Array.isArray(t?.evidence) ? t.evidence : [];
+  const cautions = Array.isArray(t?.cautions) ? t.cautions : [];
+  const reasons = Array.isArray(t?.reasons) ? t.reasons : [];
+  const evidenceHtml = evidence.length
+    ? evidence.map((item) => {
+      const validation = item.validation || {};
+      const lift = validation.lift ?? item.lift;
+      const count = validation.count ?? item.count;
+      const pts = reasons.find(r => r.label === item.label)?.pts;
+      return `
+        <div class="target-candidate-evidence-row">
+          <span>${escapeHtml(item.label || '根拠')}</span>
+          <strong>${escapeHtml(formatTargetSigned枚(lift))}${Number.isFinite(Number(pts)) ? ` / ${Number(pts) > 0 ? '+' : ''}${Number(pts)}pt` : ''}</strong>
+          <small>${escapeHtml(count ?? '—')}回 / 上位20% ${escapeHtml(formatTargetPercent(validation.topHitRate))}</small>
+        </div>`;
+    }).join('')
+    : reasons.map((r) => `
+        <div class="target-candidate-evidence-row is-reference">
+          <span>${escapeHtml(r.label || '参考')}</span>
+          <strong>${escapeHtml(r.pts > 0 ? `+${r.pts}pt` : `${r.pts || 0}pt`)}</strong>
+          <small>${escapeHtml(r.val || '参考集計')}</small>
+        </div>`).join('');
+  const cautionHtml = cautions.length
+    ? `<div class="target-candidate-cautions">${cautions.map(c => `<span>${escapeHtml(c.label || c.message || c)}</span>`).join('')}</div>`
+    : '';
+  return `
+    <div class="target-candidate-evidence-box">
+      <div class="target-candidate-evidence-title">
+        <span>${evidence.length ? '検証済み根拠' : '参考集計'}</span>
+        <b>${evidence.length ? '過去の答え合わせを通過' : '候補補助'}</b>
+      </div>
+      ${evidenceHtml || '<div class="target-empty-note">根拠詳細なし</div>'}
+      ${cautionHtml}
+    </div>`;
+}
+
+function renderTargetJudgmentBoard({ val, isSpecial, dayInfo, wday, wdayAvg, wdaySampleCount }) {
+  const storeData = getCurrentStorePrecomputedData();
+  const analysis = getCurrentStoreTodayAnalysis();
+  const backtest = getCurrentStoreEvidenceBacktest();
+  const decision = getCurrentTargetEvidenceDecision();
+  const tone = getTargetDecisionTone(decision);
+  const summary = backtest?.summary || {};
+  const robustness = backtest?.robustness || {};
+  const targets = Array.isArray(analysis?.topTargets) ? analysis.topTargets : [];
+  const validated = Array.isArray(backtest?.validatedEvidence) ? backtest.validatedEvidence.slice(0, 4) : [];
+  const failed = Array.isArray(backtest?.failedEvidence) ? backtest.failedEvidence.slice(0, 3) : [];
+  const targetDate = normalizeDataDateValue(analysis?.targetDate || analysis?.date) || val;
+  if(!G._precomputed) {
+    return `
+      <section class="target-judgment-board is-neutral">
+        <div class="target-judgment-main">
+          <span class="target-kicker">実戦判断</span>
+          <h3>生成済みJSONを読み込むと検証済み根拠で判定します</h3>
+          <p>CSV直読み時は参考集計中心です。実戦判断は data.json のバックテスト結果を優先します。</p>
+        </div>
+      </section>`;
+  }
+  if(currentStore === 'all' || !storeData) {
+    return `
+      <section class="target-judgment-board is-neutral">
+        <div class="target-judgment-main">
+          <span class="target-kicker">実戦判断</span>
+          <h3>店舗を選ぶと、検証済み根拠で打つ/見送るを分けます</h3>
+          <p>全店表示では推薦台の一覧だけを出し、店舗別の根拠判定は過大評価を避けるため表示しません。</p>
+        </div>
+      </section>`;
+  }
+  const periods = Array.isArray(robustness.periods) ? robustness.periods : [];
+  const cautionNotes = [];
+  if(decision?.actionable === false) cautionNotes.push(decision.message || '検証上、候補を出す根拠が弱いです。');
+  if(robustness?.level && robustness.level !== 'stable') cautionNotes.push(robustness.label || '期間ブレあり');
+  if(!targets.length && decision?.actionable) cautionNotes.push('店全体は候補ありですが、今日の台単位候補はまだ弱いです。');
+  const referenceItems = [
+    { label: `${targetDate} / ${isSpecial ? '特定日' : '通常日'}`, value: dayInfo ? `日平均 ${formatTargetSigned枚(dayInfo.avg)}` : '日別データなし' },
+    { label: `${wday}曜日`, value: wdayAvg !== null ? `${formatTargetSigned枚(wdayAvg)} / ${wdaySampleCount}件` : '曜日データなし' },
+    { label: 'バックテスト候補平均', value: Number.isFinite(Number(summary.pickAvg)) ? formatTargetSigned枚(summary.pickAvg) : '—' },
+    { label: '平均との差', value: Number.isFinite(Number(summary.lift)) ? formatTargetSigned枚(summary.lift) : '—' },
+  ];
+  const toneLabel = tone === 'strong' ? '打つ候補あり'
+    : tone === 'ok' ? '候補あり'
+    : tone === 'danger' ? '見送り寄り'
+    : '判定保留';
+  return `
+    <section class="target-judgment-board is-${tone}">
+      <div class="target-judgment-main">
+        <span class="target-kicker">実戦判断</span>
+        <h3>${escapeHtml(toneLabel)} <small>${escapeHtml(decision?.label || '根拠確認中')}</small></h3>
+        <p>${escapeHtml(decision?.message || '検証済み根拠と参考集計を分けて確認します。')}</p>
+      </div>
+      <div class="target-judgment-grid">
+        <div class="target-judgment-section">
+          <div class="target-section-head">
+            <span>検証済み根拠</span>
+            <b>予測で効いたものだけ</b>
+          </div>
+          ${validated.length
+            ? `<div class="target-evidence-list">${validated.map(renderTargetEvidenceChip).join('')}</div>`
+            : '<div class="target-empty-note">この店舗では検証を通った根拠がまだ少ないです。</div>'}
+        </div>
+        <div class="target-judgment-section">
+          <div class="target-section-head">
+            <span>今日の候補</span>
+            <b>${targets.length ? `${targets.length}台` : 'なし'}</b>
+          </div>
+          ${renderTargetCandidateDigest(targets)}
+        </div>
+        <div class="target-judgment-section">
+          <div class="target-section-head">
+            <span>参考集計</span>
+            <b>単体では根拠にしない</b>
+          </div>
+          <div class="target-reference-list">
+            ${referenceItems.map(item => `
+              <div>
+                <span>${escapeHtml(item.label)}</span>
+                <strong>${escapeHtml(item.value)}</strong>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="target-judgment-section">
+          <div class="target-section-head">
+            <span>注意・見送り理由</span>
+            <b>${cautionNotes.length ? `${cautionNotes.length}件` : '大きな警告なし'}</b>
+          </div>
+          ${cautionNotes.length
+            ? `<ul class="target-caution-list">${cautionNotes.map(note => `<li>${escapeHtml(note)}</li>`).join('')}</ul>`
+            : '<div class="target-empty-note">強い断定は避けつつ、候補台の個別根拠を確認してください。</div>'}
+          ${failed.length ? `<div class="target-failed-evidence">除外された強そうな集計: ${failed.map(item => escapeHtml(item.label)).join(' / ')}</div>` : ''}
+        </div>
+      </div>
+      ${periods.length ? `
+        <div class="target-period-strip">
+          ${periods.map(period => {
+            const d = period.decision || {};
+            const s = period.summary || {};
+            return `<span>${escapeHtml(period.label || '-')} <b>${escapeHtml(d.label || '-')}</b> ${escapeHtml(formatTargetSigned枚(s.pickAvg))}</span>`;
+          }).join('')}
+        </div>` : ''}
+    </section>`;
+}
+
 function syncTargetModeUI() {
   const todayBtn = document.getElementById('targetTodayBtn');
   const tomorrowBtn = document.getElementById('targetTomorrowBtn');
@@ -6830,12 +7052,7 @@ function renderLayer1() {
       <div style="font-size:20px;font-weight:900;color:${displayVerdictColor}">${displayVerdict}</div>
     </div>
 
-    ${evidenceDecision ? `
-    <div style="background:var(--bg3);border:1px solid ${evidenceDecision.actionable === false ? 'rgba(255,92,92,.35)' : 'rgba(32,208,105,.28)'};border-radius:8px;padding:12px;margin-top:10px">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">検証済み根拠</div>
-      <div style="font-size:14px;font-weight:900;color:${evidenceDecision.actionable === false ? 'var(--minus)' : 'var(--plus)'}">${escapeHtml(evidenceDecision.label || '根拠不足')}</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">${escapeHtml(evidenceDecision.message || '')}</div>
-    </div>` : ''}
+    ${renderTargetJudgmentBoard({ val, isSpecial, dayInfo, wday, wdayAvg, wdaySampleCount })}
 
     ${canOpenLayer2?`
     <button class="btn" onclick="renderLayer2()" style="margin-top:12px">次へ → 機種・配分傾向を見る</button>`:''}
@@ -7145,14 +7362,7 @@ function renderLayer3(model) {
             <button class="btn" onclick="selectLayer3CandidatePrecomputed(${idx},'${model}')" style="margin-top:6px;padding:4px 8px;font-size:10px">この台で設定推測</button>
           </div>
         </div>
-        <div style="background:var(--bg4);border-radius:6px;padding:8px;margin-bottom:6px">
-          <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:5px">📊 スコア根拠</div>
-          ${(t.reasons||[]).map(r=>`
-            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-              <span style="font-size:11px;color:var(--muted)">${r.label}</span>
-              <span style="font-size:12px;font-weight:700;color:${r.pts>0?'var(--plus)':r.pts<0?'var(--minus)':'var(--muted)'}">${r.pts>0?'+':''}${r.pts}pt ${r.val}</span>
-            </div>`).join('')}
-        </div>
+        ${renderTargetCandidateEvidenceDetails(t)}
         ${t.prevRow?`
         <div style="font-size:11px;color:var(--muted);padding:5px 8px;background:var(--bg4);border-radius:6px;margin-bottom:6px">
           前日：<span style="color:${t.prevRow.diff>=0?'var(--plus)':'var(--minus)'};font-weight:700">${t.prevRow.diff>=0?'+':''}${t.prevRow.diff}枚</span>
