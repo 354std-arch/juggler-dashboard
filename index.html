@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ジャグラー分析</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=target-judgment-13">
+<link rel="stylesheet" href="style.css?v=hall-mobile-17">
 </head>
 <body>
 
@@ -672,6 +672,11 @@
             <div class="seat-date-picker-list" id="seatLayoutDateList"></div>
           </div>
         </div>
+        <div class="seat-layout-segment seat-layout-layer-control" aria-label="ホール図レイヤー">
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="diff" onclick="setSeatLayoutLayer('diff')">当日差枚</button>
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="evidence" onclick="setSeatLayoutLayer('evidence')">過去根拠</button>
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="target" onclick="setSeatLayoutLayer('target')">狙い候補</button>
+        </div>
         <div class="seat-layout-day-filter" id="seatLayoutDayFilterBtns" aria-label="ホール図の日付フィルター"></div>
         <div class="seat-layout-segment" aria-label="ホール図モード">
           <button type="button" class="seat-layout-segment-btn" data-seat-layout-mode="view" onclick="setSeatLayoutViewMode('view')">閲覧</button>
@@ -715,8 +720,10 @@
             <div class="seat-layout-subtitle">ホール図</div>
           </div>
           <div id="seatHallViewport" class="seat-hall-viewport">
-            <div id="seatHeatmapGrid" class="seat-heatmap-grid" onclick="onSeatLayoutGridClick(event)">
-              <div class="empty-msg">店舗を選択してください</div>
+            <div id="seatHeatmapScale" class="seat-heatmap-scale">
+              <div id="seatHeatmapGrid" class="seat-heatmap-grid" onclick="onSeatLayoutGridClick(event)">
+                <div class="empty-msg">店舗を選択してください</div>
+              </div>
             </div>
           </div>
         </div>
@@ -771,7 +778,8 @@
       <button type="button" onclick="shiftSeatLayoutDate(-1)">前日</button>
       <button type="button" onclick="fitSeatLayoutToViewport()">全体</button>
       <button type="button" onclick="shiftSeatLayoutDate(1)">翌日</button>
-      <button type="button" onclick="setSeatLayoutViewMode(isSeatLayoutEditMode() ? 'view' : 'edit')">編集</button>
+      <button type="button" onclick="saveSeatLayoutState()">保存</button>
+      <button id="seatLayoutMobileModeBtn" type="button" onclick="setSeatLayoutViewMode(isSeatLayoutEditMode() ? 'view' : 'edit')">編集</button>
     </div>
   </div>
 </div>
@@ -819,6 +827,6 @@
   <button id="withdrawJudgeBannerClose" class="withdraw-judge-banner-close" type="button" aria-label="閉じる">✕</button>
 </div>
 
-<script src="app.js?v=target-judgment-33"></script>
+<script src="app.js?v=hall-mobile-36"></script>
 </body>
 </html>

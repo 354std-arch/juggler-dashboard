@@ -23,6 +23,7 @@ const SEAT_LAYOUT_CONFIG_PREFIX = 'juggler_seat_layout_config_';
 const SEAT_LAYOUT_UI_STORAGE_KEY = 'juggler_seat_layout_ui';
 const SEAT_LAYOUT_VIEW_MODES = new Set(['view', 'edit']);
 const SEAT_LAYOUT_DENSITIES = new Set(['normal', 'compact', 'tiny']);
+const SEAT_LAYOUT_LAYERS = new Set(['diff', 'evidence', 'target']);
 const SEAT_LAYOUT_COL_MIN = 4;
 const SEAT_LAYOUT_COL_MAX = 40;
 const SEAT_LAYOUT_ZOOM_MIN = 0.15;
@@ -43,16 +44,20 @@ function normalizeSeatLayoutViewMode(value) {
 function normalizeSeatLayoutDensity(value) {
   return SEAT_LAYOUT_DENSITIES.has(String(value || '')) ? String(value) : 'compact';
 }
+function normalizeSeatLayoutLayer(value) {
+  return SEAT_LAYOUT_LAYERS.has(String(value || '')) ? String(value) : 'diff';
+}
 function loadSeatLayoutUiPreference() {
   try {
     const parsed = JSON.parse(localStorage.getItem(SEAT_LAYOUT_UI_STORAGE_KEY) || '{}');
     return {
       viewMode: normalizeSeatLayoutViewMode(parsed.viewMode),
       density: normalizeSeatLayoutDensity(parsed.density),
+      layer: normalizeSeatLayoutLayer(parsed.layer),
       sidePanelCollapsed: !!parsed.sidePanelCollapsed,
     };
   } catch(_) {
-    return { viewMode: 'view', density: 'compact', sidePanelCollapsed: false };
+    return { viewMode: 'view', density: 'compact', layer: 'diff', sidePanelCollapsed: false };
   }
 }
 function saveSeatLayoutUiPreference() {
@@ -60,6 +65,7 @@ function saveSeatLayoutUiPreference() {
     localStorage.setItem(SEAT_LAYOUT_UI_STORAGE_KEY, JSON.stringify({
       viewMode: normalizeSeatLayoutViewMode(seatLayoutState.viewMode),
       density: normalizeSeatLayoutDensity(seatLayoutState.density),
+      layer: normalizeSeatLayoutLayer(seatLayoutState.layer),
       sidePanelCollapsed: !!seatLayoutState.sidePanelCollapsed,
     }));
   } catch(_) {}
@@ -105,6 +111,15 @@ let seatLayoutState = {
   dirty: false,
   touchTai: null,
   touchHoverCell: null,
+  touchPendingTai: null,
+  touchPendingCellIndex: null,
+  touchStartX: 0,
+  touchStartY: 0,
+  touchDragStarted: false,
+  touchStartTimer: null,
+  touchMoveX: 0,
+  touchMoveY: 0,
+  touchMoveRaf: null,
   touchBound: false,
   resizeBound: false,
   resizeTimer: null,
@@ -141,6 +156,7 @@ let seatLayoutState = {
   undoStack: [],
   viewMode: SEAT_LAYOUT_INITIAL_UI.viewMode,
   density: SEAT_LAYOUT_INITIAL_UI.density,
+  layer: SEAT_LAYOUT_INITIAL_UI.layer,
   sidePanelCollapsed: !!SEAT_LAYOUT_INITIAL_UI.sidePanelCollapsed,
   keyboardBound: false,
 };
@@ -3640,6 +3656,7 @@ function selectSeatLayoutEvidenceTai(tai) {
 function renderSeatHeatmapSelection(row) {
   const el = document.getElementById('seatHeatmapSelection');
   if(!el) return;
+  document.querySelector('.seat-layout-card')?.classList.toggle('has-seat-selection', !!row);
   if(!row) {
     el.hidden = false;
     el.innerHTML = `
@@ -3785,8 +3802,9 @@ function renderSeatHeatmap(store) {
     const selectedClass = seatLayoutState.selectedTai === tai ? ' is-selected' : '';
     const hiddenClass = matches ? '' : ' is-filtered-out';
     const evidenceCandidate = evidenceByTai.get(tai);
+    const evidenceRank = Number(evidenceCandidate?.rank);
     const evidenceClass = evidenceCandidate
-      ? ` is-evidence-candidate${Array.isArray(evidenceCandidate.cautions) && evidenceCandidate.cautions.length ? ' is-evidence-caution' : ''}`
+      ? ` is-evidence-candidate${Number.isFinite(evidenceRank) && evidenceRank <= 5 ? ' is-target-candidate' : ''}${Array.isArray(evidenceCandidate.cautions) && evidenceCandidate.cautions.length ? ' is-evidence-caution' : ''}`
       : '';
     const model = row.model || card.model || '不明';
     const shortModel = formatSeatHeatmapModelLabel(model, density);
@@ -3864,6 +3882,12 @@ function setSeatLayoutDensity(density) {
   renderSeatLayoutTab();
 }
 
+function setSeatLayoutLayer(layer) {
+  seatLayoutState.layer = normalizeSeatLayoutLayer(layer);
+  saveSeatLayoutUiPreference();
+  renderSeatLayoutTab();
+}
+
 function toggleSeatLayoutSidePanel() {
   seatLayoutState.sidePanelCollapsed = !seatLayoutState.sidePanelCollapsed;
   saveSeatLayoutUiPreference();
@@ -3916,6 +3940,10 @@ function isSeatLayoutMobileViewport() {
   }
 }
 
+function isSeatLayoutTabActive() {
+  return document.querySelector('.tab-content.active')?.id === 'tab-layout';
+}
+
 function getSeatLayoutMobileFitKey() {
   const viewport = document.getElementById('seatHallViewport');
   const widthBucket = Math.round((viewport?.clientWidth || window.innerWidth || 0) / 20) * 20;
@@ -3934,13 +3962,18 @@ function setSeatLayoutZoom(zoom, options = {}) {
   if(options.rememberMobileFit && isSeatLayoutMobileViewport()) {
     seatLayoutState.mobileAutoFitKey = getSeatLayoutMobileFitKey();
   }
+  if(options.lightweight) {
+    applySeatLayoutZoomDom();
+    return;
+  }
   renderSeatLayoutChromeState();
 }
 
 function setSeatLayoutZoomAtPoint(zoom, clientX, clientY, options = {}) {
   const viewport = document.getElementById('seatHallViewport');
+  const zoomOptions = { ...options, lightweight: options.lightweight !== false };
   if(!viewport) {
-    setSeatLayoutZoom(zoom, options);
+    setSeatLayoutZoom(zoom, zoomOptions);
     return;
   }
   const rect = viewport.getBoundingClientRect();
@@ -3949,7 +3982,7 @@ function setSeatLayoutZoomAtPoint(zoom, clientX, clientY, options = {}) {
   const pointY = Math.max(0, Math.min(viewport.clientHeight, (Number(clientY) || 0) - rect.top));
   const contentX = (viewport.scrollLeft + pointX) / Math.max(oldZoom, 0.01);
   const contentY = (viewport.scrollTop + pointY) / Math.max(oldZoom, 0.01);
-  setSeatLayoutZoom(zoom, options);
+  setSeatLayoutZoom(zoom, zoomOptions);
   const nextZoom = clampSeatLayoutZoom(seatLayoutState.zoom, oldZoom);
   viewport.scrollLeft = Math.max(0, (contentX * nextZoom) - pointX);
   viewport.scrollTop = Math.max(0, (contentY * nextZoom) - pointY);
@@ -3958,6 +3991,7 @@ function setSeatLayoutZoomAtPoint(zoom, clientX, clientY, options = {}) {
 function adjustSeatLayoutZoom(diff) {
   setSeatLayoutZoom(clampSeatLayoutZoom(seatLayoutState.zoom, 1) + (Number(diff) || 0), {
     rememberMobileFit: true,
+    lightweight: true,
   });
 }
 
@@ -3976,6 +4010,34 @@ function getSeatLayoutNaturalHeight() {
   const rows = Math.max(1, Math.ceil(cellCount / Math.max(1, cols)));
   const cellH = metrics.cellH || metrics.cellW;
   return (rows * cellH) + (Math.max(0, rows - 1) * metrics.gap) + (metrics.pad * 2) + 2;
+}
+
+function applySeatLayoutZoomDom() {
+  const zoom = clampSeatLayoutZoom(seatLayoutState.zoom, 1);
+  seatLayoutState.zoom = zoom;
+  const grid = document.getElementById('seatHeatmapGrid');
+  const scale = document.getElementById('seatHeatmapScale');
+  if(grid) {
+    grid.style.setProperty('--seat-layout-zoom', String(zoom));
+  }
+  if(scale) {
+    const naturalWidth = Math.max(
+      getSeatLayoutNaturalWidth(),
+      Number(grid?.scrollWidth) || 0,
+      Number(grid?.offsetWidth) || 0
+    );
+    const naturalHeight = Math.max(
+      getSeatLayoutNaturalHeight(),
+      Number(grid?.scrollHeight) || 0,
+      Number(grid?.offsetHeight) || 0
+    );
+    const scaledWidth = Math.max(1, Math.ceil(naturalWidth * zoom));
+    const scaledHeight = Math.max(1, Math.ceil(naturalHeight * zoom));
+    scale.style.setProperty('--seat-layout-scaled-w', `${scaledWidth}px`);
+    scale.style.setProperty('--seat-layout-scaled-h', `${scaledHeight}px`);
+  }
+  const zoomLabel = document.getElementById('seatLayoutZoomLabel');
+  if(zoomLabel) zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
 }
 
 function getSeatLayoutViewportFitZoom() {
@@ -4013,7 +4075,10 @@ function fitSeatLayoutToViewport(options = {}) {
   if(!viewport) return;
   const previousScroll = getSeatHallViewportScroll();
   const nextZoom = getSeatLayoutViewportFitZoom();
-  setSeatLayoutZoom(nextZoom, { rememberMobileFit: options.rememberMobileFit !== false });
+  setSeatLayoutZoom(nextZoom, {
+    rememberMobileFit: options.rememberMobileFit !== false,
+    lightweight: true,
+  });
   if(options.preserveScroll) {
     restoreSeatHallViewportScroll(previousScroll);
   } else {
@@ -4058,8 +4123,10 @@ function restoreSeatHallViewportScroll(scroll) {
 function renderSeatLayoutChromeState() {
   const viewMode = normalizeSeatLayoutViewMode(seatLayoutState.viewMode);
   const density = normalizeSeatLayoutDensity(seatLayoutState.density);
+  const layer = normalizeSeatLayoutLayer(seatLayoutState.layer);
   seatLayoutState.viewMode = viewMode;
   seatLayoutState.density = density;
+  seatLayoutState.layer = layer;
   seatLayoutState.cols = clampSeatLayoutCols(seatLayoutState.cols);
   seatLayoutState.zoom = clampSeatLayoutZoom(seatLayoutState.zoom);
   const mobileMode = isSeatLayoutMobileViewport();
@@ -4067,6 +4134,9 @@ function renderSeatLayoutChromeState() {
   shell?.classList.toggle('is-edit-mode', viewMode === 'edit');
   shell?.classList.toggle('is-mobile-view', mobileMode);
   shell?.classList.toggle('is-side-collapsed', !!seatLayoutState.sidePanelCollapsed);
+  ['diff', 'evidence', 'target'].forEach((name) => {
+    shell?.classList.toggle(`is-layer-${name}`, layer === name);
+  });
   restoreSeatLayoutDesktopZoomIfNeeded();
   applySeatLayoutMobileFitIfNeeded();
   seatLayoutState.zoom = clampSeatLayoutZoom(seatLayoutState.zoom);
@@ -4077,20 +4147,26 @@ function renderSeatLayoutChromeState() {
   const grid = document.getElementById('seatHeatmapGrid');
   if(grid) {
     grid.style.setProperty('--seat-layout-cols', String(seatLayoutState.cols));
-    grid.style.setProperty('--seat-layout-zoom', String(seatLayoutState.zoom));
     grid.classList.toggle('is-view-mode', viewMode !== 'edit');
     grid.classList.toggle('is-edit-mode', viewMode === 'edit');
     grid.classList.toggle('is-mobile-view', mobileMode);
     ['normal', 'compact', 'tiny'].forEach((name) => {
       grid.classList.toggle(`is-density-${name}`, density === name);
     });
+    ['diff', 'evidence', 'target'].forEach((name) => {
+      grid.classList.toggle(`is-layer-${name}`, layer === name);
+    });
   }
+  applySeatLayoutZoomDom();
 
   document.querySelectorAll('[data-seat-layout-mode]').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.seatLayoutMode === viewMode);
   });
   document.querySelectorAll('[data-seat-layout-density]').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.seatLayoutDensity === density);
+  });
+  document.querySelectorAll('[data-seat-layout-layer]').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.seatLayoutLayer === layer);
   });
   document.querySelectorAll('[data-seat-layout-preset]').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.seatLayoutPreset === seatLayoutState.preset);
@@ -4108,6 +4184,11 @@ function renderSeatLayoutChromeState() {
   if(panelBtn) {
     panelBtn.textContent = seatLayoutState.sidePanelCollapsed ? 'パネル開' : 'パネル閉';
     panelBtn.classList.toggle('active', !!seatLayoutState.sidePanelCollapsed);
+  }
+  const mobileModeBtn = document.getElementById('seatLayoutMobileModeBtn');
+  if(mobileModeBtn) {
+    mobileModeBtn.textContent = viewMode === 'edit' ? '完了' : '編集';
+    mobileModeBtn.setAttribute('aria-pressed', viewMode === 'edit' ? 'true' : 'false');
   }
   renderSeatLayoutGroupStatus();
 }
@@ -4155,6 +4236,7 @@ function clearSeatLayoutDragHover() {
 function onSeatLayoutPointerDown(event, cellIndex) {
   if(!isSeatLayoutEditMode()) return;
   if(seatLayoutState.pinchActive) return;
+  if(event?.pointerType === 'touch') return;
   if(event?.button !== undefined && event.button !== 0) return;
   const idx = Number(cellIndex);
   if(!Number.isInteger(idx) || idx < 0 || idx >= getSeatLayoutCellCount()) return;
@@ -4337,10 +4419,57 @@ function onSeatLayoutCellDrop(event, cellIndex) {
   renderSeatLayoutTab();
 }
 
+function clearSeatLayoutTouchPendingState() {
+  if(seatLayoutState.touchStartTimer) {
+    clearTimeout(seatLayoutState.touchStartTimer);
+  }
+  seatLayoutState.touchStartTimer = null;
+  seatLayoutState.touchPendingTai = null;
+  seatLayoutState.touchPendingCellIndex = null;
+  seatLayoutState.touchStartX = 0;
+  seatLayoutState.touchStartY = 0;
+}
+
+function beginSeatLayoutTouchDrag() {
+  const tai = Number(seatLayoutState.touchPendingTai);
+  const cellIndex = Number(seatLayoutState.touchPendingCellIndex);
+  if(!isSeatLayoutEditMode() || !Number.isFinite(tai) || !Number.isInteger(cellIndex)) {
+    clearSeatLayoutTouchPendingState();
+    return false;
+  }
+  seatLayoutState.selectedTai = tai;
+  seatLayoutState.selectedCellIndex = cellIndex;
+  seatLayoutState.touchTai = tai;
+  seatLayoutState.touchDragStarted = true;
+  const grid = document.getElementById('seatHeatmapGrid');
+  grid?.querySelector(`.seat-heatmap-cell[data-cell-index="${cellIndex}"]`)?.classList?.add('is-dragging');
+  return true;
+}
+
+function scheduleSeatLayoutTouchHoverUpdate(clientX, clientY) {
+  seatLayoutState.touchMoveX = Number(clientX) || 0;
+  seatLayoutState.touchMoveY = Number(clientY) || 0;
+  if(seatLayoutState.touchMoveRaf) return;
+  seatLayoutState.touchMoveRaf = requestAnimationFrame(() => {
+    seatLayoutState.touchMoveRaf = null;
+    if(seatLayoutState.pinchActive || !seatLayoutState.touchDragStarted) return;
+    const target = document.elementFromPoint(seatLayoutState.touchMoveX, seatLayoutState.touchMoveY);
+    const cell = target && target.closest ? target.closest('#seatHeatmapGrid .seat-heatmap-cell') : null;
+    const idx = Number(cell?.dataset?.cellIndex);
+    setSeatLayoutTouchHoverCell(Number.isInteger(idx) && idx >= 0 ? idx : null);
+  });
+}
+
 function clearSeatLayoutTouchDragState() {
+  clearSeatLayoutTouchPendingState();
+  if(seatLayoutState.touchMoveRaf) {
+    cancelAnimationFrame(seatLayoutState.touchMoveRaf);
+    seatLayoutState.touchMoveRaf = null;
+  }
   document.querySelectorAll('#seatHeatmapGrid .seat-heatmap-cell.is-dragging')
     .forEach((el) => el.classList.remove('is-dragging'));
   seatLayoutState.touchTai = null;
+  seatLayoutState.touchDragStarted = false;
   setSeatLayoutTouchHoverCell(null);
 }
 
@@ -4457,24 +4586,38 @@ function bindSeatLayoutTouchEvents() {
   if(seatLayoutState.touchBound) return;
   document.addEventListener('touchmove', (event) => {
     if(seatLayoutState.pinchActive) return;
-    const tai = Number(seatLayoutState.touchTai);
-    if(!Number.isFinite(tai)) return;
     const touch = event.touches && event.touches[0];
     if(!touch) return;
-    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-    const cell = target && target.closest ? target.closest('#seatHeatmapGrid .seat-heatmap-cell') : null;
-    const idx = Number(cell?.dataset?.cellIndex);
-    setSeatLayoutTouchHoverCell(Number.isInteger(idx) && idx >= 0 ? idx : null);
+    const pendingTai = Number(seatLayoutState.touchPendingTai);
+    if(Number.isFinite(pendingTai) && !seatLayoutState.touchDragStarted) {
+      const dx = Math.abs((Number(touch.clientX) || 0) - seatLayoutState.touchStartX);
+      const dy = Math.abs((Number(touch.clientY) || 0) - seatLayoutState.touchStartY);
+      if(Math.max(dx, dy) > 12 && dy >= dx) {
+        clearSeatLayoutTouchPendingState();
+        return;
+      }
+      if(Math.max(dx, dy) > 18) {
+        beginSeatLayoutTouchDrag();
+      }
+    }
+    const tai = Number(seatLayoutState.touchTai);
+    if(!Number.isFinite(tai) || !seatLayoutState.touchDragStarted) return;
+    scheduleSeatLayoutTouchHoverUpdate(touch.clientX, touch.clientY);
     event.preventDefault();
   }, { passive: false });
 
   const touchEndHandler = (event) => {
+    if(Number.isFinite(Number(seatLayoutState.touchPendingTai)) && !seatLayoutState.touchDragStarted) {
+      clearSeatLayoutTouchPendingState();
+      return;
+    }
     const tai = Number(seatLayoutState.touchTai);
     if(!Number.isFinite(tai)) return;
     const hoverCell = Number(seatLayoutState.touchHoverCell);
     if(Number.isInteger(hoverCell) && hoverCell >= 0) {
       moveSeatLayoutTaiToCell(tai, hoverCell);
     }
+    seatLayoutState.suppressNextSeatLayoutClick = true;
     clearSeatLayoutTouchDragState();
     renderSeatLayoutTab();
     event.preventDefault();
@@ -4487,13 +4630,22 @@ function bindSeatLayoutTouchEvents() {
 
 function bindSeatLayoutResizeEvents() {
   if(seatLayoutState.resizeBound) return;
-  window.addEventListener('resize', () => {
+  const handleResize = () => {
     if(seatLayoutState.resizeTimer) clearTimeout(seatLayoutState.resizeTimer);
     seatLayoutState.resizeTimer = setTimeout(() => {
       seatLayoutState.mobileAutoFitKey = '';
+      if(isSeatLayoutTabActive() && isSeatLayoutMobileViewport()) {
+        renderSeatLayoutChromeState();
+        maybeAutoFitSeatLayoutMobile();
+        return;
+      }
       renderSeatLayoutTab();
-    }, 120);
-  });
+    }, isSeatLayoutMobileViewport() ? 220 : 120);
+  };
+  window.addEventListener('resize', handleResize);
+  if(window.visualViewport?.addEventListener) {
+    window.visualViewport.addEventListener('resize', handleResize);
+  }
   seatLayoutState.resizeBound = true;
 }
 
@@ -4502,11 +4654,16 @@ function onSeatLayoutCardTouchStart(event, tai, cellIndex) {
   if(!isSeatLayoutEditMode()) return;
   const t = Number(tai);
   if(!Number.isFinite(t)) return;
-  seatLayoutState.selectedTai = t;
-  seatLayoutState.selectedCellIndex = Number(cellIndex);
-  seatLayoutState.touchTai = t;
-  event.currentTarget?.classList?.add('is-dragging');
-  event.preventDefault();
+  clearSeatLayoutTouchDragState();
+  const touch = event.touches && event.touches[0];
+  seatLayoutState.touchPendingTai = t;
+  seatLayoutState.touchPendingCellIndex = Number(cellIndex);
+  seatLayoutState.touchStartX = Number(touch?.clientX) || 0;
+  seatLayoutState.touchStartY = Number(touch?.clientY) || 0;
+  seatLayoutState.touchDragStarted = false;
+  seatLayoutState.touchStartTimer = setTimeout(() => {
+    beginSeatLayoutTouchDrag();
+  }, 180);
 }
 
 function onSeatLayoutCardClick(event, cellIndex) {
