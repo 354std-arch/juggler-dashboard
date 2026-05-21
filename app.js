@@ -93,6 +93,7 @@ let seatLayoutState = {
   store: '',
   seatData: null,
   seatDataBundle: null,
+  seatMonthlyDataCache: {},
   hallLayoutsBundle: null,
   storeList: [],
   loading: false,
@@ -3264,9 +3265,46 @@ function bindSeatLayoutPickerEvents() {
 
 function getSeatLayoutDataByDate(ymd) {
   const allData = seatLayoutState.seatDataBundle?.data;
-  if(!allData || typeof allData !== 'object') return null;
-  const byDate = allData[ymd];
-  return (byDate && typeof byDate === 'object') ? byDate : null;
+  const byDate = (allData && typeof allData === 'object') ? allData[ymd] : null;
+  if(byDate && typeof byDate === 'object') return byDate;
+  const monthKey = getSeatLayoutMonthKey(ymd);
+  const monthlyData = monthKey ? seatLayoutState.seatMonthlyDataCache?.[monthKey]?.data : null;
+  const monthlyByDate = (monthlyData && typeof monthlyData === 'object') ? monthlyData[ymd] : null;
+  return (monthlyByDate && typeof monthlyByDate === 'object') ? monthlyByDate : null;
+}
+
+function getSeatLayoutMonthKey(ymd) {
+  const match = String(ymd || '').match(/^(\d{4}-\d{2})-\d{2}$/);
+  return match ? match[1] : '';
+}
+
+function loadSeatLayoutMonthlyDataForDate(ymd) {
+  const monthKey = getSeatLayoutMonthKey(ymd);
+  if(!monthKey) return Promise.resolve(null);
+  const cached = seatLayoutState.seatMonthlyDataCache?.[monthKey];
+  if(cached) {
+    if(typeof cached.then === 'function') {
+      return cached.then((json) => {
+        const byDate = json?.data?.[ymd];
+        return (byDate && typeof byDate === 'object') ? byDate : null;
+      });
+    }
+    const byDate = cached.data?.[ymd];
+    return Promise.resolve((byDate && typeof byDate === 'object') ? byDate : null);
+  }
+  seatLayoutState.seatMonthlyDataCache[monthKey] = fetch(`./seat_data_${monthKey}.json`, { cache: 'no-store' })
+    .then((res) => {
+      if(res.status === 404) return null;
+      if(!res.ok) throw new Error(`seat_data_${monthKey}.json HTTP ${res.status}`);
+      return res.json();
+    })
+    .then((json) => (json && typeof json === 'object') ? json : null)
+    .catch(() => null);
+  return seatLayoutState.seatMonthlyDataCache[monthKey].then((json) => {
+    seatLayoutState.seatMonthlyDataCache[monthKey] = json;
+    const byDate = json?.data?.[ymd];
+    return (byDate && typeof byDate === 'object') ? byDate : null;
+  });
 }
 
 function parseSeatLayoutStoreListNames(payload) {
@@ -3304,6 +3342,7 @@ function loadSeatLayoutBundle() {
     .then(([seatJson, storeJson, hallLayoutsJson]) => {
       if(requestId !== seatLayoutState.requestId) return;
       seatLayoutState.seatDataBundle = (seatJson && typeof seatJson === 'object') ? seatJson : null;
+      seatLayoutState.seatMonthlyDataCache = {};
       seatLayoutState.hallLayoutsBundle = hallLayoutsJson;
       seatLayoutState.storeList = parseSeatLayoutStoreListNames(storeJson);
       seatLayoutState.dateOptions = buildSeatLayoutDateOptions(seatLayoutState.dateYmd || '');
@@ -4845,7 +4884,10 @@ function loadSeatLayoutDataForDate(ymd) {
   const requestId = ++seatLayoutState.requestId;
   Promise.resolve().then(() => {
     if(requestId !== seatLayoutState.requestId) return;
-    const byDate = getSeatLayoutDataByDate(normalizedYmd);
+    const bundledByDate = getSeatLayoutDataByDate(normalizedYmd);
+    return bundledByDate || loadSeatLayoutMonthlyDataForDate(normalizedYmd);
+  }).then((byDate) => {
+    if(requestId !== seatLayoutState.requestId) return;
     seatLayoutState.loading = false;
     seatLayoutState.loadedDateYmd = normalizedYmd;
     seatLayoutState.seatData = (byDate && typeof byDate === 'object') ? byDate : null;
@@ -5156,6 +5198,7 @@ function loadFromJSON() {
 
   return Promise.all([dataPromise, loadSeatLayoutAnalysisLayoutsJSON()])
     .then(([json, hallLayoutsJson]) => {
+      seatLayoutState.seatMonthlyDataCache = {};
       seatLayoutState.hallLayoutsBundle = hallLayoutsJson;
       if (json.byStore && typeof json.byStore === 'object') {
         loadFromPrecomputed(json);

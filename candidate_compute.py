@@ -229,15 +229,47 @@ def detect_latest_data_date():
     return latest_dt
 
 
+def finalize_seat_data_payload(store_order, by_date, stores_with_data):
+    payload = {"dates": [], "stores": store_order[:], "data": {}}
+    date_keys = sorted(by_date.keys(), reverse=True)
+    store_set = set(store_order)
+    extra_stores = sorted(stores_with_data - store_set, key=lambda s: s)
+    if extra_stores:
+        payload["stores"] = store_order + extra_stores
+
+    ranked_stores = {name: i for i, name in enumerate(payload["stores"])}
+    data_out = {}
+    for ymd in date_keys:
+        store_map = by_date.get(ymd, {})
+        if not isinstance(store_map, dict):
+            continue
+        sorted_store_items = sorted(
+            store_map.items(),
+            key=lambda item: (ranked_stores.get(item[0], 10**9), item[0]),
+        )
+        day_out = {}
+        for store, machine_map in sorted_store_items:
+            if not isinstance(machine_map, dict) or not machine_map:
+                continue
+            machines = sorted(machine_map.values(), key=lambda row: (row.get("machine_no", 10**9)))
+            if machines:
+                day_out[store] = machines
+        if day_out:
+            data_out[ymd] = day_out
+
+    payload["dates"] = date_keys
+    payload["data"] = data_out
+    return payload
+
+
 def build_recent_seat_data_payload(day_window=30):
     store_order = load_store_list_names()
-    payload = {"dates": [], "stores": store_order[:], "data": {}}
     if not os.path.exists(RAW_DATA_CSV):
-        return payload
+        return {"dates": [], "stores": store_order[:], "data": {}}
 
     latest_dt = detect_latest_data_date()
     if latest_dt is None:
-        return payload
+        return {"dates": [], "stores": store_order[:], "data": {}}
 
     end_date = latest_dt.date()
     start_date = end_date - timedelta(days=max(0, int(day_window) - 1))
@@ -270,41 +302,62 @@ def build_recent_seat_data_payload(day_window=30):
             }
             stores_with_data.add(store)
 
-    date_keys = sorted(by_date.keys(), reverse=True)
-    store_set = set(store_order)
-    extra_stores = sorted(stores_with_data - store_set, key=lambda s: s)
-    if extra_stores:
-        payload["stores"] = store_order + extra_stores
+    return finalize_seat_data_payload(store_order, by_date, stores_with_data)
 
-    ranked_stores = {name: i for i, name in enumerate(payload["stores"])}
-    data_out = {}
-    for ymd in date_keys:
-        store_map = by_date.get(ymd, {})
-        if not isinstance(store_map, dict):
-            continue
-        sorted_store_items = sorted(
-            store_map.items(),
-            key=lambda item: (ranked_stores.get(item[0], 10**9), item[0]),
-        )
-        day_out = {}
-        for store, machine_map in sorted_store_items:
-            if not isinstance(machine_map, dict) or not machine_map:
+
+def build_monthly_seat_data_payloads():
+    store_order = load_store_list_names()
+    if not os.path.exists(RAW_DATA_CSV):
+        return {}
+
+    by_month_date = {}
+    stores_by_month = {}
+    with open(RAW_DATA_CSV, "r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            dt = parse_date(row.get("日付"))
+            if dt is None:
                 continue
-            machines = sorted(machine_map.values(), key=lambda row: (row.get("machine_no", 10**9)))
-            if machines:
-                day_out[store] = machines
-        if day_out:
-            data_out[ymd] = day_out
 
-    payload["dates"] = date_keys
-    payload["data"] = data_out
-    return payload
+            store = str(row.get("店名", "")).strip()
+            model = str(row.get("機種名", "")).strip()
+            machine_no = parse_machine_no(row.get("台番号"))
+            diff = parse_number(row.get("差枚"))
+            if not store or machine_no is None or diff is None:
+                continue
+
+            ymd = dt.strftime("%Y-%m-%d")
+            month_key = ymd[:7]
+            machine_map = by_month_date.setdefault(month_key, {}).setdefault(ymd, {}).setdefault(store, {})
+            machine_map[machine_no] = {
+                "machine_no": machine_no,
+                "model": model,
+                "diff": normalize_diff_value(diff),
+            }
+            stores_by_month.setdefault(month_key, set()).add(store)
+
+    return {
+        month_key: finalize_seat_data_payload(store_order, by_date, stores_by_month.get(month_key, set()))
+        for month_key, by_date in by_month_date.items()
+    }
 
 
 def write_recent_seat_data_json(payload):
     with open(SEAT_DATA_JSON, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
     return SEAT_DATA_JSON
+
+
+def write_monthly_seat_data_json(payloads):
+    written = []
+    for month_key, payload in sorted((payloads or {}).items()):
+        if not payload.get("dates"):
+            continue
+        out_path = os.path.join(REPO_DIR, f"seat_data_{month_key}.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
+        written.append(out_path)
+    return written
 
 
 def main():
@@ -319,6 +372,7 @@ def main():
     payload = build_candidate_payload()
     seat_payload = build_recent_seat_data_payload(day_window=30)
     seat_out_json = write_recent_seat_data_json(seat_payload)
+    monthly_out_json = write_monthly_seat_data_json(build_monthly_seat_data_payloads())
 
     with open(OUT_JSON, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
@@ -333,6 +387,7 @@ def main():
 
     print(f"generated: {OUT_JSON}")
     print(f"generated: {seat_out_json}")
+    print(f"generated monthly seat_data: {len(monthly_out_json)} files")
     print(f"seat_dates: {len(seat_payload.get('dates', []))}")
     print(f"stores: {len(payload.get('stores', {}))}")
 
