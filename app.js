@@ -93,6 +93,7 @@ let seatLayoutState = {
   store: '',
   seatData: null,
   seatDataBundle: null,
+  hallLayoutsBundle: null,
   storeList: [],
   loading: false,
   missing: false,
@@ -2448,6 +2449,21 @@ function getDefaultSeatLayoutCols(cards) {
   return 20;
 }
 
+function loadSeatLayoutAnalysisLayoutsJSON() {
+  return fetch('./hall_layouts.json', { cache: 'no-store' })
+    .then((res) => {
+      if(res.status === 404) return null;
+      if(!res.ok) throw new Error(`hall_layouts.json HTTP ${res.status}`);
+      return res.json();
+    })
+    .then((json) => {
+      return (json && typeof json === 'object' && json.stores && typeof json.stores === 'object')
+        ? json
+        : null;
+    })
+    .catch(() => null);
+}
+
 function getSeatLayoutPresetForCols(cols) {
   const c = clampSeatLayoutCols(cols);
   const found = Object.entries(SEAT_LAYOUT_COL_PRESETS).find(([, value]) => value === c);
@@ -2674,7 +2690,7 @@ function buildDefaultSeatLayoutCells(cards, cols = seatLayoutState.cols) {
   return cells;
 }
 
-function sanitizeSeatLayoutPlacements(cards, placements) {
+function sanitizeSeatLayoutPlacements(cards, placements, cols = seatLayoutState.cols) {
   const validTai = new Set((Array.isArray(cards) ? cards : []).map((card) => Number(card?.tai)));
   const nextCells = [];
   const usedTai = new Set();
@@ -2688,7 +2704,7 @@ function sanitizeSeatLayoutPlacements(cards, placements) {
     nextCells.push(tai);
     usedTai.add(tai);
   });
-  buildDefaultSeatLayoutCells(cards, seatLayoutState.cols).forEach((value) => {
+  buildDefaultSeatLayoutCells(cards, cols).forEach((value) => {
     if(isSeatLayoutSpacer(value)) return;
     const tai = Number(value);
     if(Number.isFinite(tai) && !usedTai.has(tai)) nextCells.push(tai);
@@ -2953,9 +2969,28 @@ function buildSeatLayoutCards(store) {
   return Array.from(map.values()).sort((a, b) => a.tai - b.tai);
 }
 
+function getSeatLayoutAnalysisLayout(store, cards) {
+  const layout = seatLayoutState.hallLayoutsBundle?.stores?.[String(store || '')];
+  if(!layout || typeof layout !== 'object' || !layout.placements || typeof layout.placements !== 'object') {
+    return null;
+  }
+  const normalizedCards = Array.isArray(cards) ? cards : [];
+  const cols = clampSeatLayoutCols(layout.cols, getDefaultSeatLayoutCols(normalizedCards));
+  const placements = normalizedCards.length
+    ? sanitizeSeatLayoutPlacements(normalizedCards, layout.placements, cols)
+    : cloneSeatLayoutPlacements(layout.placements);
+  if(!Object.keys(placements).length) return null;
+  return {
+    placements,
+    cols,
+    source: 'analysis',
+  };
+}
+
 function loadSeatLayoutPlacement(store, cards) {
-  const defaults = { placements: cellsToSeatLayoutPlacements(buildDefaultSeatLayoutCells(cards, seatLayoutState.cols)) };
-  if(!store) return defaults;
+  const defaults = () => ({ placements: cellsToSeatLayoutPlacements(buildDefaultSeatLayoutCells(cards, seatLayoutState.cols)) });
+  const analysisFallback = () => getSeatLayoutAnalysisLayout(store, cards) || defaults();
+  if(!store) return defaults();
   let parsed = null;
   try {
     const raw = localStorage.getItem(getSeatLayoutStorageKey(store))
@@ -2979,10 +3014,10 @@ function loadSeatLayoutPlacement(store, cards) {
   };
 
   if(Array.isArray(parsed)) return fromArray();
-  if(!parsed || typeof parsed !== 'object') return defaults;
+  if(!parsed || typeof parsed !== 'object') return analysisFallback();
 
   if(Number(parsed.version) < 12) {
-    return defaults;
+    return analysisFallback();
   }
 
   let sourcePlacements = parsed.placements;
@@ -2996,7 +3031,7 @@ function loadSeatLayoutPlacement(store, cards) {
     sourcePlacements = cellsToSeatLayoutPlacements(legacyCells);
   }
   const placements = sanitizeSeatLayoutPlacements(cards, sourcePlacements);
-  return { placements };
+  return { placements, source: 'local' };
 }
 
 function saveSeatLayoutPlacement(store) {
@@ -3032,6 +3067,10 @@ function syncSeatLayoutCards(forceReloadStorePlacement = false) {
   if(storeChanged) {
     applySeatLayoutConfig(loadSeatLayoutConfig(store, cards));
     const saved = loadSeatLayoutPlacement(store, cards);
+    if(saved?.cols) {
+      seatLayoutState.cols = clampSeatLayoutCols(saved.cols, seatLayoutState.cols);
+      seatLayoutState.preset = getSeatLayoutPresetForCols(seatLayoutState.cols);
+    }
     seatLayoutState.placements = saved.placements;
     seatLayoutState._placementStore = store;
     seatLayoutState.undoStack = [];
@@ -3259,11 +3298,13 @@ function loadSeatLayoutBundle() {
       return res.json();
     })
     .catch(() => null);
+  const hallLayoutsPromise = loadSeatLayoutAnalysisLayoutsJSON();
 
-  return Promise.all([seatPromise, storePromise])
-    .then(([seatJson, storeJson]) => {
+  return Promise.all([seatPromise, storePromise, hallLayoutsPromise])
+    .then(([seatJson, storeJson, hallLayoutsJson]) => {
       if(requestId !== seatLayoutState.requestId) return;
       seatLayoutState.seatDataBundle = (seatJson && typeof seatJson === 'object') ? seatJson : null;
+      seatLayoutState.hallLayoutsBundle = hallLayoutsJson;
       seatLayoutState.storeList = parseSeatLayoutStoreListNames(storeJson);
       seatLayoutState.dateOptions = buildSeatLayoutDateOptions(seatLayoutState.dateYmd || '');
       ensureSeatLayoutDateState();
@@ -5045,6 +5086,9 @@ async function saveSeatLayoutForAnalysis() {
     renderSeatLayoutTab();
     return;
   }
+  saveSeatLayoutPlacement(seatLayoutState.store);
+  saveSeatLayoutConfig(seatLayoutState.store);
+  clearSeatLayoutDirty();
   flashSeatLayoutNotice('分析へ保存中...');
   renderSeatLayoutTab();
   try {
@@ -5104,12 +5148,15 @@ function loadFromJSON() {
   status.textContent = 'data.jsonを読み込んでいます...';
   status.style.color = 'var(--accent3)';
 
-  return fetch('./data.json', { cache: 'no-store' })
+  const dataPromise = fetch('./data.json', { cache: 'no-store' })
     .then(r => {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json();
-    })
-    .then(json => {
+    });
+
+  return Promise.all([dataPromise, loadSeatLayoutAnalysisLayoutsJSON()])
+    .then(([json, hallLayoutsJson]) => {
+      seatLayoutState.hallLayoutsBundle = hallLayoutsJson;
       if (json.byStore && typeof json.byStore === 'object') {
         loadFromPrecomputed(json);
         if(!hasDisplayableData()) {
@@ -6402,15 +6449,26 @@ function getSavedHallLayoutForStore(store) {
     const raw = localStorage.getItem(getSeatLayoutStorageKey(currentStore))
       || localStorage.getItem(getLegacySeatLayoutStorageKey(currentStore));
     const parsed = raw ? JSON.parse(raw) : null;
-    if(!parsed || typeof parsed !== 'object' || Number(parsed.version) < 12) return null;
-    const config = loadSeatLayoutConfig(currentStore, []);
+    if(parsed && typeof parsed === 'object' && Number(parsed.version) >= 12) {
+      const config = loadSeatLayoutConfig(currentStore, []);
+      return {
+        cells: getSeatLayoutCellsFromPlacements(parsed.placements || {}),
+        cols: clampSeatLayoutCols(config.cols),
+      };
+    }
+  } catch(_) {}
+
+  const analysisCards = currentStore === seatLayoutState.store
+    ? seatLayoutState.cards
+    : buildSeatLayoutCards(currentStore);
+  const analysisLayout = getSeatLayoutAnalysisLayout(currentStore, analysisCards);
+  if(analysisLayout) {
     return {
-      cells: getSeatLayoutCellsFromPlacements(parsed.placements || {}),
-      cols: clampSeatLayoutCols(config.cols),
+      cells: getSeatLayoutCellsFromPlacements(analysisLayout.placements),
+      cols: clampSeatLayoutCols(analysisLayout.cols),
     };
-  } catch(_) {
-    return null;
   }
+  return null;
 }
 
 function getHallLayoutPlacedPositions(store) {
