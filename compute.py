@@ -1,9 +1,10 @@
 import json, csv, math, os
 from datetime import datetime, date, timedelta, timezone
-from collections import defaultdict
+from collections import defaultdict, deque
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_CSV  = os.path.join(REPO_DIR, "raw_data.csv")
+HALL_LAYOUTS_JSON = os.path.join(REPO_DIR, "hall_layouts.json")
 STORE_FRESHNESS_JSON = os.path.join(REPO_DIR, "store_freshness.json")
 STORE_LIST_JSON = os.path.join(REPO_DIR, "store_list.json")
 JST = timezone(timedelta(hours=9))
@@ -79,6 +80,7 @@ G_WEIGHT_FULL_THRESHOLD = 3000
 G_WEIGHT_HALF_THRESHOLD = 1500
 G_WEIGHT_FULL = 1.0
 G_WEIGHT_HALF = 0.5
+INSTALL_SEGMENT_GAP_DAYS = 21
 
 MODEL_HOLDOVER_SYN_THRESHOLD = {
     "アイムジャグラー": 135,
@@ -256,6 +258,125 @@ def load_store_configs():
         "exchangeRateByStore": exchange_rates,
     }
 
+def load_hall_layouts():
+    if not os.path.exists(HALL_LAYOUTS_JSON):
+        return {}
+    try:
+        with open(HALL_LAYOUTS_JSON, encoding="utf-8-sig") as f:
+            payload = json.load(f)
+    except Exception as e:
+        print(f"⚠️ ホール図配置の読込に失敗: {e}")
+        return {}
+    if isinstance(payload, dict) and isinstance(payload.get("stores"), dict):
+        return payload["stores"]
+    return payload if isinstance(payload, dict) else {}
+
+def normalize_hall_layout_cells(layout):
+    if not isinstance(layout, dict):
+        return []
+    if isinstance(layout.get("cells"), list):
+        cells = []
+        for value in layout["cells"]:
+            if isinstance(value, dict):
+                cells.append(None)
+                continue
+            tai = int(parse_num(value))
+            cells.append(tai if tai > 0 else None)
+        return cells
+    placements = layout.get("placements")
+    if not isinstance(placements, dict):
+        return []
+    indices = []
+    for key in placements.keys():
+        try:
+            indices.append(int(key))
+        except (TypeError, ValueError):
+            pass
+    if not indices:
+        return []
+    cells = [None] * (max(indices) + 1)
+    for key, value in placements.items():
+        try:
+            idx = int(key)
+        except (TypeError, ValueError):
+            continue
+        if isinstance(value, dict):
+            continue
+        tai = int(parse_num(value))
+        cells[idx] = tai if tai > 0 else None
+    return cells
+
+def build_hall_layout_feature_map(layouts):
+    result = {}
+    meta = {}
+    for raw_store, layout in (layouts or {}).items():
+        store = normalize_store_name(raw_store)
+        if not store or not isinstance(layout, dict):
+            continue
+        cells = normalize_hall_layout_cells(layout)
+        cols = int(parse_num(layout.get("cols") or layout.get("columns") or 0))
+        if cols <= 0 or not cells:
+            continue
+        occupied = {idx: int(tai) for idx, tai in enumerate(cells) if isinstance(tai, int) and tai > 0}
+        if not occupied:
+            continue
+        rows = math.ceil(len(cells) / cols)
+        occupied_set = set(occupied)
+        adjacent_pairs = 0
+        for idx in occupied:
+            if idx + 1 in occupied_set and idx // cols == (idx + 1) // cols:
+                adjacent_pairs += 1
+            if idx + cols in occupied_set:
+                adjacent_pairs += 1
+        occupied_count = len(occupied)
+        analysis_ready = adjacent_pairs >= max(4, occupied_count * 0.20)
+        store_features = {}
+        for idx, tai in occupied.items():
+            row = idx // cols
+            col = idx % cols
+            features = []
+            if analysis_ready:
+                left = idx - 1 if col > 0 else None
+                right = idx + 1 if col < cols - 1 else None
+                up = idx - cols if row > 0 else None
+                down = idx + cols if row < rows - 1 else None
+                neighbor_count = sum(1 for n in (left, right, up, down) if n in occupied_set)
+                if neighbor_count <= 1:
+                    features.append(("hall_edge", "島端", "ホール図:島端"))
+                elif neighbor_count >= 3:
+                    features.append(("hall_edge", "島中", "ホール図:島中"))
+                if col <= max(1, cols * 0.25):
+                    features.append(("hall_col_band", "左側", "ホール図:左側"))
+                elif col >= cols * 0.75:
+                    features.append(("hall_col_band", "右側", "ホール図:右側"))
+                else:
+                    features.append(("hall_col_band", "中央", "ホール図:中央"))
+                if row <= max(1, rows * 0.25):
+                    features.append(("hall_row_band", "上段", "ホール図:上段"))
+                elif row >= rows * 0.75:
+                    features.append(("hall_row_band", "下段", "ホール図:下段"))
+                else:
+                    features.append(("hall_row_band", "中段", "ホール図:中段"))
+            store_features[str(tai)] = features
+        result[store] = store_features
+        meta[store] = {
+            "cols": cols,
+            "cells": len(cells),
+            "occupied": occupied_count,
+            "adjacentPairs": adjacent_pairs,
+            "analysisReady": analysis_ready,
+        }
+    return result, meta
+
+def apply_hall_layout_features(rows, feature_map):
+    if not feature_map:
+        return
+    for row in rows:
+        store_features = feature_map.get(row.get("store")) or {}
+        features = store_features.get(str(row.get("tai"))) or store_features.get(str(row.get("taiNum")))
+        if features:
+            row["hallFeatures"] = features
+
 def build_analytics_cache(rows):
     prior_l4 = defaultdict(lambda: {"plus": 0, "total": 0})
     prior_l3 = defaultdict(lambda: {"plus": 0, "total": 0})
@@ -279,7 +400,7 @@ def build_analytics_cache(rows):
             prior_l3[k3]["plus"] += 1
             prior_l2[k2]["plus"] += 1
 
-        tk = (store, r["tai"], model)
+        tk = r.get("installSegment") or (store, r["tai"], model)
         prev = prev_by_tai.get(tk)
         if prev and (r["date"] - prev["date"]).days == 1 and prev["isHighSettingSyn"]:
             holdover[store]["den"] += 1
@@ -483,8 +604,49 @@ def load_raw(special_by_store):
                 "isHighSettingSyn": is_high_setting_syn_model(model, g, bb, rb),
             })
     rows.sort(key=lambda r: r["date"])
+    annotate_install_segments(rows)
     print(f"合計 {len(rows)} 行読み込み完了")
     return rows
+
+def annotate_install_segments(rows):
+    by_slot = defaultdict(list)
+    for r in rows:
+        by_slot[(r["store"], r["tai"])].append(r)
+    for (store, tai), slot_rows in by_slot.items():
+        slot_rows.sort(key=lambda r: (r["date"], r["model"]))
+        segment_index = 0
+        segment_started_at = None
+        prev_model = None
+        prev_date = None
+        for r in slot_rows:
+            date_value = r["date"].date()
+            gap_days = (date_value - prev_date).days if prev_date else 0
+            starts_new_segment = (
+                prev_model is None
+                or r["model"] != prev_model
+                or gap_days > INSTALL_SEGMENT_GAP_DAYS
+            )
+            if starts_new_segment:
+                segment_index += 1
+                segment_started_at = date_value
+            r["installSegmentIndex"] = segment_index
+            r["installSegment"] = f"{store}|{tai}|{segment_index}"
+            r["installSegmentStartedAt"] = segment_started_at.strftime("%Y-%m-%d") if segment_started_at else r["dateStr"]
+            prev_model = r["model"]
+            prev_date = date_value
+
+def get_current_install_segment_ids(rows):
+    latest_date_by_store = {}
+    for r in rows:
+        store = r["store"]
+        current = latest_date_by_store.get(store)
+        if current is None or r["date"].date() > current:
+            latest_date_by_store[store] = r["date"].date()
+    return set(
+        r.get("installSegment")
+        for r in rows
+        if r.get("installSegment") and r["date"].date() == latest_date_by_store.get(r["store"])
+    )
 
 def calc_setting_posterior(model, total_g, total_bb, total_rb, prior_high_prob=0.5):
     ms = MODEL_SETTINGS.get(model)
@@ -553,31 +715,42 @@ def compute_day_stats(rows, special):
     return result
 
 def compute_tai_detail(rows, special, context_weekday, context_is_special):
+    current_segment_ids = get_current_install_segment_ids(rows)
+    current_rows = [
+        r for r in rows
+        if not current_segment_ids or r.get("installSegment") in current_segment_ids
+    ]
     by_tai = defaultdict(lambda: {
         "tai":None,"taiNum":0,"model":None,"store":None,
+        "installSegment":None,"installStartedAt":None,"installLastSeenAt":None,
         "all":[], "sp":[], "nm":[],
     })
-    for r in rows:
-        k = f"{r['taiNum']}_{r['model']}_{r['store']}"
+    for r in current_rows:
+        k = r.get("installSegment") or f"{r['taiNum']}_{r['model']}_{r['store']}"
         t = by_tai[k]
         t["tai"]=r["tai"]; t["taiNum"]=r["taiNum"]
         t["model"]=r["model"]; t["store"]=r["store"]
+        t["installSegment"] = r.get("installSegment")
+        t["installStartedAt"] = r.get("installSegmentStartedAt")
+        t["installLastSeenAt"] = r["dateStr"]
         t["all"].append(r)
         if r["day"] in special:
             t["sp"].append(r)
         else:
             t["nm"].append(r)
     by_tai_date = defaultdict(list)
-    for r in rows:
-        by_tai_date[f"{r['tai']}_{r['store']}"].append(r)
-    latest_date = max(r["date"] for r in rows)
+    for r in current_rows:
+        by_tai_date[r.get("installSegment") or f"{r['tai']}_{r['store']}"].append(r)
+    if not current_rows:
+        return []
+    latest_date = max(r["date"] for r in current_rows)
     prev_lookup = {}
     for k, tai_rows in by_tai_date.items():
         sorted_rows = sorted(tai_rows, key=lambda r: r["date"])
         for i in range(1, len(sorted_rows)):
             curr = sorted_rows[i]; prev = sorted_rows[i-1]
             if (curr["date"] - prev["date"]).days == 1:
-                prev_lookup[f"{curr['dateStr']}_{curr['tai']}_{curr['store']}"] = prev
+                prev_lookup[f"{curr['dateStr']}_{curr['tai']}_{curr['store']}_{curr.get('installSegment') or ''}"] = prev
     result = []
     for t in by_tai.values():
         tg=weighted_sum(t["all"], "g"); tb=weighted_sum(t["all"], "bb"); tr=weighted_sum(t["all"], "rb")
@@ -605,7 +778,7 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
         n = len(t["all"])
         wn = weighted_total(t["all"])
         wplus_rate = weighted_rate(t["all"], lambda x: x["diff"] > 0) * 100
-        latest_key = f"{latest_date.strftime('%Y-%m-%d')}_{t['tai']}_{t['store']}"
+        latest_key = f"{latest_date.strftime('%Y-%m-%d')}_{t['tai']}_{t['store']}_{t.get('installSegment') or ''}"
         prev = prev_lookup.get(latest_key)
         prev_row = {
             "dateStr":prev["dateStr"],"diff":prev["diff"],"bb":prev["bb"],"rb":prev["rb"],
@@ -635,6 +808,10 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
         )
         result.append({
             "tai":t["tai"],"taiNum":t["taiNum"],"model":t["model"],"store":t["store"],
+            "installSegment": t.get("installSegment"),
+            "installStartedAt": t.get("installStartedAt"),
+            "installLastSeenAt": t.get("installLastSeenAt"),
+            "historyScope": "current_install_segment",
             "avg":r1(weighted_avg_rows(t["all"], "diff")),"count":n,
             "weightedCount": r1(wn),
             "plus":len([v for v in t["all"] if v["diff"]>0]),
@@ -734,7 +911,7 @@ def compute_model_stats(rows, special):
 def compute_next_day(rows, special):
     by_tai = defaultdict(list)
     for r in rows:
-        by_tai[f"{r['tai']}_{r['store']}"].append(r)
+        by_tai[r.get("installSegment") or f"{r['tai']}_{r['store']}_{r['model']}"].append(r)
     pairs = []
     for tai_rows in by_tai.values():
         sorted_rows = sorted(tai_rows, key=lambda r: r["date"])
@@ -762,6 +939,794 @@ def compute_next_day(rows, special):
         "凹み_特定日翌日":  {"label":"前日凹み（翌日が特定日）",      **calc([p for p in pairs if p["prev"]["diff"]<0 and p["next"]["day"] in special])},
         "特定日翌日":       {"label":"特定日翌日の台",                **calc([p for p in pairs if p["prev"]["day"] in special])},
     }
+
+EVIDENCE_BACKTEST_CONFIG = {
+    "version": 4,
+    "min_train_days": 14,
+    "min_store_rows": 50,
+    "min_feature_samples": 50,
+    "min_lift": 150,
+    "min_validation_samples": 12,
+    "min_validation_lift": 30,
+    "min_validation_avg": 0,
+    "min_validation_top_hit_rate": 20,
+    "require_positive_avg": True,
+    "top_k": 3,
+    "top_hit_rate": 0.2,
+    "training_window_days": None,
+    "robustness_windows": [180, 90],
+    "min_candidate_score": 140,
+    "require_non_tai_evidence": True,
+    "type_weights": {
+        "day": 0.9,
+        "weekday": 0.65,
+        "week": 0.6,
+        "day_digit": 0.75,
+        "monthly_phase": 0.55,
+        "model": 0.9,
+        "tail": 0.85,
+        "day_model": 1.15,
+        "day_tail": 1.05,
+        "weekday_model": 0.95,
+        "weekday_tail": 0.9,
+        "day_digit_model": 1.0,
+        "day_digit_tail": 0.95,
+        "prev_state": 0.8,
+        "prev_state_model": 0.9,
+        "prev_state_tail": 0.85,
+        "hall_edge": 0.75,
+        "hall_col_band": 0.45,
+        "hall_row_band": 0.45,
+        "tai_install": 0.35,
+    },
+    "type_score_caps": {
+        "tai_install": 120,
+        "default": 500,
+    },
+}
+
+def get_prev_state_label(prev):
+    if not prev:
+        return None
+    diff = prev.get("diff", 0)
+    if prev.get("isHighSettingSyn") or prev.get("isHighSetRBLead"):
+        return "前日強挙動"
+    if prev.get("isRBLead") and diff < 0:
+        return "前日RB先行不発"
+    if diff <= -2000:
+        return "前日-2000以下"
+    if diff <= -1000:
+        return "前日-1000〜-2000"
+    if diff <= -500:
+        return "前日-500〜-1000"
+    if diff < 0:
+        return "前日0〜-500"
+    if diff >= 500:
+        return "前日+500以上"
+    if diff > 0:
+        return "前日プラス"
+    return None
+
+WEEKDAY_LABELS_DATA = ["日曜", "月曜", "火曜", "水曜", "木曜", "金曜", "土曜"]
+
+def get_weekday_label(weekday):
+    try:
+        w = int(weekday)
+    except (TypeError, ValueError):
+        return None
+    if 0 <= w < len(WEEKDAY_LABELS_DATA):
+        return WEEKDAY_LABELS_DATA[w]
+    return None
+
+def get_monthly_phase_label(day):
+    try:
+        d = int(day)
+    except (TypeError, ValueError):
+        return None
+    if d in (24, 25, 26):
+        return "給料日前後"
+    if 1 <= d <= 10:
+        return "月前半"
+    if 11 <= d <= 20:
+        return "月中盤"
+    if 21 <= d <= 31:
+        return "月後半"
+    return None
+
+def build_evidence_feature_keys(row, prev=None):
+    day = row.get("day")
+    day_digit = None
+    week = None
+    try:
+        day_int = int(day)
+        day_digit = day_int % 10
+        week = (day_int - 1) // 7 + 1
+    except (TypeError, ValueError):
+        day_int = None
+    model = row.get("model") or "不明"
+    suef = row.get("suef")
+    tai = str(row.get("tai") or "")
+    weekday_label = get_weekday_label(row.get("weekday"))
+    monthly_phase = get_monthly_phase_label(day)
+    install_segment = row.get("installSegment")
+    keys = [
+        ("day", f"{day}日", f"{day}日"),
+        ("model", model, model),
+        ("tail", f"末尾{suef}", f"末尾{suef}"),
+        ("day_model", f"{day}日|{model}", f"{day}日×{model}"),
+        ("day_tail", f"{day}日|末尾{suef}", f"{day}日×末尾{suef}"),
+    ]
+    if weekday_label:
+        keys.extend([
+            ("weekday", weekday_label, weekday_label),
+            ("weekday_model", f"{weekday_label}|{model}", f"{weekday_label}×{model}"),
+            ("weekday_tail", f"{weekday_label}|末尾{suef}", f"{weekday_label}×末尾{suef}"),
+        ])
+    if week is not None:
+        keys.append(("week", f"第{week}週", f"第{week}週"))
+    if day_digit is not None:
+        keys.extend([
+            ("day_digit", f"日付末尾{day_digit}", f"日付末尾{day_digit}"),
+            ("day_digit_model", f"日付末尾{day_digit}|{model}", f"日付末尾{day_digit}×{model}"),
+            ("day_digit_tail", f"日付末尾{day_digit}|末尾{suef}", f"日付末尾{day_digit}×末尾{suef}"),
+        ])
+    if monthly_phase:
+        keys.append(("monthly_phase", monthly_phase, monthly_phase))
+    if install_segment:
+        keys.append(("tai_install", install_segment, f"{tai}番台設置期間"))
+    else:
+        keys.append(("tai_install", f"{tai}|{model}", f"{tai}番台設置期間"))
+    prev_label = get_prev_state_label(prev)
+    if prev_label:
+        keys.append(("prev_state", prev_label, prev_label))
+        keys.append(("prev_state_model", f"{prev_label}|{model}", f"{prev_label}×{model}"))
+        keys.append(("prev_state_tail", f"{prev_label}|末尾{suef}", f"{prev_label}×末尾{suef}"))
+    for feature in row.get("hallFeatures") or []:
+        if isinstance(feature, (list, tuple)) and len(feature) >= 3:
+            keys.append((str(feature[0]), str(feature[1]), str(feature[2])))
+    return keys
+
+def score_evidence_item(evidence, cfg):
+    f_type = evidence.get("type")
+    weights = cfg.get("type_weights") or {}
+    caps = cfg.get("type_score_caps") or {}
+    weight = float(weights.get(f_type, 1.0))
+    cap = float(caps.get(f_type, caps.get("default", 500)))
+    validation = evidence.get("validation") if isinstance(evidence.get("validation"), dict) else {}
+    raw_count = evidence.get("count", 0)
+    validation_count = validation.get("count", 0)
+    raw_lift = evidence.get("lift", 0)
+    validation_lift = validation.get("lift")
+    lift = min(raw_lift, validation_lift) if validation_lift is not None else raw_lift
+    count = max(raw_count, validation_count)
+    sample_floor = max(cfg.get("min_validation_samples", cfg["min_feature_samples"]), 2)
+    sample_factor = min(1.0, math.log(count + 1) / math.log(sample_floor))
+    return min(lift, cap) * sample_factor * weight
+
+def make_validation_stat():
+    return {
+        "count": 0,
+        "sum": 0.0,
+        "sumLift": 0.0,
+        "plus": 0,
+        "topHit": 0,
+        "label": "",
+        "type": "",
+    }
+
+def update_validation_stat(stat, event):
+    stat["count"] += 1
+    stat["sum"] += event["diff"]
+    stat["sumLift"] += event["lift"]
+    stat["plus"] += 1 if event["diff"] > 0 else 0
+    stat["topHit"] += 1 if event.get("topHit") else 0
+    stat["label"] = event.get("label") or stat.get("label") or ""
+    stat["type"] = event.get("type") or stat.get("type") or ""
+
+def remove_validation_stat(stat, event):
+    stat["count"] -= 1
+    stat["sum"] -= event["diff"]
+    stat["sumLift"] -= event["lift"]
+    stat["plus"] -= 1 if event["diff"] > 0 else 0
+    stat["topHit"] -= 1 if event.get("topHit") else 0
+
+def summarize_validation_stat(stat):
+    count = stat.get("count", 0)
+    if not count:
+        return {
+            "count": 0,
+            "avg": None,
+            "lift": None,
+            "plusRate": None,
+            "topHitRate": None,
+        }
+    return {
+        "count": count,
+        "avg": r1(stat["sum"] / count),
+        "lift": r1(stat["sumLift"] / count),
+        "plusRate": r1(stat.get("plus", 0) / count * 100),
+        "topHitRate": r1(stat.get("topHit", 0) / count * 100),
+    }
+
+def classify_validated_evidence(validation, cfg):
+    count = validation.get("count") or 0
+    avg_diff = validation.get("avg")
+    lift = validation.get("lift")
+    top_hit = validation.get("topHitRate")
+    if count < cfg.get("min_validation_samples", 12):
+        return {
+            "level": "pending",
+            "label": "検証待ち",
+            "usable": False,
+            "message": "過去に予測として使った回数がまだ不足しています。",
+        }
+    if avg_diff is None or lift is None:
+        return {
+            "level": "pending",
+            "label": "検証待ち",
+            "usable": False,
+            "message": "予測実績の集計が不足しています。",
+        }
+    if (
+        avg_diff >= cfg.get("min_validation_avg", 0)
+        and lift >= cfg.get("min_validation_lift", 30)
+        and (top_hit or 0) >= cfg.get("min_validation_top_hit_rate", 20)
+    ):
+        return {
+            "level": "usable",
+            "label": "予測実績あり",
+            "usable": True,
+            "message": "過去にこの根拠で選んだ時、店平均より上回っています。",
+        }
+    return {
+        "level": "failed",
+        "label": "予測実績弱い",
+        "usable": False,
+        "message": "過去にこの根拠で選んでも十分な改善が出ていません。",
+    }
+
+def attach_validation_to_evidence(payload, validation_stats, cfg):
+    key = (payload.get("type"), payload.get("key"))
+    stat = validation_stats.get(key)
+    validation = summarize_validation_stat(stat or {})
+    verdict = classify_validated_evidence(validation, cfg)
+    return {
+        **payload,
+        "validation": validation,
+        "validationVerdict": verdict,
+        "validated": bool(verdict.get("usable")),
+    }
+
+def classify_evidence_summary(summary):
+    pick_count = summary.get("pickCount") or 0
+    pick_avg = summary.get("pickAvg")
+    lift = summary.get("lift")
+    top_hit = summary.get("topHitRate")
+    plus_rate = summary.get("plusRate")
+    if not pick_count or pick_avg is None or lift is None:
+        return {
+            "level": "no_data",
+            "label": "根拠不足",
+            "actionable": False,
+            "message": "検証できる候補がまだありません。",
+        }
+    if pick_count < 30:
+        return {
+            "level": "sample_low",
+            "label": "サンプル不足",
+            "actionable": False,
+            "message": "候補数が少ないため、狙い根拠としては保留です。",
+        }
+    if pick_avg >= 100 and lift >= 80 and (top_hit or 0) >= 23:
+        return {
+            "level": "main",
+            "label": "本命候補あり",
+            "actionable": True,
+            "message": "候補平均・平均との差・上位命中が揃っています。",
+        }
+    if pick_avg >= 0 and lift >= 50 and (top_hit or 0) >= 21:
+        return {
+            "level": "stable",
+            "label": "安定候補あり",
+            "actionable": True,
+            "message": "強さは限定的ですが、候補として見る価値があります。",
+        }
+    if lift >= 30:
+        return {
+            "level": "relative",
+            "label": "見送り寄り",
+            "actionable": False,
+            "message": "店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。",
+        }
+    return {
+        "level": "skip",
+        "label": "見送り",
+        "actionable": False,
+        "message": "検証上、候補を出す根拠が弱いです。",
+    }
+
+def summarize_evidence_robustness(primary_summary, window_runs):
+    periods = [{
+        "label": "全期間",
+        "trainingWindowDays": None,
+        "summary": primary_summary,
+        "decision": classify_evidence_summary(primary_summary),
+    }]
+    for run in window_runs:
+        summary = run.get("summary", {})
+        periods.append({
+            "label": run.get("label"),
+            "trainingWindowDays": run.get("trainingWindowDays"),
+            "summary": summary,
+            "decision": classify_evidence_summary(summary),
+        })
+    actionable_count = sum(1 for p in periods if p["decision"].get("actionable"))
+    positive_lift_count = sum(1 for p in periods if (p["summary"].get("lift") or 0) > 0)
+    positive_pick_count = sum(1 for p in periods if (p["summary"].get("pickAvg") or -999999) > 0)
+    if actionable_count == len(periods):
+        level = "stable"
+        label = "期間耐性あり"
+        message = "全期間・直近期間の両方で候補として機能しています。"
+    elif actionable_count >= 1 and positive_lift_count == len(periods):
+        level = "mixed"
+        label = "期間で強弱あり"
+        message = "店平均よりは上ですが、期間によって候補の強さが揺れます。"
+    elif positive_lift_count >= 1:
+        level = "weak"
+        label = "参考止まり"
+        message = "一部期間では改善しますが、安定した狙い根拠ではありません。"
+    else:
+        level = "failed"
+        label = "期間耐性なし"
+        message = "期間を変えても候補として機能していません。"
+    return {
+        "level": level,
+        "label": label,
+        "message": message,
+        "actionablePeriodCount": actionable_count,
+        "positiveLiftPeriodCount": positive_lift_count,
+        "positivePickPeriodCount": positive_pick_count,
+        "periods": periods,
+    }
+
+def combine_evidence_decision_with_robustness(summary, robustness):
+    decision = classify_evidence_summary(summary)
+    if not decision.get("actionable"):
+        return decision
+    if not isinstance(robustness, dict) or robustness.get("level") == "stable":
+        return decision
+    return {
+        "level": "period_mixed",
+        "label": "期間ブレあり",
+        "actionable": False,
+        "message": "全期間では候補になりますが、直近期間で弱さが出るため狙い候補は抑制します。",
+    }
+
+def build_evidence_backtest_core(store_rows, special, config=None, include_candidates=True):
+    cfg = {**EVIDENCE_BACKTEST_CONFIG, **(config or {})}
+    if not store_rows:
+        return {"version": cfg["version"], "config": cfg, "summary": {"pickCount": 0}, "candidatesByDate": {}, "topEvidence": [], "rejectedEvidence": []}
+
+    rows_sorted = sorted(store_rows, key=lambda r: (r["date"], r["taiNum"]))
+    rows_by_segment_date = defaultdict(dict)
+    for r in rows_sorted:
+        segment_key = r.get("installSegment") or f"{r['tai']}|{r['model']}"
+        rows_by_segment_date[segment_key][r["date"].date()] = r
+
+    def prev_for(r):
+        segment_key = r.get("installSegment") or f"{r['tai']}|{r['model']}"
+        return rows_by_segment_date.get(segment_key, {}).get(r["date"].date() - timedelta(days=1))
+
+    rows_by_date = defaultdict(list)
+    for r in rows_sorted:
+        rows_by_date[r["date"].date()].append(r)
+    sorted_dates = sorted(rows_by_date)
+
+    base_count = 0
+    base_sum = 0.0
+    feature_stats = defaultdict(lambda: {"count": 0, "sum": 0.0})
+    validation_stats = defaultdict(make_validation_stat)
+    validation_events = []
+    feature_pick_stats = defaultdict(lambda: {"count": 0, "sum": 0.0, "sumLift": 0.0, "plus": 0, "topHit": 0, "label": "", "type": ""})
+    rejected_stats = defaultdict(lambda: {"count": 0, "sum": 0.0, "sumLift": 0.0, "plus": 0, "topHit": 0, "label": "", "type": ""})
+    candidates_by_date = {}
+    picked_diffs = []
+    picked_plus = 0
+    picked_top_hit = 0
+    picked_baseline_sum = 0.0
+    tested_days = 0
+    trained_days = 0
+    rolling_window_days = cfg.get("training_window_days")
+    rolling_mode = bool(rolling_window_days)
+    rolling_dates = deque()
+    rolling_validation_events = deque()
+    rolling_base_count = 0
+    rolling_base_sum = 0.0
+    rolling_feature_stats = defaultdict(lambda: {"count": 0, "sum": 0.0})
+    rolling_validation_stats = defaultdict(make_validation_stat)
+
+    def add_feature_stat(stats, row, sign=1):
+        prev = prev_for(row)
+        for f_type, f_key, label in build_evidence_feature_keys(row, prev):
+            stat = stats[(f_type, f_key)]
+            stat["count"] += sign
+            stat["sum"] += sign * row["diff"]
+
+    def add_rolling_date(train_date):
+        nonlocal rolling_base_count, rolling_base_sum
+        rolling_dates.append(train_date)
+        for train_row in rows_by_date[train_date]:
+            rolling_base_count += 1
+            rolling_base_sum += train_row["diff"]
+            add_feature_stat(rolling_feature_stats, train_row, sign=1)
+
+    def remove_rolling_date(train_date):
+        nonlocal rolling_base_count, rolling_base_sum
+        for train_row in rows_by_date[train_date]:
+            rolling_base_count -= 1
+            rolling_base_sum -= train_row["diff"]
+            add_feature_stat(rolling_feature_stats, train_row, sign=-1)
+
+    def prune_rolling_window(current_date):
+        if not rolling_mode:
+            return
+        cutoff = current_date - timedelta(days=int(rolling_window_days))
+        while rolling_dates and rolling_dates[0] < cutoff:
+            remove_rolling_date(rolling_dates.popleft())
+        while rolling_validation_events and rolling_validation_events[0]["date"] < cutoff:
+            event = rolling_validation_events.popleft()
+            remove_validation_stat(rolling_validation_stats[(event["type"], event["key"])], event)
+
+    for current_date in sorted_dates:
+        todays = sorted(rows_by_date[current_date], key=lambda r: r["taiNum"])
+        prune_rolling_window(current_date)
+        if rolling_mode:
+            day_trained_days = len(rolling_dates)
+            day_base_count = rolling_base_count
+            day_base_sum = rolling_base_sum
+            day_feature_stats = rolling_feature_stats
+            day_validation_stats = rolling_validation_stats
+        else:
+            day_trained_days = trained_days
+            day_base_count = base_count
+            day_base_sum = base_sum
+            day_feature_stats = feature_stats
+            day_validation_stats = validation_stats
+        if day_trained_days >= cfg["min_train_days"] and day_base_count >= cfg["min_store_rows"]:
+            store_baseline = day_base_sum / day_base_count if day_base_count else 0.0
+            scored = []
+            validation_updates = []
+            today_diffs = sorted([r["diff"] for r in todays], reverse=True)
+            top_count = max(1, math.ceil(len(today_diffs) * cfg["top_hit_rate"]))
+            top_threshold = today_diffs[min(len(today_diffs) - 1, top_count - 1)] if today_diffs else None
+            day_avg = avg([r["diff"] for r in todays])
+
+            for r in todays:
+                evidence = []
+                cautions = []
+                ignored_positive = []
+                prev = prev_for(r)
+                for f_type, f_key, label in build_evidence_feature_keys(r, prev):
+                    stat = day_feature_stats[(f_type, f_key)]
+                    count = stat["count"]
+                    if count < cfg["min_feature_samples"]:
+                        continue
+                    feature_avg = stat["sum"] / count
+                    lift = feature_avg - store_baseline
+                    payload = {
+                        "type": f_type,
+                        "key": f_key,
+                        "label": label,
+                        "count": count,
+                        "avg": r1(feature_avg),
+                        "lift": r1(lift),
+                    }
+                    if lift >= cfg["min_lift"] and (not cfg["require_positive_avg"] or feature_avg > 0):
+                        validation_updates.append({
+                            "date": current_date,
+                            "type": f_type,
+                            "key": f_key,
+                            "label": label,
+                            "diff": r["diff"],
+                            "lift": r["diff"] - day_avg,
+                            "topHit": top_threshold is not None and r["diff"] >= top_threshold,
+                        })
+                        validated_payload = attach_validation_to_evidence(payload, day_validation_stats, cfg)
+                        if validated_payload["validated"]:
+                            evidence.append(validated_payload)
+                        else:
+                            ignored_positive.append(validated_payload)
+                    elif lift <= -cfg["min_lift"]:
+                        cautions.append(payload)
+
+                if not evidence:
+                    for item in ignored_positive:
+                        verdict = item.get("validationVerdict") or {}
+                        if verdict.get("level") == "failed":
+                            key = (item["type"], item["key"])
+                            rs = rejected_stats[key]
+                            validation = item.get("validation") or {}
+                            rs["count"] += 1
+                            rs["sum"] += r["diff"]
+                            rs["sumLift"] += r["diff"] - day_avg
+                            rs["plus"] += 1 if r["diff"] > 0 else 0
+                            rs["topHit"] += 1 if top_threshold is not None and r["diff"] >= top_threshold else 0
+                            rs["label"] = item["label"]
+                            rs["type"] = item["type"]
+                            rs["validation"] = validation
+                    continue
+                if cfg.get("require_non_tai_evidence") and not any(e.get("type") != "tai_install" for e in evidence):
+                    continue
+                score = 0.0
+                for e in evidence:
+                    score += score_evidence_item(e, cfg)
+                if score < cfg.get("min_candidate_score", 0):
+                    continue
+                scored.append((score, r, evidence, cautions))
+
+            scored.sort(key=lambda x: (-x[0], x[1]["taiNum"]))
+            selected = scored[:cfg["top_k"]]
+            if selected:
+                tested_days += 1
+                day_items = []
+                for rank, (score, r, evidence, cautions) in enumerate(selected, start=1):
+                    diff = r["diff"]
+                    is_top_hit = top_threshold is not None and diff >= top_threshold
+                    picked_diffs.append(diff)
+                    picked_baseline_sum += day_avg
+                    if diff > 0:
+                        picked_plus += 1
+                    if is_top_hit:
+                        picked_top_hit += 1
+                    for e in evidence[:3]:
+                        key = (e["type"], e["key"])
+                        ps = feature_pick_stats[key]
+                        ps["count"] += 1
+                        ps["sum"] += diff
+                        ps["sumLift"] += diff - day_avg
+                        ps["plus"] += 1 if diff > 0 else 0
+                        ps["topHit"] += 1 if is_top_hit else 0
+                        ps["label"] = e["label"]
+                        ps["type"] = e["type"]
+                    for c in cautions[:2]:
+                        key = (c["type"], c["key"])
+                        rs = rejected_stats[key]
+                        rs["count"] += 1
+                        rs["sum"] += diff
+                        rs["sumLift"] += diff - day_avg
+                        rs["plus"] += 1 if diff > 0 else 0
+                        rs["topHit"] += 1 if is_top_hit else 0
+                        rs["label"] = c["label"]
+                        rs["type"] = c["type"]
+
+                    day_items.append({
+                        "rank": rank,
+                        "tai": r["tai"],
+                        "taiNum": r["taiNum"],
+                        "model": r["model"],
+                        "score": r1(score),
+                        "evidence": evidence[:3],
+                        "cautions": cautions[:2],
+                        "result": {
+                            "diff": diff,
+                            "plus": diff > 0,
+                            "topHit": bool(is_top_hit),
+                            "dayAvg": r1(day_avg),
+                        },
+                    })
+                if include_candidates:
+                    candidates_by_date[current_date.strftime("%Y-%m-%d")] = day_items
+            for event in validation_updates:
+                update_validation_stat(validation_stats[(event["type"], event["key"])], event)
+                validation_events.append(event)
+                if rolling_mode:
+                    update_validation_stat(rolling_validation_stats[(event["type"], event["key"])], event)
+                    rolling_validation_events.append(event)
+
+        if rolling_mode:
+            add_rolling_date(current_date)
+        else:
+            for r in todays:
+                base_count += 1
+                base_sum += r["diff"]
+                add_feature_stat(feature_stats, r, sign=1)
+            trained_days += 1
+
+    pick_count = len(picked_diffs)
+    pick_avg = avg(picked_diffs)
+    baseline_avg = picked_baseline_sum / pick_count if pick_count else None
+    summary = {
+        "pickCount": pick_count,
+        "testDayCount": tested_days,
+        "pickAvg": r1(pick_avg) if pick_count else None,
+        "baselineAvg": r1(baseline_avg) if baseline_avg is not None else None,
+        "lift": r1(pick_avg - baseline_avg) if pick_count and baseline_avg is not None else None,
+        "plusRate": r1(picked_plus / pick_count * 100) if pick_count else None,
+        "topHitRate": r1(picked_top_hit / pick_count * 100) if pick_count else None,
+    }
+    summary["decision"] = classify_evidence_summary(summary)
+
+    def summarize_feature(stat_items, min_count=5):
+        out = []
+        for (f_type, f_key), s in stat_items:
+            if s["count"] < min_count:
+                continue
+            avg_diff = s["sum"] / s["count"]
+            avg_lift = s.get("sumLift", 0.0) / s["count"] if s.get("sumLift") is not None else None
+            out.append({
+                "type": s["type"] or f_type,
+                "key": f_key,
+                "label": s["label"] or f_key,
+                "pickCount": s["count"],
+                "pickAvg": r1(avg_diff),
+                "lift": r1(avg_lift) if avg_lift is not None else None,
+                "plusRate": r1(s.get("plus", 0) / s["count"] * 100) if s.get("plus") is not None else None,
+                "topHitRate": r1(s.get("topHit", 0) / s["count"] * 100) if s.get("topHit") is not None else None,
+            })
+        out.sort(key=lambda x: (x.get("lift") if x.get("lift") is not None else -999999, x["pickAvg"], x["pickCount"]), reverse=True)
+        return out[:8]
+
+    def summarize_validated_features(stat_items, min_count=None, usable=None, limit=80):
+        min_count = min_count if min_count is not None else cfg.get("min_validation_samples", 12)
+        out = []
+        for (f_type, f_key), s in stat_items:
+            if s["count"] < min_count:
+                continue
+            validation = summarize_validation_stat(s)
+            verdict = classify_validated_evidence(validation, cfg)
+            if usable is not None and bool(verdict.get("usable")) != bool(usable):
+                continue
+            out.append({
+                "type": s["type"] or f_type,
+                "key": f_key,
+                "label": s["label"] or f_key,
+                "validationCount": validation["count"],
+                "validationAvg": validation["avg"],
+                "validationLift": validation["lift"],
+                "plusRate": validation["plusRate"],
+                "topHitRate": validation["topHitRate"],
+                "verdict": verdict,
+            })
+        out.sort(key=lambda x: (
+            x["validationLift"] if x["validationLift"] is not None else -999999,
+            x["topHitRate"] if x["topHitRate"] is not None else -999999,
+            x["validationCount"],
+        ), reverse=True)
+        return out[:limit] if limit else out
+
+    return {
+        "version": cfg["version"],
+        "config": cfg,
+        "summary": summary,
+        "candidatesByDate": candidates_by_date,
+        "topEvidence": summarize_feature(feature_pick_stats.items()),
+        "validatedEvidence": summarize_validated_features(validation_stats.items(), usable=True, limit=200),
+        "rejectedEvidence": summarize_feature(rejected_stats.items()),
+        "failedEvidence": summarize_validated_features(validation_stats.items(), usable=False, limit=80),
+        "note": "各日より前のデータだけで候補を出し、当日結果で検証した簡易バックテストです。",
+    }
+
+def build_evidence_backtest(store_rows, special, config=None):
+    cfg = {**EVIDENCE_BACKTEST_CONFIG, **(config or {})}
+    primary = build_evidence_backtest_core(store_rows, special, cfg, include_candidates=True)
+    window_runs = []
+    for days in cfg.get("robustness_windows", []):
+        run_cfg = {**cfg, "training_window_days": int(days)}
+        run = build_evidence_backtest_core(store_rows, special, run_cfg, include_candidates=False)
+        window_runs.append({
+            "label": f"直近{int(days)}日",
+            "trainingWindowDays": int(days),
+            "summary": run.get("summary", {}),
+        })
+    primary["robustness"] = summarize_evidence_robustness(primary.get("summary", {}), window_runs)
+    primary["summary"]["decision"] = combine_evidence_decision_with_robustness(
+        primary.get("summary", {}),
+        primary.get("robustness", {}),
+    )
+    return primary
+
+def get_evidence_decision(evidence_backtest):
+    if not isinstance(evidence_backtest, dict):
+        return {
+            "level": "no_data",
+            "label": "根拠不足",
+            "actionable": False,
+            "message": "検証データが不足しています。",
+        }
+    summary = evidence_backtest.get("summary") if isinstance(evidence_backtest.get("summary"), dict) else {}
+    decision = summary.get("decision") if isinstance(summary.get("decision"), dict) else {}
+    return {
+        "level": decision.get("level", "no_data"),
+        "label": decision.get("label", "根拠不足"),
+        "actionable": bool(decision.get("actionable", False)),
+        "message": decision.get("message", "検証データが不足しています。"),
+    }
+
+def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top_k=20, target_weekday=None):
+    decision = get_evidence_decision(evidence_backtest)
+    if not decision["actionable"]:
+        return []
+    cfg = (evidence_backtest or {}).get("config") or EVIDENCE_BACKTEST_CONFIG
+    validated_items = (evidence_backtest or {}).get("validatedEvidence") or []
+    validated_map = {
+        (item.get("type"), item.get("key")): item
+        for item in validated_items
+        if isinstance(item, dict) and item.get("verdict", {}).get("usable", True)
+    }
+    if not validated_map:
+        return []
+
+    targets = []
+    for t in tai_detail:
+        tai_num = int(t.get("taiNum") or 0)
+        pseudo_row = {
+            "day": target_day,
+            "weekday": target_weekday,
+            "model": t.get("model") or "不明",
+            "suef": tai_num % 10,
+            "tai": t.get("tai") or str(tai_num),
+            "taiNum": tai_num,
+            "installSegment": t.get("installSegment"),
+        }
+        matched = []
+        for f_type, f_key, label in build_evidence_feature_keys(pseudo_row, t.get("prevRow")):
+            root = validated_map.get((f_type, f_key))
+            if not root:
+                continue
+            validation = {
+                "count": root.get("validationCount", 0),
+                "avg": root.get("validationAvg"),
+                "lift": root.get("validationLift"),
+                "plusRate": root.get("plusRate"),
+                "topHitRate": root.get("topHitRate"),
+            }
+            verdict = root.get("verdict") or classify_validated_evidence(validation, cfg)
+            if not verdict.get("usable"):
+                continue
+            matched.append({
+                "type": f_type,
+                "key": f_key,
+                "label": label,
+                "count": validation["count"],
+                "avg": validation["avg"],
+                "lift": validation["lift"],
+                "validation": validation,
+                "validationVerdict": verdict,
+                "validated": True,
+            })
+        if not matched:
+            continue
+        if cfg.get("require_non_tai_evidence") and not any(item.get("type") != "tai_install" for item in matched):
+            continue
+        score = sum(score_evidence_item(item, cfg) for item in matched)
+        if score < cfg.get("min_candidate_score", 0):
+            continue
+        matched.sort(key=lambda item: (
+            item["validation"].get("lift") if item.get("validation") else item.get("lift") or -999999,
+            item["validation"].get("count") if item.get("validation") else item.get("count") or 0,
+        ), reverse=True)
+        reasons = []
+        for item in matched[:3]:
+            lift = item.get("validation", {}).get("lift")
+            avg_diff = item.get("validation", {}).get("avg")
+            pts = 3 if (lift or 0) >= 250 else 2 if (lift or 0) >= 120 else 1
+            reasons.append({
+                "label": item["label"],
+                "val": f"予測{lift:+}枚 / 平均{avg_diff:+}枚" if lift is not None and avg_diff is not None else "予測実績あり",
+                "pts": pts,
+            })
+        rank = "本命" if score >= 260 else "対抗" if score >= 180 else "保留"
+        targets.append({
+            **t,
+            "totalScore": r1(score),
+            "rank": rank,
+            "reasons": reasons,
+            "evidence": matched[:3],
+            "cautions": [],
+            "scoreSource": "validated_evidence",
+        })
+    targets.sort(key=lambda item: (-item["totalScore"], item.get("taiNum") or 0))
+    return targets[:top_k]
 
 def compute_heatmap(rows):
     heat = defaultdict(lambda: {"rows":[], "count":0})
@@ -868,7 +1833,7 @@ def compute_day_wday_matrix(rows):
         }
     return result
 
-def compute_today_analysis(rows, special, today=None, tai_detail=None):
+def compute_today_analysis(rows, special, today=None, tai_detail=None, evidence_backtest=None):
     if today is None:
         today = jst_today()
     day = today.day
@@ -896,6 +1861,7 @@ def compute_today_analysis(rows, special, today=None, tai_detail=None):
     )
     if tai_detail is None:
         tai_detail = compute_tai_detail(rows, special, weekday_data, is_special)
+    evidence_decision = get_evidence_decision(evidence_backtest)
     holdover_rate = get_holdover_rate(rows[0]["store"]) if rows else 0.0
     by_model = defaultdict(lambda: {"sp":[],"nm":[]})
     for r in rows:
@@ -909,53 +1875,29 @@ def compute_today_analysis(rows, special, today=None, tai_detail=None):
         model_strength.append({"model":model,"avg":model_avg,"lift":lift,"count":len(target),
             "label":"有力" if lift>80 else "対抗" if lift>30 else "標準" if lift>-30 else "弱め"})
     model_strength.sort(key=lambda x: -x["lift"])
-    next_stats = compute_next_day(rows, special)
-    bl_avg = (next_stats.get("__baseline") or {}).get("avg") or 0
-    scored_tais = []
-    for t in tai_detail:
-        score = 0; reasons = []
-        ref = t["spAvg"] if is_special else t["nmAvg"]
-        if ref is not None and t.get("weightedCount", t["count"]) >= 5:
-            lift = r1(ref - bl_avg)
-            pts = 3 if lift>=150 else 2 if lift>=80 else 1 if lift>=30 else 0 if lift>=-30 else -1
-            score += pts; reasons.append({"label":"過去成績","val":f"{ref:+}枚","pts":pts})
-        bayes = t["bayesProbSp"] if is_special else t["bayesProbNm"]
-        if bayes is not None:
-            pts = 2 if bayes>=60 else 1 if bayes>=45 else 0 if bayes>=30 else -1
-            score += pts; reasons.append({"label":"P(設定4以上)","val":f"{bayes}%","pts":pts})
-        prev = t.get("prevRow")
-        if prev:
-            diff = prev["diff"]
-            ckey = ("凹み_2000以上" if diff<=-2000 else "凹み_1000_2000" if diff<=-1000 else
-                    "凹み_500_1000" if diff<=-500 else "凹み_0_500" if diff<0 else
-                    "プラス500以上" if diff>=500 else "プラス")
-            ns = next_stats.get(ckey,{})
-            if ns.get("count",0)>=10 and ns.get("avg") is not None:
-                lift = r1(ns["avg"]-bl_avg)
-                pts = 2 if lift>=150 else 1 if lift>=80 else 0 if lift>=-30 else -1
-                score += pts; reasons.append({"label":f"前日({ckey})","val":f"前日{diff:+}枚","pts":pts})
-            if prev.get("isHighSettingSyn"):
-                pts = 2 if holdover_rate >= 0.5 else 1 if holdover_rate >= 0.2 else 0
-                if pts > 0:
-                    score += pts
-                    reasons.append({
-                        "label": "据え置き補正",
-                        "val": f"据え置き率{r1(holdover_rate*100)}%",
-                        "pts": pts,
-                    })
-        rank = "本命" if score>=4 else "対抗" if score>=2 else "保留" if score>=1 else "注意"
-        scored_tais.append({**t,"totalScore":score,"rank":rank,"reasons":reasons})
-    scored_tais.sort(key=lambda x: -x["totalScore"])
+    scored_tais = build_validated_today_targets(
+        tai_detail,
+        day,
+        evidence_backtest,
+        top_k=20,
+        target_weekday=weekday_data,
+    )
     return {
         "date":today.strftime("%Y-%m-%d"),"day":day,"weekday":weekday,
         "isSpecial":is_special,"dayJudge":day_judge,"dayScore":day_score,
         "verdict":verdict,"dayInfo":day_info,"wdayAvg":wday_avg,
-        "baseline":baseline,"modelStrength":model_strength,"topTargets":scored_tais[:20]
+        "baseline":baseline,"modelStrength":model_strength,"topTargets":scored_tais[:20],
+        "evidenceDecision": evidence_decision,
+        "targetSuppressed": not evidence_decision["actionable"],
+        "suppressionReason": evidence_decision["message"] if not evidence_decision["actionable"] else "",
     }
 
-def build_store_recommendations(store, store_rows, special, tai_detail, today=None):
+def build_store_recommendations(store, store_rows, special, tai_detail, today=None, evidence_backtest=None):
     if today is None:
         today = jst_today()
+    evidence_decision = get_evidence_decision(evidence_backtest)
+    if not evidence_decision["actionable"]:
+        return []
     yesterday = today - timedelta(days=1)
     recommendation_day = today.day
     recommendation_weekday = today.weekday()
@@ -968,78 +1910,42 @@ def build_store_recommendations(store, store_rows, special, tai_detail, today=No
     if not (is_special or is_special_next_day):
         return []
 
-    holdover_rate = get_holdover_rate(store)
-    recent_cutoff = today - timedelta(days=90)
-    three_month_cutoff = today - timedelta(days=92)
-    recent_counts = defaultdict(int)
-    tail_rows_by_model = defaultdict(list)
-    recent_rows_by_tai_num = defaultdict(list)
-    recent_context_rows_by_tai = defaultdict(list)
-    for r in store_rows:
-        if r["date"].date() >= recent_cutoff:
-            recent_counts[(r["tai"], r["model"])] += 1
-            recent_rows_by_tai_num[r["taiNum"]].append(r)
-        tail_rows_by_model[(r["model"], r["suef"])].append(r)
-        if r["date"].date() >= three_month_cutoff and (r["day"] == recommendation_day or r["weekday"] == recommendation_weekday_data):
-            recent_context_rows_by_tai[(r["tai"], r["model"])].append(r)
-
+    targets = build_validated_today_targets(
+        tai_detail,
+        recommendation_day,
+        evidence_backtest,
+        top_k=8,
+        target_weekday=recommendation_weekday_data,
+    )
     recs = []
-    for t in tai_detail:
-        recent_count = recent_counts.get((t["tai"], t["model"]), 0)
-        if recent_count < 3:
-            continue
-        phase_key = "special" if is_special else "normal"
-        phase_meta = ((t.get("bayesMeta") or {}).get(phase_key) or {})
-        if isinstance(phase_meta, dict) and phase_meta.get("eligible") is False:
-            continue
-        bayes = t.get("bayesProbSp") if is_special else t.get("bayesProbNm")
-        if bayes is None:
-            bayes = t.get("bayesProbAll")
-        if bayes is None or bayes < 60:
-            continue
-        cond_n = t.get("spCount") if is_special else t.get("nmCount")
-        cond_n = cond_n if cond_n is not None else t.get("count", 0)
-        final_score = float(bayes)
-        holdover_bonus = 0.0
-        prev = t.get("prevRow") or {}
-        if prev.get("isHighSettingSyn"):
-            holdover_bonus = HOLDOVER_BONUS_MAX * holdover_rate
-            final_score = clamp(final_score + holdover_bonus, 0.0, 100.0)
-        weighted_score = final_score * weekday_coeff * monthly_timing_coeff * store_coeff
+    for t in targets:
+        score = float(t.get("totalScore") or 0)
         reasons = []
         if is_special:
             reasons.append("今日は特定日")
         if is_special_next_day:
             reasons.append("特定日翌日")
-        reasons.append(f"P(設定4以上) {final_score:.1f}%")
-        if holdover_bonus > 0:
-            reasons.append(f"据え置き補正 +{holdover_bonus:.2f}(据え置き率{r1(holdover_rate*100)}%)")
-        if t["taiNum"] > 0:
-            tail_digit = t["taiNum"] % 10
-            tail_rows = tail_rows_by_model.get((t["model"], tail_digit), [])
-            if weighted_total(tail_rows) >= 5 and weighted_avg_rows(tail_rows, "diff") > 0:
-                reasons.append(f"末尾{tail_digit}が好調")
-            neighbor_rows = recent_rows_by_tai_num.get(t["taiNum"] - 1, []) + recent_rows_by_tai_num.get(t["taiNum"] + 1, [])
-            if weighted_total(neighbor_rows) >= 3 and weighted_avg_rows(neighbor_rows, "diff") > 0:
-                reasons.append("隣台が直近好調")
-        context_rows = recent_context_rows_by_tai.get((t["tai"], t["model"]), [])
-        if weighted_total(context_rows) >= 3 and weighted_avg_rows(context_rows, "diff") > 0:
-            reasons.append("同日同曜が3ヶ月好調")
-        if weekday_coeff >= 1.1:
-            reasons.append("曜日係数1.1以上")
-        if monthly_timing_coeff >= 1.0:
-            reasons.append("月内係数1.0以上")
-        expected_hourly = r1(bayes * 16.6)
+        reasons.append(f"検証済み根拠: {evidence_decision['label']}")
+        for item in (t.get("evidence") or [])[:3]:
+            validation = item.get("validation") or {}
+            lift = validation.get("lift")
+            avg_diff = validation.get("avg")
+            if lift is not None and avg_diff is not None:
+                reasons.append(f"{item.get('label')}: 予測{lift:+}枚 / 平均{avg_diff:+}枚")
+            else:
+                reasons.append(f"{item.get('label')}: 予測実績あり")
+        weighted_score = score * weekday_coeff * monthly_timing_coeff * store_coeff
         recs.append({
             "store": store,
             "tai": t["tai"],
             "model": t["model"],
-            "bayes_score": bayes,
-            "final_score": final_score,
-            "expected_hourly": expected_hourly,
-            "confidence": "★★★" if final_score >= 75 else "★★" if final_score >= 65 else "★",
+            "bayes_score": None,
+            "final_score": r1(score),
+            "evidence_label": evidence_decision["label"],
+            "evidence_message": evidence_decision["message"],
+            "confidence": "★★★" if t.get("rank") == "本命" else "★★" if t.get("rank") == "対抗" else "★",
             "day_type": "特定日" if is_special else "特定日翌日",
-            "recent_count_3m": recent_count,
+            "recent_count_3m": t.get("weightedCount") or t.get("count") or 0,
             "reasons": reasons,
             "score": weighted_score,
         })
@@ -1053,17 +1959,15 @@ def build_answer_check(by_store, today=None, actual_settings=None):
         actual_settings = {}
     hit_targets = []
     for store, payload in by_store.items():
-        special = payload.get("special", [1,11,21,31])
-        is_special = today.day in special
-        for t in payload.get("taiDetail", []):
-            p = t["bayesProbSp"] if is_special else t["bayesProbNm"]
-            if p is not None and p >= 60:
-                hit_targets.append({
-                    "machine_id": t["tai"],
-                    "store": store,
-                    "model": t["model"],
-                    "p_setting4plus": p,
-                })
+        targets = ((payload.get("todayAnalysis") or {}).get("topTargets") or [])[:3]
+        for t in targets:
+            hit_targets.append({
+                "machine_id": t.get("tai"),
+                "store": store,
+                "model": t.get("model"),
+                "validated_score": t.get("totalScore"),
+                "rank": t.get("rank"),
+            })
     hit_count = 0
     all_have_actual = True
     for target in hit_targets:
@@ -1126,6 +2030,11 @@ if __name__ == "__main__":
     if not rows:
         print("データがありません。終了します。")
         exit(1)
+    hall_layout_feature_map, hall_layout_meta = build_hall_layout_feature_map(load_hall_layouts())
+    if hall_layout_feature_map:
+        apply_hall_layout_features(rows, hall_layout_feature_map)
+        ready_count = sum(1 for meta in hall_layout_meta.values() if meta.get("analysisReady"))
+        print(f"ホール図配置読込: {len(hall_layout_meta)}店舗 / 分析利用 {ready_count}店舗")
     all_stores = sorted(set(r["store"] for r in rows))
     for store in all_stores:
         if store not in store_special_map:
@@ -1150,6 +2059,7 @@ if __name__ == "__main__":
             "monthly_timing": MONTHLY_TIMING_COEFF,
             "note": "係数は暫定値です。店舗別の微調整は byStore[店名].store_coefficients と STORE_COEFFICIENTS による拡張を想定しています。",
         },
+        "hallLayoutEvidence": hall_layout_meta,
         "byStore": {},
         "recommendations": [],
         "predictionAccuracy": {"overall": None, "byStore": {}},
@@ -1161,6 +2071,7 @@ if __name__ == "__main__":
         is_special_today = today.day in special
         weekday_data = (today.weekday() + 1) % 7
         tai_detail = compute_tai_detail(store_rows, special, weekday_data, is_special_today)
+        evidence_backtest = build_evidence_backtest(store_rows, special)
         print(f"集計中: {store} ({len(store_rows)}行) 特定日:{special}")
         output["byStore"][store] = {
             "special": special,
@@ -1174,14 +2085,30 @@ if __name__ == "__main__":
             "taiDetail": tai_detail,
             "dateSummary": compute_date_summary(store_rows, special),
             "weekdayStats": compute_weekday_stats(store_rows),
-            "todayAnalysis": compute_today_analysis(store_rows, special, today=today, tai_detail=tai_detail),
+            "todayAnalysis": compute_today_analysis(
+                store_rows,
+                special,
+                today=today,
+                tai_detail=tai_detail,
+                evidence_backtest=evidence_backtest,
+            ),
+            "evidenceBacktest": evidence_backtest,
             "holdoverRate": {
                 "rate": r1(get_holdover_rate(store) * 100),
                 "source": "auto",
             },
         }
         try:
-            recommendation_pool.extend(build_store_recommendations(store, store_rows, special, tai_detail, today=today))
+            recommendation_pool.extend(
+                build_store_recommendations(
+                    store,
+                    store_rows,
+                    special,
+                    tai_detail,
+                    today=today,
+                    evidence_backtest=evidence_backtest,
+                )
+            )
         except Exception as e:
             print(f"⚠️ 推薦抽出エラー({store}): {e}")
     try:
