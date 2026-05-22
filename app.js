@@ -1679,31 +1679,33 @@ function normalizeTodayAnalysisRecord(record) {
 }
 
 function getTodayAnalysisDateYmd() {
-  if(!G.todayAnalysis || typeof G.todayAnalysis !== 'object') return null;
-  const direct = normalizeDataDateValue(G.todayAnalysis.date || G.todayAnalysis.targetDate || G.todayAnalysis.data_date);
+  const analysis = getCurrentStoreTodayAnalysis();
+  if(!analysis || typeof analysis !== 'object') return null;
+  const direct = normalizeDataDateValue(analysis.date || analysis.targetDate || analysis.data_date);
   if(direct) return direct;
   const fallback = getLatestDataDateForPrediction();
   return fallback ? toYmdLocal(fallback) : null;
 }
 
 function isTodayAnalysisAvailableForSelectedDate() {
-  if(!G._precomputed || !G.todayAnalysis) return false;
-  const d = getActiveTargetDate();
-  const baseYmd = getTodayAnalysisDateYmd();
-  const base = parseYmdLocal(baseYmd || '');
-  if(!d || !base) return false;
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const diffDays = Math.round((d.getTime() - base.getTime()) / msPerDay);
-  const maxForward = targetDayMode === 'tomorrow' ? 2 : 1;
-  return diffDays >= -1 && diffDays <= maxForward;
+  return !!getCurrentStoreTodayAnalysis();
 }
 
 function getCurrentTargetEvidenceDecision() {
   if(!G._precomputed || currentStore === 'all') return null;
   const byStore = G._precomputed.byStore || {};
   const storeData = byStore[currentStore] || {};
-  return storeData.todayAnalysis?.evidenceDecision
-    || storeData.evidenceBacktest?.summary?.decision
+  const analysis = getCurrentStoreTodayAnalysis();
+  if(analysis?.evidenceDecision) return analysis.evidenceDecision;
+  if(G._precomputed) {
+    return {
+      level: 'no_data',
+      label: '対象日未生成',
+      actionable: false,
+      message: 'この日付の検証済み候補は生成されていません。今日/翌日の範囲で確認してください。',
+    };
+  }
+  return storeData.evidenceBacktest?.summary?.decision
     || G.todayAnalysis?.evidenceDecision
     || null;
 }
@@ -1728,8 +1730,27 @@ function getCurrentStoreEvidenceBacktest() {
   return getCurrentStorePrecomputedData()?.evidenceBacktest || null;
 }
 
+function getStoreTargetAnalysisForDate(storeData, targetDate) {
+  if(!storeData || typeof storeData !== 'object') return null;
+  const ymd = targetDate instanceof Date ? toYmdLocal(targetDate) : normalizeDataDateValue(targetDate);
+  const analyses = storeData.targetAnalyses && typeof storeData.targetAnalyses === 'object'
+    ? storeData.targetAnalyses
+    : {};
+  if(ymd && analyses[ymd]) return normalizeTodayAnalysisRecord(analyses[ymd]);
+  const today = normalizeTodayAnalysisRecord(storeData.todayAnalysis);
+  const todayYmd = normalizeDataDateValue(today?.date || today?.targetDate);
+  if(today && (!ymd || todayYmd === ymd)) return today;
+  return null;
+}
+
 function getCurrentStoreTodayAnalysis() {
-  return normalizeTodayAnalysisRecord(getCurrentStorePrecomputedData()?.todayAnalysis) || G.todayAnalysis || null;
+  const target = getActiveTargetDate();
+  const storeData = getCurrentStorePrecomputedData();
+  if(storeData) return getStoreTargetAnalysisForDate(storeData, target);
+  const globalAnalysis = normalizeTodayAnalysisRecord(G.todayAnalysis);
+  const globalYmd = normalizeDataDateValue(globalAnalysis?.date || globalAnalysis?.targetDate);
+  const targetYmd = target ? toYmdLocal(target) : null;
+  return globalAnalysis && (!targetYmd || globalYmd === targetYmd) ? globalAnalysis : null;
 }
 
 function formatTargetSigned枚(value) {
@@ -5670,12 +5691,61 @@ function buildCalculatedRecommendations(targetDate, predictionBaseDate) {
     .slice(0, 8);
 }
 
+function buildPrecomputedTargetRecommendations(targetDate) {
+  if(!G._precomputed || !targetDate) return [];
+  const byStore = G._precomputed.byStore || {};
+  const storeNames = currentStore === 'all'
+    ? (Array.isArray(G._precomputed.stores) ? G._precomputed.stores : Object.keys(byStore))
+    : [currentStore];
+  const rows = [];
+  storeNames.forEach((store) => {
+    const storeData = byStore[store];
+    const analysis = getStoreTargetAnalysisForDate(storeData, targetDate);
+    if(!analysis) return;
+    const decision = analysis.evidenceDecision || storeData?.evidenceBacktest?.summary?.decision || {};
+    if(decision.actionable === false) return;
+    const targets = Array.isArray(analysis.topTargets) ? analysis.topTargets : [];
+    targets.forEach((t) => {
+      const evidence = Array.isArray(t.evidence) ? t.evidence : [];
+      const reasons = [];
+      reasons.push(analysis.isSpecial ? '特定日' : '通常日');
+      if(decision.label) reasons.push(`検証済み根拠: ${decision.label}`);
+      evidence.slice(0, 3).forEach((item) => {
+        const validation = item.validation || {};
+        const lift = validation.lift ?? item.lift;
+        const avgDiff = validation.avg ?? item.avg;
+        const topHit = validation.topHitRate ?? item.topHitRate;
+        const metric = Number.isFinite(Number(lift)) && Number.isFinite(Number(avgDiff))
+          ? `予測${formatTargetSigned枚(lift)} / 平均${formatTargetSigned枚(avgDiff)}`
+          : '予測実績あり';
+        const hit = Number.isFinite(Number(topHit)) ? ` / 上位20% ${round1(topHit)}%` : '';
+        reasons.push(`${item.label || '根拠'}: ${metric}${hit}`);
+      });
+      const rank = String(t.rank || '');
+      rows.push({
+        ...t,
+        store,
+        tai: t.tai || t.taiNum || '-',
+        model: t.model || '機種不明',
+        bayes_score: null,
+        final_score: Number(t.totalScore || t.score || 0),
+        confidence: rank === '本命' ? '★★★' : rank === '対抗' ? '★★' : '★',
+        day_type: analysis.isSpecial ? '特定日' : '通常日',
+        reasons,
+        score: Number(t.totalScore || t.score || 0),
+      });
+    });
+  });
+  return rows
+    .sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0))
+    .slice(0, 8);
+}
+
 function getRecommendationRowsForTargetDate(targetDate) {
   const selectedYmd = toYmdLocal(targetDate);
   const predictionBaseDate = getTargetPredictionBaseDate(targetDate) || targetDate;
   const fixedRows = Array.isArray(G.recommendations) ? G.recommendations : [];
-  if(G._precomputed && isCurrentTargetSuppressedByEvidence()) return [];
-  if(G._precomputed && !fixedRows.length) return [];
+  if(G._precomputed) return buildPrecomputedTargetRecommendations(targetDate);
   const analysisYmd = getTodayAnalysisDateYmd();
   const useFixed = targetDayMode === 'today' && fixedRows.length && (
     !analysisYmd || analysisYmd === selectedYmd
@@ -7329,7 +7399,7 @@ function renderLayer2() {
 
   // 集計済みモード：todayAnalysisのmodelStrengthを使う
   if(isTodayAnalysisAvailableForSelectedDate()) {
-    const ta = G.todayAnalysis;
+    const ta = getCurrentStoreTodayAnalysis();
     const condLabel = ta.isSpecial ? '特定日' : '通常日';
     const modelStrength = ta.modelStrength || [];
     const goodModels = modelStrength.filter(m => m.label === '有力' || m.label === '対抗');
@@ -7578,7 +7648,7 @@ function renderLayer3(model) {
 
   // 集計済みモード：todayAnalysisのtopTargetsを使う
   if(isTodayAnalysisAvailableForSelectedDate()) {
-    const ta = G.todayAnalysis;
+    const ta = getCurrentStoreTodayAnalysis();
     const targets = (ta.topTargets || []).filter(t => t.model === model);
     const condLabel = ta.isSpecial ? '特定日' : '通常日';
 
@@ -7808,16 +7878,17 @@ function renderLayer3(model) {
 }
 
 function selectLayer3CandidatePrecomputed(idx, model) {
-  if(!G.todayAnalysis) return;
-  const targets = (G.todayAnalysis.topTargets || []).filter(t => t.model === model);
+  const analysis = getCurrentStoreTodayAnalysis();
+  if(!analysis) return;
+  const targets = (analysis.topTargets || []).filter(t => t.model === model);
   const t = targets[idx];
   if(!t) return;
   G.currentTargetContext = {
     store: currentStore,
     model: t.model,
     tai: t.tai,
-    targetDate: getTodayAnalysisDateYmd() || G.todayAnalysis.date,
-    isSpecial: G.todayAnalysis.isSpecial,
+    targetDate: getTodayAnalysisDateYmd() || analysis.date,
+    isSpecial: analysis.isSpecial,
     historicalRbRate: t.rbRate,
     historicalSynRate: t.synRate,
     totalScore: t.totalScore,

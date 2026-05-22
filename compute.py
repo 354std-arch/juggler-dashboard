@@ -2074,6 +2074,21 @@ if __name__ == "__main__":
         weekday_data = (today.weekday() + 1) % 7
         tai_detail = compute_tai_detail(store_rows, special, weekday_data, is_special_today)
         evidence_backtest = build_evidence_backtest(store_rows, special)
+        today_analysis = compute_today_analysis(
+            store_rows,
+            special,
+            today=today,
+            tai_detail=tai_detail,
+            evidence_backtest=evidence_backtest,
+        )
+        tomorrow = today + timedelta(days=1)
+        tomorrow_analysis = compute_today_analysis(
+            store_rows,
+            special,
+            today=tomorrow,
+            tai_detail=tai_detail,
+            evidence_backtest=evidence_backtest,
+        )
         print(f"集計中: {store} ({len(store_rows)}行) 特定日:{special}")
         output["byStore"][store] = {
             "special": special,
@@ -2087,13 +2102,11 @@ if __name__ == "__main__":
             "taiDetail": tai_detail,
             "dateSummary": compute_date_summary(store_rows, special),
             "weekdayStats": compute_weekday_stats(store_rows),
-            "todayAnalysis": compute_today_analysis(
-                store_rows,
-                special,
-                today=today,
-                tai_detail=tai_detail,
-                evidence_backtest=evidence_backtest,
-            ),
+            "todayAnalysis": today_analysis,
+            "targetAnalyses": {
+                today_analysis["date"]: today_analysis,
+                tomorrow_analysis["date"]: tomorrow_analysis,
+            },
             "evidenceBacktest": evidence_backtest,
             "holdoverRate": {
                 "rate": r1(get_holdover_rate(store) * 100),
