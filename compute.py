@@ -2030,6 +2030,7 @@ if __name__ == "__main__":
     if not rows:
         print("データがありません。終了します。")
         exit(1)
+    latest_data_date = max((r["date"].date() for r in rows), default=today)
     hall_layout_feature_map, hall_layout_meta = build_hall_layout_feature_map(load_hall_layouts())
     if hall_layout_feature_map:
         apply_hall_layout_features(rows, hall_layout_feature_map)
@@ -2051,6 +2052,7 @@ if __name__ == "__main__":
     display_stores = build_store_display_order(all_stores)
     output = {
         "updated_at": datetime.now(JST).date().strftime("%Y-%m-%d"),
+        "data_date": latest_data_date.strftime("%Y-%m-%d"),
         "store_freshness": load_store_freshness(),
         "stores": display_stores,
         "specialByStore": store_special_map,

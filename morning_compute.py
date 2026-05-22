@@ -43,6 +43,7 @@ UPPER_LABELS = {"強上候補", "上候補"}
 
 DECAY = math.log(2.0) / 180.0
 CHUNK_SIZE = 200_000
+INSTALL_SEGMENT_GAP_DAYS = 21
 
 COLUMN_ALIASES = {
     "date": ["date", "日付", "data_date", "target_date"],
@@ -432,10 +433,15 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
         tai_rows.sort(key=lambda x: x["date"])
         last_change_date = None
         prev_model = None
+        prev_date = None
         for r in tai_rows:
-            if prev_model is not None and r["model"] != prev_model:
+            gap_days = (r["date"].date() - prev_date.date()).days if prev_date is not None else 0
+            if prev_model is not None and (
+                r["model"] != prev_model or gap_days > INSTALL_SEGMENT_GAP_DAYS
+            ):
                 last_change_date = r["date"]
             prev_model = r["model"]
+            prev_date = r["date"]
 
         recent_model = tai_rows[-1]["model"]
         eligible = [
@@ -576,11 +582,17 @@ def build_payload(df, normalized_models, unsupported_models):
 
     df_sorted = df.sort_values(["store", "tai", "date"]).copy()
     df_sorted["prev_model"] = df_sorted.groupby(["store", "tai"])["model"].shift(1)
-    df_sorted["model_changed"] = (
-        df_sorted["prev_model"].notna() & (df_sorted["model"] != df_sorted["prev_model"])
+    df_sorted["prev_date"] = df_sorted.groupby(["store", "tai"])["date"].shift(1)
+    df_sorted["gap_days"] = df_sorted["date"].sub(df_sorted["prev_date"]).dt.days.fillna(0)
+    df_sorted["segment_changed"] = (
+        df_sorted["prev_model"].notna()
+        & (
+            (df_sorted["model"] != df_sorted["prev_model"])
+            | (df_sorted["gap_days"] > INSTALL_SEGMENT_GAP_DAYS)
+        )
     )
     last_change = (
-        df_sorted.loc[df_sorted["model_changed"], ["store", "tai", "date"]]
+        df_sorted.loc[df_sorted["segment_changed"], ["store", "tai", "date"]]
         .groupby(["store", "tai"], sort=False)["date"]
         .max()
         .rename("last_change_date")

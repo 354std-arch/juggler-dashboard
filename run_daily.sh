@@ -9,8 +9,33 @@ cd "$REPO_DIR"
 
 echo "=== $(date '+%Y-%m-%d %H:%M:%S JST') START ===" >> "$LOG_FILE"
 
+abort_if_conflicts() {
+  local unmerged_files
+  local conflict_pattern
+  conflict_pattern='^([<]{7}|[=]{7}|[>]{7})'
+  unmerged_files="$(git diff --name-only --diff-filter=U)"
+  if [ -n "$unmerged_files" ]; then
+    echo "Unmerged git paths detected; aborting daily run." >> "$LOG_FILE"
+    echo "$unmerged_files" >> "$LOG_FILE"
+    exit 1
+  fi
+
+  if grep -n -E "$conflict_pattern" app.js index.html style.css compute.py morning_compute.py candidate_compute.py run_daily.sh >> "$LOG_FILE" 2>&1; then
+    echo "Conflict markers detected in source files; aborting daily run." >> "$LOG_FILE"
+    exit 1
+  fi
+}
+
+abort_if_conflicts
+
 # Pull latest changes first
-git pull --rebase >> "$LOG_FILE" 2>&1 || echo "git pull failed, continuing" >> "$LOG_FILE"
+if ! git pull --rebase >> "$LOG_FILE" 2>&1; then
+  echo "git pull --rebase failed; aborting daily run." >> "$LOG_FILE"
+  abort_if_conflicts
+  exit 1
+fi
+
+abort_if_conflicts
 
 # Run pipeline
 python3 scrape_juggler.py >> "$LOG_FILE" 2>&1
