@@ -1726,6 +1726,15 @@ function getCurrentStorePrecomputedData() {
   return G._precomputed.byStore?.[currentStore] || null;
 }
 
+function getStoreDataQualityWarning(storeData) {
+  const quality = storeData?.dataQuality;
+  if(!quality || quality.diffReliable !== false) return '';
+  const present = Number.isFinite(Number(quality.diffPresentRate)) ? `差枚取得率 ${quality.diffPresentRate}%` : '';
+  const nonzero = Number.isFinite(Number(quality.nonzeroDiffRate)) ? `非0差枚 ${quality.nonzeroDiffRate}%` : '';
+  const meta = [present, nonzero].filter(Boolean).join(' / ');
+  return `${quality.message || '差枚品質が低いため、差枚ベースの根拠から除外しています。'}${meta ? `（${meta}）` : ''}`;
+}
+
 function getCurrentStoreEvidenceBacktest() {
   return getCurrentStorePrecomputedData()?.evidenceBacktest || null;
 }
@@ -1890,6 +1899,8 @@ function renderTargetJudgmentBoard({ val, isSpecial, dayInfo, wday, wdayAvg, wda
   }
   const periods = Array.isArray(robustness.periods) ? robustness.periods : [];
   const cautionNotes = [];
+  const qualityWarning = getStoreDataQualityWarning(storeData);
+  if(qualityWarning) cautionNotes.push(qualityWarning);
   if(decision?.actionable === false) cautionNotes.push(decision.message || '検証上、候補を出す根拠が弱いです。');
   if(robustness?.level && robustness.level !== 'stable') cautionNotes.push(robustness.label || '期間ブレあり');
   if(!targets.length && decision?.actionable) cautionNotes.push('店全体は候補ありですが、今日の台単位候補はまだ弱いです。');
@@ -3660,12 +3671,17 @@ function renderSeatEvidenceBacktestPanel() {
   const el = document.getElementById('seatEvidenceBacktest');
   if(!el) return;
   const backtest = getSeatLayoutEvidenceBacktest();
+  const storeData = G._precomputed?.byStore?.[seatLayoutState.store] || null;
+  const qualityWarning = getStoreDataQualityWarning(storeData);
+  const qualityHtml = qualityWarning
+    ? `<div class="seat-data-quality-alert">${escapeHtml(qualityWarning)}</div>`
+    : '';
   if(!seatLayoutState.store) {
     el.innerHTML = '<div class="seat-insight-muted">店舗を選択してください。</div>';
     return;
   }
   if(!backtest) {
-    el.innerHTML = '<div class="seat-insight-muted">検証済み根拠はまだ生成されていません。</div>';
+    el.innerHTML = `${qualityHtml}<div class="seat-insight-muted">検証済み根拠はまだ生成されていません。</div>`;
     return;
   }
   const summary = backtest.summary || {};
@@ -3736,6 +3752,7 @@ function renderSeatEvidenceBacktestPanel() {
       }).join('')}</div>`
     : '';
   el.innerHTML = `
+    ${qualityHtml}
     ${statusHtml}
     ${summaryHtml}
     ${robustnessHtml}
@@ -5777,6 +5794,10 @@ function renderRecommendations() {
   const freshness = getPredictionFreshnessMeta();
   const alerts = [];
   if(freshness.alertText) alerts.push(freshness.alertText);
+  if(currentStore !== 'all') {
+    const qualityWarning = getStoreDataQualityWarning(getCurrentStorePrecomputedData());
+    if(qualityWarning) alerts.push(qualityWarning);
+  }
 
   if(!rows.length) {
     const suppressionText = getEvidenceSuppressionText();

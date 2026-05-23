@@ -92,6 +92,7 @@ MODEL_HOLDOVER_SYN_THRESHOLD = {
 }
 
 ANALYTICS_CACHE = {}
+DIFF_QUALITY_BY_STORE = {}
 
 def r1(v): return round(v*10)/10
 def avg(arr): return sum(arr)/len(arr) if arr else 0
@@ -101,24 +102,36 @@ def wavg(vals, weights):
     return sum(v*w for v,w in zip(vals,weights))/tw if tw else 0
 def row_w(r): return r.get("weight", 1)
 def weighted_total(rows): return sum(row_w(r) for r in rows)
-def weighted_sum(rows, key): return sum(r[key] * row_w(r) for r in rows)
+def has_trustworthy_diff(row):
+    return bool(row.get("hasDiff")) and bool(row.get("diffReliable", True))
+def diff_valid_rows(rows):
+    return [r for r in rows if has_trustworthy_diff(r)]
+def metric_rows(rows, key):
+    return diff_valid_rows(rows) if key == "diff" else rows
+def weighted_sum(rows, key):
+    target_rows = metric_rows(rows, key)
+    return sum(r[key] * row_w(r) for r in target_rows)
 def weighted_total_if(rows, pred): return sum(row_w(r) for r in rows if pred(r))
 def weighted_total_if_factor(rows, pred, factor_fn):
     return sum(row_w(r) * factor_fn(r) for r in rows if pred(r))
 def weighted_avg_rows(rows, key):
-    tw = weighted_total(rows)
-    return weighted_sum(rows, key) / tw if tw else 0
+    target_rows = metric_rows(rows, key)
+    tw = weighted_total(target_rows)
+    return weighted_sum(target_rows, key) / tw if tw else 0
 def weighted_rate(rows, pred):
     tw = weighted_total(rows)
     if not tw: return 0
     return sum(row_w(r) for r in rows if pred(r)) / tw
+def weighted_diff_rate(rows, pred):
+    return weighted_rate(diff_valid_rows(rows), pred)
 def weighted_mean_std(rows, key):
-    tw = weighted_total(rows)
+    target_rows = metric_rows(rows, key)
+    tw = weighted_total(target_rows)
     if tw <= 0:
         return 0, 0
-    mean = weighted_sum(rows, key) / tw
+    mean = weighted_sum(target_rows, key) / tw
     var_num = 0.0
-    for r in rows:
+    for r in target_rows:
         d = r[key] - mean
         var_num += row_w(r) * d * d
     variance = var_num / tw if tw > 0 else 0.0
@@ -604,6 +617,8 @@ def load_raw(special_by_store):
                 "isHighSettingSyn": is_high_setting_syn_model(model, g, bb, rb),
             })
     rows.sort(key=lambda r: r["date"])
+    global DIFF_QUALITY_BY_STORE
+    DIFF_QUALITY_BY_STORE = annotate_diff_quality(rows)
     annotate_install_segments(rows)
     print(f"合計 {len(rows)} 行読み込み完了")
     return rows
@@ -634,6 +649,40 @@ def annotate_install_segments(rows):
             r["installSegmentStartedAt"] = segment_started_at.strftime("%Y-%m-%d") if segment_started_at else r["dateStr"]
             prev_model = r["model"]
             prev_date = date_value
+
+def annotate_diff_quality(rows):
+    by_store = defaultdict(lambda: {"rows": 0, "present": 0, "nonzero": 0})
+    for r in rows:
+        stat = by_store[r["store"]]
+        stat["rows"] += 1
+        if r.get("hasDiff"):
+            stat["present"] += 1
+            if r.get("diff") != 0:
+                stat["nonzero"] += 1
+
+    quality = {}
+    for store, stat in by_store.items():
+        present = stat["present"]
+        nonzero = stat["nonzero"]
+        present_rate = present / stat["rows"] if stat["rows"] else 0.0
+        nonzero_rate = nonzero / present if present else 0.0
+        reliable = present >= 100 and nonzero_rate >= 0.01
+        quality[store] = {
+            "rows": stat["rows"],
+            "diffPresent": present,
+            "diffPresentRate": r1(present_rate * 100),
+            "nonzeroDiff": nonzero,
+            "nonzeroDiffRate": r1(nonzero_rate * 100),
+            "diffReliable": reliable,
+            "message": "" if reliable else "差枚が未取得または0固定の可能性が高いため、差枚根拠から除外しています。",
+        }
+
+    for r in rows:
+        meta = quality.get(r["store"], {})
+        r["diffReliable"] = bool(meta.get("diffReliable", False))
+        if not r["diffReliable"]:
+            r["hasDiff"] = False
+    return quality
 
 def get_current_install_segment_ids(rows):
     latest_date_by_store = {}
@@ -689,6 +738,8 @@ def calc_bayes_prob(model, total_g, total_bb, total_rb, prior_high_prob=0.5, tot
 def compute_day_stats(rows, special):
     by_day = defaultdict(lambda: {"rows":[], "plus":0, "total":0})
     for r in rows:
+        if not has_trustworthy_diff(r):
+            continue
         by_day[r["day"]]["rows"].append(r)
         by_day[r["day"]]["total"] += 1
         if r["diff"] > 0: by_day[r["day"]]["plus"] += 1
@@ -705,7 +756,7 @@ def compute_day_stats(rows, special):
             ci_upper = round(m + 1.96*se, 1)
         else:
             ci_lower = ci_upper = round(m, 1)
-        plus_rate = weighted_rate(day_rows, lambda x: x["diff"] > 0) * 100
+        plus_rate = weighted_diff_rate(day_rows, lambda x: x["diff"] > 0) * 100
         result.append({
             "day": d, "avg": r1(m), "total": b["total"],
             "plus": b["plus"], "plusRate": r1(plus_rate),
@@ -777,7 +828,7 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
         diff_n_nm = weighted_total_if_factor(t["nm"], lambda x: x.get("hasDiff"), g_factor)
         n = len(t["all"])
         wn = weighted_total(t["all"])
-        wplus_rate = weighted_rate(t["all"], lambda x: x["diff"] > 0) * 100
+        wplus_rate = weighted_diff_rate(t["all"], lambda x: x["diff"] > 0) * 100
         latest_key = f"{latest_date.strftime('%Y-%m-%d')}_{t['tai']}_{t['store']}_{t.get('installSegment') or ''}"
         prev = prev_lookup.get(latest_key)
         prev_row = {
@@ -814,7 +865,7 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
             "historyScope": "current_install_segment",
             "avg":r1(weighted_avg_rows(t["all"], "diff")),"count":n,
             "weightedCount": r1(wn),
-            "plus":len([v for v in t["all"] if v["diff"]>0]),
+            "plus":len([v for v in t["all"] if has_trustworthy_diff(v) and v["diff"]>0]),
             "plusRate":r1(wplus_rate),
             "spAvg":r1(weighted_avg_rows(t["sp"], "diff")) if t["sp"] else None,
             "nmAvg":r1(weighted_avg_rows(t["nm"], "diff")) if t["nm"] else None,
@@ -852,6 +903,8 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
     return result
 
 def compute_model_stats(rows, special):
+    if not rows:
+        return []
     by_model = defaultdict(lambda: {
         "all":[],"sp":[],"nm":[],"this_month":[],"last_month":[],
         "by_day": defaultdict(list),
@@ -918,16 +971,17 @@ def compute_next_day(rows, special):
         for i in range(len(sorted_rows)-1):
             prev=sorted_rows[i]; nxt=sorted_rows[i+1]
             if (nxt["date"]-prev["date"]).days==1:
-                pairs.append({"prev":prev,"next":nxt})
+                if has_trustworthy_diff(prev) and has_trustworthy_diff(nxt):
+                    pairs.append({"prev":prev,"next":nxt})
     baseline=weighted_avg_rows(rows, "diff")
     def calc(matched):
         next_rows=[p["next"] for p in matched]
         if not next_rows: return {"count":0,"avg":None,"plusRate":None,"vsBaseline":None}
         a=weighted_avg_rows(next_rows, "diff")
-        plus_rate=weighted_rate(next_rows, lambda x: x["diff"] > 0) * 100
+        plus_rate=weighted_diff_rate(next_rows, lambda x: x["diff"] > 0) * 100
         return {"count":len(next_rows),"avg":r1(a),"plusRate":r1(plus_rate),"vsBaseline":r1(a-baseline)}
     return {
-        "__baseline":{"label":"全期間平均","count":len(rows),"avg":r1(baseline),"plusRate":r1(weighted_rate(rows, lambda x: x["diff"] > 0)*100),"vsBaseline":0},
+        "__baseline":{"label":"全期間平均","count":len(diff_valid_rows(rows)),"avg":r1(baseline),"plusRate":r1(weighted_diff_rate(rows, lambda x: x["diff"] > 0)*100),"vsBaseline":0},
         "凹み_2000以上":  {"label":"前日差枚 -2000以下",    **calc([p for p in pairs if p["prev"]["diff"]<=-2000])},
         "凹み_1000_2000": {"label":"前日差枚 -1000〜-2000", **calc([p for p in pairs if -2000<p["prev"]["diff"]<=-1000])},
         "凹み_500_1000":  {"label":"前日差枚 -500〜-1000",  **calc([p for p in pairs if -1000<p["prev"]["diff"]<=-500])},
@@ -1304,6 +1358,7 @@ def combine_evidence_decision_with_robustness(summary, robustness):
 
 def build_evidence_backtest_core(store_rows, special, config=None, include_candidates=True):
     cfg = {**EVIDENCE_BACKTEST_CONFIG, **(config or {})}
+    store_rows = diff_valid_rows(store_rows)
     if not store_rows:
         return {"version": cfg["version"], "config": cfg, "summary": {"pickCount": 0}, "candidatesByDate": {}, "topEvidence": [], "rejectedEvidence": []}
 
@@ -1749,7 +1804,7 @@ def compute_heatmap(rows):
         result[k]={
             "avg":r1(weighted_avg_rows(target_rows, "diff")),
             "ritu":r1(to/ti*100) if ti>0 else None,
-            "win":r1(weighted_rate(target_rows, lambda x: x["diff"] > 0) * 100),
+            "win":r1(weighted_diff_rate(target_rows, lambda x: x["diff"] > 0) * 100),
             "set456":r1(weighted_rate(target_rows, lambda x: x["isHighSetRBLead"]) * 100),
             "count":v["count"],
         }
@@ -1770,7 +1825,7 @@ def compute_week_matrix(rows):
         result[k]={
             "avg":r1(weighted_avg_rows(target_rows, "diff")),
             "ritu":r1(to/ti*100) if ti>0 else None,
-            "win":r1(weighted_rate(target_rows, lambda x: x["diff"] > 0) * 100),
+            "win":r1(weighted_diff_rate(target_rows, lambda x: x["diff"] > 0) * 100),
             "set456":r1(weighted_rate(target_rows, lambda x: x["isHighSetRBLead"]) * 100),
             "count":v["count"],
         }
@@ -1783,7 +1838,7 @@ def compute_date_summary(rows, special):
         if k not in by_date:
             by_date[k] = {"dateStr":k,"day":r["day"],"rows":[],"plus":0}
         by_date[k]["rows"].append(r)
-        if r["diff"] > 0: by_date[k]["plus"] += 1
+        if has_trustworthy_diff(r) and r["diff"] > 0: by_date[k]["plus"] += 1
     result = []
     for v in sorted(by_date.values(), key=lambda x: x["dateStr"]):
         day_rows = v["rows"]
@@ -1791,7 +1846,7 @@ def compute_date_summary(rows, special):
         result.append({
             "dateStr": v["dateStr"],"total": r1(weighted_sum(day_rows, "diff")),
             "count": n,"plus": v["plus"],
-            "plusRate": r1(weighted_rate(day_rows, lambda x: x["diff"] > 0) * 100),
+            "plusRate": r1(weighted_diff_rate(day_rows, lambda x: x["diff"] > 0) * 100),
             "day": v["day"],"special": v["day"] in special,
         })
     return result
@@ -1827,7 +1882,7 @@ def compute_day_wday_matrix(rows):
         result[k] = {
             "avg":r1(weighted_avg_rows(target_rows, "diff")),
             "ritu":r1(to/ti*100) if ti>0 else None,
-            "win":r1(weighted_rate(target_rows, lambda x: x["diff"] > 0) * 100),
+            "win":r1(weighted_diff_rate(target_rows, lambda x: x["diff"] > 0) * 100),
             "set456":r1(weighted_rate(target_rows, lambda x: x["isHighSetRBLead"]) * 100),
             "count":v["count"]
         }
@@ -2070,12 +2125,13 @@ if __name__ == "__main__":
     for store in all_stores:
         special = store_special_map.get(store, DEFAULT_SPECIAL_DAYS)
         store_rows = rows_by_store.get(store, [])
+        diff_store_rows = diff_valid_rows(store_rows)
         is_special_today = today.day in special
         weekday_data = (today.weekday() + 1) % 7
         tai_detail = compute_tai_detail(store_rows, special, weekday_data, is_special_today)
-        evidence_backtest = build_evidence_backtest(store_rows, special)
+        evidence_backtest = build_evidence_backtest(diff_store_rows, special)
         today_analysis = compute_today_analysis(
-            store_rows,
+            diff_store_rows,
             special,
             today=today,
             tai_detail=tai_detail,
@@ -2083,7 +2139,7 @@ if __name__ == "__main__":
         )
         tomorrow = today + timedelta(days=1)
         tomorrow_analysis = compute_today_analysis(
-            store_rows,
+            diff_store_rows,
             special,
             today=tomorrow,
             tai_detail=tai_detail,
@@ -2092,16 +2148,17 @@ if __name__ == "__main__":
         print(f"集計中: {store} ({len(store_rows)}行) 特定日:{special}")
         output["byStore"][store] = {
             "special": special,
+            "dataQuality": DIFF_QUALITY_BY_STORE.get(store, {}),
             "store_coefficients": STORE_COEFFICIENTS.get(store, {}),
-            "dayStats": compute_day_stats(store_rows, special),
-            "modelStats": compute_model_stats(store_rows, special),
-            "nextStats": compute_next_day(store_rows, special),
-            "heatmap": compute_heatmap(store_rows),
-            "weekMatrix": compute_week_matrix(store_rows),
-            "dayWdayMatrix": compute_day_wday_matrix(store_rows),
+            "dayStats": compute_day_stats(diff_store_rows, special),
+            "modelStats": compute_model_stats(diff_store_rows, special),
+            "nextStats": compute_next_day(diff_store_rows, special),
+            "heatmap": compute_heatmap(diff_store_rows),
+            "weekMatrix": compute_week_matrix(diff_store_rows),
+            "dayWdayMatrix": compute_day_wday_matrix(diff_store_rows),
             "taiDetail": tai_detail,
-            "dateSummary": compute_date_summary(store_rows, special),
-            "weekdayStats": compute_weekday_stats(store_rows),
+            "dateSummary": compute_date_summary(diff_store_rows, special),
+            "weekdayStats": compute_weekday_stats(diff_store_rows),
             "todayAnalysis": today_analysis,
             "targetAnalyses": {
                 today_analysis["date"]: today_analysis,
