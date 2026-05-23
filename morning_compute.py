@@ -126,6 +126,36 @@ def parse_date_value(value):
         return None
 
 
+def date_only(value):
+    if value is None:
+        return None
+    if hasattr(value, "to_pydatetime"):
+        value = value.to_pydatetime()
+    if isinstance(value, datetime):
+        return value.date()
+    if hasattr(value, "date"):
+        try:
+            return value.date()
+        except Exception:
+            return None
+    return None
+
+
+def build_payload_meta(now_jst, source_date):
+    target_date = now_jst.date()
+    source_day = date_only(source_date)
+    source_ymd = source_day.strftime("%Y-%m-%d") if source_day else None
+    lag_days = (target_date - source_day).days if source_day else None
+    return {
+        "generated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
+        # Backward compatible: existing UI/code treats data_date as the prediction target date.
+        "data_date": target_date.strftime("%Y-%m-%d"),
+        "target_date": target_date.strftime("%Y-%m-%d"),
+        "source_data_date": source_ymd,
+        "source_data_lag_days": lag_days,
+    }
+
+
 def classify_label(total_g, bb, rb, diff, syn_threshold, rb_threshold):
     syn_ratio = (total_g / (bb + rb)) if (bb + rb) > 0 else None
     rb_ratio = (total_g / rb) if rb > 0 else None
@@ -347,11 +377,11 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
     today_date = now_jst.date()
     today_weekday = now_jst.weekday()
     today_special = is_special_day(now_jst.day)
+    payload_meta = build_payload_meta(now_jst, max((r["date"] for r in rows), default=None))
 
     if not rows:
         return {
-            "generated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
-            "data_date": now_jst.strftime("%Y-%m-%d"),
+            **payload_meta,
             "normalized_models": dict(sorted(normalized_models.items())),
             "unsupported_models": sorted(unsupported_models),
             "stores": {},
@@ -542,8 +572,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
         }
 
     return {
-        "generated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
-        "data_date": now_jst.strftime("%Y-%m-%d"),
+        **payload_meta,
         "normalized_models": dict(sorted(normalized_models.items())),
         "unsupported_models": sorted(unsupported_models),
         "stores": stores_payload,
@@ -555,11 +584,11 @@ def build_payload(df, normalized_models, unsupported_models):
     today_date = now_jst.date()
     today_weekday = now_jst.weekday()
     today_special = is_special_day(now_jst.day)
+    payload_meta = build_payload_meta(now_jst, None if df.empty else df["date"].max())
 
     if df.empty:
         return {
-            "generated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
-            "data_date": now_jst.strftime("%Y-%m-%d"),
+            **payload_meta,
             "normalized_models": dict(sorted(normalized_models.items())),
             "unsupported_models": unsupported_models,
             "stores": {},
@@ -761,8 +790,7 @@ def build_payload(df, normalized_models, unsupported_models):
         }
 
     return {
-        "generated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
-        "data_date": now_jst.strftime("%Y-%m-%d"),
+        **payload_meta,
         "normalized_models": dict(sorted(normalized_models.items())),
         "unsupported_models": sorted(unsupported_models),
         "stores": stores_payload,

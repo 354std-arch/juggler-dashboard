@@ -1735,6 +1735,89 @@ function getStoreDataQualityWarning(storeData) {
   return `${quality.message || '差枚品質が低いため、差枚ベースの根拠から除外しています。'}${meta ? `（${meta}）` : ''}`;
 }
 
+function diffDaysLocal(fromDate, toDate) {
+  if(!(fromDate instanceof Date) || isNaN(fromDate) || !(toDate instanceof Date) || isNaN(toDate)) return null;
+  const start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate()).getTime();
+  const end = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate()).getTime();
+  return Math.round((end - start) / 86400000);
+}
+
+function getMorningFreshnessMeta() {
+  const morning = G.morningData || {};
+  const targetYmd = normalizeDataDateValue(morning.target_date || morning.data_date) || toYmdLocal(getTodayLocalDate());
+  const sourceYmd = normalizeDataDateValue(morning.source_data_date || G.dataDate || G._precomputed?.data_date);
+  const targetDate = parseYmdLocal(targetYmd);
+  const sourceDate = parseYmdLocal(sourceYmd || '');
+  const lagDays = sourceDate && targetDate ? diffDaysLocal(sourceDate, targetDate) : null;
+  const sourceText = sourceYmd ? `元データ ${sourceYmd}` : '元データ日不明';
+  const targetText = targetYmd ? `対象 ${targetYmd}` : '対象日不明';
+  if(!Number.isFinite(lagDays)) {
+    return {
+      badgeClass: 'red',
+      badgeText: '鮮度不明',
+      subText: `${targetText} / ${sourceText}`,
+      alertText: '元データの日付を確認できません。朝の候補は強く信用しすぎないでください。',
+      targetYmd,
+      sourceYmd,
+    };
+  }
+  if(lagDays <= 1) {
+    return {
+      badgeClass: 'green',
+      badgeText: '鮮度OK',
+      subText: `${targetText} / ${sourceText}`,
+      alertText: '',
+      targetYmd,
+      sourceYmd,
+    };
+  }
+  return {
+    badgeClass: 'red',
+    badgeText: `${lagDays}日前データ`,
+    subText: `${targetText} / ${sourceText}`,
+    alertText: `元データが${lagDays}日前です。入替・傾向変化の影響が大きい可能性があります。`,
+    targetYmd,
+    sourceYmd,
+  };
+}
+
+function getMorningStoreTrustMeta(store, targetYmd) {
+  const storeData = G._precomputed?.byStore?.[store] || null;
+  const analysis = getStoreTargetAnalysisForDate(storeData, targetYmd);
+  const decision = analysis?.evidenceDecision || storeData?.evidenceBacktest?.summary?.decision || null;
+  const targets = Array.isArray(analysis?.topTargets) ? analysis.topTargets : [];
+  if(decision?.actionable === false) {
+    return {
+      className: 'is-weak',
+      label: decision.label || '検証弱め',
+      detail: decision.message || '過去検証では候補を強く出せません。',
+      targets,
+    };
+  }
+  if(targets.length) {
+    return {
+      className: 'is-strong',
+      label: decision?.label || '検証候補あり',
+      detail: `検証を通った候補 ${targets.length}台`,
+      targets,
+    };
+  }
+  if(decision) {
+    return {
+      className: 'is-normal',
+      label: decision.label || '検証確認',
+      detail: decision.message || '店全体の根拠はありますが台単位候補は弱めです。',
+      targets,
+    };
+  }
+  return {
+    className: 'is-normal',
+    label: '検証未接続',
+    detail: 'この店舗の検証済み根拠はまだ表示できません。',
+    targets,
+  };
+}
+
 function getCurrentStoreEvidenceBacktest() {
   return getCurrentStorePrecomputedData()?.evidenceBacktest || null;
 }
@@ -9507,8 +9590,16 @@ function renderMorningSummaryForCalendar() {
   }
 
   const generatedAt = escapeHtml(G.morningData.generated_at || '不明');
+  const freshness = getMorningFreshnessMeta();
+  const freshnessAlertHtml = freshness.alertText
+    ? `<div class="recommendation-alert">${escapeHtml(freshness.alertText)}</div>`
+    : '';
   const cards = stores.map((store) => {
     const data = getMorningStoreData(store) || {};
+    const storePrecomputed = G._precomputed?.byStore?.[store] || null;
+    const qualityWarning = getStoreDataQualityWarning(storePrecomputed);
+    const trustMeta = getMorningStoreTrustMeta(store, freshness.targetYmd);
+    const verifiedTargetTais = new Set((trustMeta.targets || []).map((t) => Number(t?.tai || t?.taiNum)).filter(Number.isFinite));
     const todayLabel = String(data.today_label || '判定なし');
     const todayScoreText = formatMorningScorePercent(data.today_score);
     const todayReasons = Array.isArray(data.today_reason)
@@ -9573,11 +9664,13 @@ function renderMorningSummaryForCalendar() {
 
           const warnings = Array.isArray(c?.warnings) ? c.warnings.filter(Boolean).slice(0, 2) : [];
           while(warnings.length < 2) warnings.push('特記事項なし');
+          const isVerifiedTarget = verifiedTargetTais.has(Number(c?.tai));
+          const verifiedHtml = isVerifiedTarget ? '<span class="morning-verified-chip">検証候補</span>' : '';
 
           return `<div class="morning-candidate-card">
             <div class="morning-candidate-head">
               <div class="morning-candidate-name">${idx + 1}. ${escapeHtml(String(c?.tai ?? '-'))}番台 / ${escapeHtml(modelName)}</div>
-              <div class="morning-candidate-score">${formatMorningScorePercent(c?.score)}</div>
+              <div class="morning-candidate-score">${verifiedHtml}${formatMorningScorePercent(c?.score)}</div>
             </div>
             <div class="morning-candidate-layer">
               <div class="morning-layer-label">店条件</div>
@@ -9602,9 +9695,17 @@ function renderMorningSummaryForCalendar() {
     return `<section class="morning-store-card">
       <div class="morning-store-head">
         <div class="morning-store-name">🏪 ${escapeHtml(store)}</div>
-        <span class="morning-label ${todayLabelClass}">${escapeHtml(todayLabel)} / ${todayScoreText}</span>
+        <div class="morning-store-badges">
+          <span class="morning-label ${todayLabelClass}">${escapeHtml(todayLabel)} / ${todayScoreText}</span>
+          <span class="morning-trust-badge ${trustMeta.className}">${escapeHtml(trustMeta.label)}</span>
+        </div>
       </div>
       <div class="morning-store-reason">${escapeHtml(todayReasonText)}</div>
+      <div class="morning-trust-line">
+        <span>検証</span>
+        <strong>${escapeHtml(trustMeta.detail)}</strong>
+      </div>
+      ${qualityWarning ? `<div class="seat-data-quality-alert">${escapeHtml(qualityWarning)}</div>` : ''}
       <div class="morning-block">
         <div class="morning-block-title">狙い機種ランキング</div>
         ${modelHtml}
@@ -9620,7 +9721,13 @@ function renderMorningSummaryForCalendar() {
     </section>`;
   }).join('');
 
-  wrap.innerHTML = `<div class="morning-summary-meta">更新: ${generatedAt} / 表示店舗: ${stores.length}件</div>${cards}`;
+  wrap.innerHTML = `
+    <div class="morning-summary-meta">
+      <span class="prediction-badge ${freshness.badgeClass}">${escapeHtml(freshness.badgeText)}</span>
+      <span>更新: ${generatedAt} / ${escapeHtml(freshness.subText)} / 表示店舗: ${stores.length}件</span>
+    </div>
+    ${freshnessAlertHtml}
+    ${cards}`;
 }
 
 function getCalDateMeta(year, month, day) {

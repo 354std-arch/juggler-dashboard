@@ -109,7 +109,7 @@ def load_store_model_condition_stats():
 
 
 def enrich_model_ranking_with_summary(payload):
-    data_date = parse_date(payload.get("data_date")) or datetime.now(JST).replace(tzinfo=None)
+    data_date = parse_date(payload.get("target_date") or payload.get("data_date")) or datetime.now(JST).replace(tzinfo=None)
     weekday = data_date.weekday()
     is_special = morning.is_special_day(data_date.day)
     model_summary, store_summary = load_store_model_condition_stats()
