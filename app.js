@@ -1791,6 +1791,7 @@ function getMorningStoreTrustMeta(store, targetYmd) {
       className: 'is-weak',
       label: decision.label || '検証弱め',
       detail: decision.message || '過去検証では候補を強く出せません。',
+      actionable: false,
       targets,
     };
   }
@@ -1799,6 +1800,7 @@ function getMorningStoreTrustMeta(store, targetYmd) {
       className: 'is-strong',
       label: decision?.label || '検証候補あり',
       detail: `検証を通った候補 ${targets.length}台`,
+      actionable: true,
       targets,
     };
   }
@@ -1807,6 +1809,7 @@ function getMorningStoreTrustMeta(store, targetYmd) {
       className: 'is-normal',
       label: decision.label || '検証確認',
       detail: decision.message || '店全体の根拠はありますが台単位候補は弱めです。',
+      actionable: decision.actionable !== false,
       targets,
     };
   }
@@ -1814,6 +1817,7 @@ function getMorningStoreTrustMeta(store, targetYmd) {
     className: 'is-normal',
     label: '検証未接続',
     detail: 'この店舗の検証済み根拠はまだ表示できません。',
+    actionable: false,
     targets,
   };
 }
@@ -9723,16 +9727,22 @@ function renderMorningSummaryForCalendar() {
           const taiReasons = Array.isArray(c?.reasons) ? c.reasons.filter(Boolean).slice(0, 3) : [];
           while(taiReasons.length < 3) taiReasons.push('根拠データなし');
 
-          const action = String(c?.action || 'watch');
-          const actionLabel = String(c?.action_label || (action === 'main' ? '本命' : action === 'candidate' ? '候補' : '観察'));
+          const isVerifiedTarget = verifiedTargetTais.has(Number(c?.tai));
+          const storeEvidenceBlocked = trustMeta.actionable === false && !isVerifiedTarget;
+          let action = String(c?.action || 'watch');
+          let actionLabel = String(c?.action_label || (action === 'main' ? '本命' : action === 'candidate' ? '候補' : '観察'));
+          if(storeEvidenceBlocked) {
+            action = 'watch';
+            actionLabel = '参考';
+          }
           const actionClass = action === 'main' ? 'is-main' : action === 'candidate' ? 'is-candidate' : 'is-watch';
           const warnings = [
             ...(Array.isArray(c?.warnings) ? c.warnings : []),
             ...(Array.isArray(c?.cautions) ? c.cautions : []),
+            ...(storeEvidenceBlocked ? [`店舗検証: ${trustMeta.label}。${trustMeta.detail}`] : []),
           ].filter(Boolean);
           const uniqueWarnings = Array.from(new Set(warnings)).slice(0, 3);
           if(!uniqueWarnings.length) uniqueWarnings.push('特記事項なし');
-          const isVerifiedTarget = verifiedTargetTais.has(Number(c?.tai));
           const verifiedHtml = isVerifiedTarget ? '<span class="morning-verified-chip">検証候補</span>' : '';
 
           return `<div class="morning-candidate-card ${actionClass}">
