@@ -2481,6 +2481,14 @@ function toMorningScoreUnit(score) {
   return Math.max(0, Math.min(1, raw));
 }
 
+function getMorningActionPriority(action) {
+  const key = String(action || '').toLowerCase();
+  if(key === 'main') return 3;
+  if(key === 'candidate') return 2;
+  if(key === 'watch') return 1;
+  return 0;
+}
+
 function formatMorningScorePercent(score) {
   return `${Math.round(toMorningScoreUnit(score) * 100)}%`;
 }
@@ -9579,6 +9587,32 @@ function renderCalendar() {
   buildUpcomingList();
 }
 
+function renderMorningVerifiedTargets(targets) {
+  const list = Array.isArray(targets) ? targets.slice(0, 5) : [];
+  if(!list.length) return '';
+  const rows = list.map((t) => {
+    const tai = t?.tai || t?.taiNum || '-';
+    const model = t?.model || '機種不明';
+    const rank = t?.rank || '候補';
+    const evidence = Array.isArray(t?.evidence) && t.evidence.length
+      ? t.evidence.slice(0, 2).map((e) => e?.label).filter(Boolean).join(' / ')
+      : (Array.isArray(t?.reasons) ? t.reasons.slice(0, 2).map((r) => r?.label).filter(Boolean).join(' / ') : '');
+    const score = Number(t?.totalScore || t?.score);
+    const scoreText = Number.isFinite(score) ? `${round1(score)}pt` : '';
+    return `<div class="morning-verified-target">
+      <div>
+        <strong>${escapeHtml(String(tai))}番 ${escapeHtml(model)}</strong>
+        <span>${escapeHtml(evidence || '検証済み根拠あり')}</span>
+      </div>
+      <b>${escapeHtml(rank)}${scoreText ? ` / ${escapeHtml(scoreText)}` : ''}</b>
+    </div>`;
+  }).join('');
+  return `<div class="morning-verified-targets">
+    <div class="morning-verified-title">検証済み候補 <span>過去の答え合わせを通った台</span></div>
+    ${rows}
+  </div>`;
+}
+
 function renderMorningSummaryForCalendar() {
   const wrap = document.getElementById('calMorningSummaryWrap');
   if(!wrap) return;
@@ -9622,9 +9656,6 @@ function renderMorningSummaryForCalendar() {
       .filter((t) => Number.isFinite(Number(t?.tail)))
       .sort((a, b) => toMorningScoreUnit(b?.score) - toMorningScoreUnit(a?.score));
 
-    const candidates = (Array.isArray(data.candidates) ? data.candidates.slice() : [])
-      .sort((a, b) => toMorningScoreUnit(b?.score) - toMorningScoreUnit(a?.score));
-
     const modelHtml = modelRanking.length
       ? modelRanking.slice(0, 5).map((m, idx) => {
           const sample = Number(m?.sample);
@@ -9648,6 +9679,17 @@ function renderMorningSummaryForCalendar() {
           </div>`;
         }).join('')
       : '<div class="morning-empty">末尾データなし</div>';
+
+    const verifiedTargetHtml = renderMorningVerifiedTargets(trustMeta.targets);
+    const candidates = (Array.isArray(data.candidates) ? data.candidates.slice() : [])
+      .sort((a, b) => {
+        const aVerified = verifiedTargetTais.has(Number(a?.tai)) ? 1 : 0;
+        const bVerified = verifiedTargetTais.has(Number(b?.tai)) ? 1 : 0;
+        if(aVerified !== bVerified) return bVerified - aVerified;
+        const actionDiff = getMorningActionPriority(b?.action) - getMorningActionPriority(a?.action);
+        if(actionDiff) return actionDiff;
+        return toMorningScoreUnit(b?.score) - toMorningScoreUnit(a?.score);
+      });
 
     const candidateHtml = candidates.length
       ? candidates.slice(0, 8).map((c, idx) => {
@@ -9713,6 +9755,7 @@ function renderMorningSummaryForCalendar() {
         <strong>${escapeHtml(trustMeta.detail)}</strong>
       </div>
       ${qualityWarning ? `<div class="seat-data-quality-alert">${escapeHtml(qualityWarning)}</div>` : ''}
+      ${verifiedTargetHtml}
       <div class="morning-block">
         <div class="morning-block-title">狙い機種ランキング</div>
         ${modelHtml}
@@ -9722,7 +9765,7 @@ function renderMorningSummaryForCalendar() {
         ${tailHtml}
       </div>
       <div class="morning-block">
-        <div class="morning-block-title">候補台ランキング</div>
+        <div class="morning-block-title">朝候補ランキング（参考含む）</div>
         ${candidateHtml}
       </div>
     </section>`;
