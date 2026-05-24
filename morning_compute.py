@@ -29,6 +29,7 @@ except Exception:
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_CSV = os.path.join(REPO_DIR, "raw_data.csv")
 OUT_JSON = os.path.join(REPO_DIR, "morning_data.json")
+PRECOMPUTED_JSON = os.path.join(REPO_DIR, "data.json")
 JST = timezone(timedelta(hours=9))
 
 # compute.py と同等の正規化ロジック/設定値を流用
@@ -220,6 +221,139 @@ def build_payload_meta(now_jst, source_date):
     }
 
 
+def normalize_date_key(value):
+    dt = parse_date_value(value)
+    if dt is not None:
+        return dt.strftime("%Y-%m-%d")
+    text = str(value or "").strip()
+    return text[:10] if len(text) >= 10 else text
+
+
+def unique_items(values, limit=None):
+    out = []
+    seen = set()
+    for value in values or []:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        out.append(text)
+        if limit is not None and len(out) >= limit:
+            break
+    return out
+
+
+def get_target_analysis(store_data, target_ymd):
+    analyses = store_data.get("targetAnalyses") if isinstance(store_data, dict) else {}
+    if isinstance(analyses, dict) and target_ymd in analyses:
+        return analyses[target_ymd] or {}
+
+    today_analysis = store_data.get("todayAnalysis") if isinstance(store_data, dict) else None
+    if isinstance(today_analysis, dict):
+        today_ymd = normalize_date_key(
+            today_analysis.get("date")
+            or today_analysis.get("targetDate")
+            or today_analysis.get("data_date")
+        )
+        if today_ymd == target_ymd:
+            return today_analysis
+    return None
+
+
+def load_evidence_guards(target_ymd):
+    try:
+        with open(PRECOMPUTED_JSON, "r", encoding="utf-8-sig") as f:
+            precomputed = json.load(f)
+    except Exception:
+        return {}
+
+    guards = {}
+    by_store = precomputed.get("byStore", {}) if isinstance(precomputed, dict) else {}
+    for store, store_data in by_store.items():
+        if not isinstance(store_data, dict):
+            continue
+        analysis = get_target_analysis(store_data, target_ymd) or {}
+        backtest = store_data.get("evidenceBacktest", {}) if isinstance(store_data, dict) else {}
+        summary = backtest.get("summary", {}) if isinstance(backtest, dict) else {}
+        decision = analysis.get("evidenceDecision") or summary.get("decision") or None
+        targets = analysis.get("topTargets") if isinstance(analysis.get("topTargets"), list) else []
+        target_tais = set()
+        for target in targets:
+            if not isinstance(target, dict):
+                continue
+            try:
+                tai = int(target.get("tai", target.get("taiNum")))
+            except Exception:
+                continue
+            target_tais.add(tai)
+
+        if isinstance(decision, dict) and decision.get("actionable") is False:
+            actionable = False
+        elif target_tais:
+            actionable = True
+        elif isinstance(decision, dict):
+            actionable = decision.get("actionable") is not False
+        else:
+            actionable = False
+
+        label = decision.get("label") if isinstance(decision, dict) else ""
+        detail = decision.get("message") if isinstance(decision, dict) else ""
+        if not label:
+            label = "検証候補あり" if target_tais else "検証未接続"
+        if not detail:
+            detail = f"検証を通った候補 {len(target_tais)}台" if target_tais else "この店舗の検証済み根拠はまだ表示できません。"
+
+        guards[normalize_store_name(store)] = {
+            "actionable": actionable,
+            "label": label,
+            "detail": detail,
+            "target_tais": sorted(target_tais),
+        }
+    return guards
+
+
+def apply_evidence_guards(stores_payload, target_ymd):
+    guards = load_evidence_guards(target_ymd)
+    if not guards:
+        return stores_payload
+
+    for store, payload in stores_payload.items():
+        guard = guards.get(normalize_store_name(store))
+        if not guard or not isinstance(payload, dict):
+            continue
+        target_tais = set(guard.get("target_tais") or [])
+        payload["evidence_guard"] = {
+            "actionable": bool(guard.get("actionable")),
+            "label": guard.get("label", ""),
+            "detail": guard.get("detail", ""),
+            "target_tais": sorted(target_tais),
+        }
+        candidates = payload.get("candidates")
+        if not isinstance(candidates, list):
+            continue
+
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            try:
+                tai = int(candidate.get("tai"))
+            except Exception:
+                tai = None
+            is_verified_target = tai in target_tais
+            candidate["verified_target"] = bool(is_verified_target)
+
+            if guard.get("actionable") is False and not is_verified_target:
+                note = f"店舗検証: {guard.get('label', '検証弱め')}。{guard.get('detail', '過去検証では候補を強く出せません。')}"
+                candidate["warnings"] = unique_items([*(candidate.get("warnings") or []), note], limit=3)
+                candidate["cautions"] = unique_items([*(candidate.get("cautions") or []), "店舗検証が弱い"], limit=4)
+                candidate["action"] = "watch"
+                candidate["action_label"] = "参考"
+                candidate["actionable"] = False
+
+        candidates.sort(key=morning_candidate_sort_key, reverse=True)
+    return stores_payload
+
+
 def classify_morning_candidate(total_score, store_score, store_sample, model_score, model_sample, tai_score, tai_sample, warnings):
     cautions = [str(w) for w in (warnings or []) if str(w).strip()]
     if store_sample < 30:
@@ -269,7 +403,8 @@ def classify_morning_candidate(total_score, store_score, store_sample, model_sco
 
 def morning_candidate_sort_key(row):
     action_priority = {"main": 2, "candidate": 1, "watch": 0}
-    return (action_priority.get(row.get("action"), 0), float(row.get("score") or 0))
+    verified_priority = 1 if row.get("verified_target") else 0
+    return (verified_priority, action_priority.get(row.get("action"), 0), float(row.get("score") or 0))
 
 
 def classify_label(total_g, bb, rb, diff, syn_threshold, rb_threshold):
@@ -712,6 +847,8 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
             "candidates": candidate_by_store.get(store, []),
         }
 
+    apply_evidence_guards(stores_payload, payload_meta["target_date"])
+
     return {
         **payload_meta,
         "normalized_models": dict(sorted(normalized_models.items())),
@@ -968,6 +1105,8 @@ def build_payload(df, normalized_models, unsupported_models):
             "tail_ranking": tail_rankings.get(store, []),
             "candidates": candidate_by_store.get(store, []),
         }
+
+    apply_evidence_guards(stores_payload, payload_meta["target_date"])
 
     return {
         **payload_meta,
