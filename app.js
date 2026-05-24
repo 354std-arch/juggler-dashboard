@@ -3236,11 +3236,18 @@ function doesSeatLayoutCardMatchFilters(card) {
 }
 
 function getSeatLayoutDatesFromBundle() {
-  const dates = seatLayoutState.seatDataBundle?.dates;
+  const recentDates = Array.isArray(seatLayoutState.seatDataBundle?.dates)
+    ? seatLayoutState.seatDataBundle.dates
+    : [];
+  const availableDates = Array.isArray(seatLayoutState.seatDataBundle?.available_dates)
+    ? seatLayoutState.seatDataBundle.available_dates
+    : [];
+  const dates = availableDates.length ? availableDates : recentDates;
   if(!Array.isArray(dates)) return [];
-  return dates
+  return Array.from(new Set(dates
     .map((v) => normalizeDataDateValue(v))
-    .filter((v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')));
+    .filter((v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')))))
+    .sort((a, b) => String(b).localeCompare(String(a)));
 }
 
 function buildSeatLayoutDateOptions(anchorYmd) {

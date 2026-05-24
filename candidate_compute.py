@@ -231,7 +231,7 @@ def detect_latest_data_date():
     return latest_dt
 
 
-def finalize_seat_data_payload(store_order, by_date, stores_with_data):
+def finalize_seat_data_payload(store_order, by_date, stores_with_data, available_dates=None):
     payload = {"dates": [], "stores": store_order[:], "data": {}}
     date_keys = sorted(by_date.keys(), reverse=True)
     store_set = set(store_order)
@@ -260,6 +260,8 @@ def finalize_seat_data_payload(store_order, by_date, stores_with_data):
             data_out[ymd] = day_out
 
     payload["dates"] = date_keys
+    if available_dates is not None:
+        payload["available_dates"] = sorted(set(available_dates), reverse=True)
     payload["data"] = data_out
     return payload
 
@@ -277,6 +279,7 @@ def build_recent_seat_data_payload(day_window=30):
     start_date = end_date - timedelta(days=max(0, int(day_window) - 1))
     by_date = {}
     stores_with_data = set()
+    available_dates = set()
 
     with open(RAW_DATA_CSV, "r", encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
@@ -285,6 +288,7 @@ def build_recent_seat_data_payload(day_window=30):
             if dt is None:
                 continue
             d = dt.date()
+            available_dates.add(d.strftime("%Y-%m-%d"))
             if d < start_date or d > end_date:
                 continue
 
@@ -304,7 +308,7 @@ def build_recent_seat_data_payload(day_window=30):
             }
             stores_with_data.add(store)
 
-    return finalize_seat_data_payload(store_order, by_date, stores_with_data)
+    return finalize_seat_data_payload(store_order, by_date, stores_with_data, available_dates)
 
 
 def build_monthly_seat_data_payloads():
