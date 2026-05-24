@@ -9662,15 +9662,22 @@ function renderMorningSummaryForCalendar() {
           const taiReasons = Array.isArray(c?.reasons) ? c.reasons.filter(Boolean).slice(0, 3) : [];
           while(taiReasons.length < 3) taiReasons.push('根拠データなし');
 
-          const warnings = Array.isArray(c?.warnings) ? c.warnings.filter(Boolean).slice(0, 2) : [];
-          while(warnings.length < 2) warnings.push('特記事項なし');
+          const action = String(c?.action || 'watch');
+          const actionLabel = String(c?.action_label || (action === 'main' ? '本命' : action === 'candidate' ? '候補' : '観察'));
+          const actionClass = action === 'main' ? 'is-main' : action === 'candidate' ? 'is-candidate' : 'is-watch';
+          const warnings = [
+            ...(Array.isArray(c?.warnings) ? c.warnings : []),
+            ...(Array.isArray(c?.cautions) ? c.cautions : []),
+          ].filter(Boolean);
+          const uniqueWarnings = Array.from(new Set(warnings)).slice(0, 3);
+          if(!uniqueWarnings.length) uniqueWarnings.push('特記事項なし');
           const isVerifiedTarget = verifiedTargetTais.has(Number(c?.tai));
           const verifiedHtml = isVerifiedTarget ? '<span class="morning-verified-chip">検証候補</span>' : '';
 
-          return `<div class="morning-candidate-card">
+          return `<div class="morning-candidate-card ${actionClass}">
             <div class="morning-candidate-head">
               <div class="morning-candidate-name">${idx + 1}. ${escapeHtml(String(c?.tai ?? '-'))}番台 / ${escapeHtml(modelName)}</div>
-              <div class="morning-candidate-score">${verifiedHtml}${formatMorningScorePercent(c?.score)}</div>
+              <div class="morning-candidate-score"><span class="morning-action-chip ${actionClass}">${escapeHtml(actionLabel)}</span>${verifiedHtml}${formatMorningScorePercent(c?.score)}</div>
             </div>
             <div class="morning-candidate-layer">
               <div class="morning-layer-label">店条件</div>
@@ -9686,7 +9693,7 @@ function renderMorningSummaryForCalendar() {
             </div>
             <div class="morning-candidate-note">
               <div class="morning-layer-label">注意点</div>
-              <ul class="morning-inline-list">${warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join('')}</ul>
+              <ul class="morning-inline-list">${uniqueWarnings.map((w) => `<li>${escapeHtml(w)}</li>`).join('')}</ul>
             </div>
           </div>`;
         }).join('')

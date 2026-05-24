@@ -191,11 +191,18 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .morning-rank-sub{grid-column:1/-1;font-size:10px;color:var(--muted);}
 .morning-rank-meta{font-size:11px;color:var(--accent);font-family:'Share Tech Mono',monospace;white-space:nowrap;}
 .morning-empty{font-size:11px;color:var(--muted);}
-.morning-candidate-card{border:1px solid rgba(0,229,255,.2);border-radius:8px;padding:8px;margin-bottom:8px;background:var(--bg3);}
+.morning-candidate-card{border:1px solid rgba(0,229,255,.2);border-left-width:3px;border-radius:8px;padding:8px;margin-bottom:8px;background:var(--bg3);}
+.morning-candidate-card.is-main{border-left-color:var(--plus);}
+.morning-candidate-card.is-candidate{border-left-color:var(--accent);}
+.morning-candidate-card.is-watch{border-left-color:var(--muted);}
 .morning-candidate-card:last-child{margin-bottom:0;}
 .morning-candidate-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
 .morning-candidate-name{font-size:12px;color:var(--text);font-weight:800;}
 .morning-candidate-score{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:var(--accent);}
+.morning-action-chip{display:inline-flex;align-items:center;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:900;border:1px solid rgba(255,255,255,.14);color:var(--muted);background:rgba(255,255,255,.05);}
+.morning-action-chip.is-main{color:var(--plus);border-color:rgba(57,255,20,.3);background:rgba(57,255,20,.1);}
+.morning-action-chip.is-candidate{color:var(--accent);border-color:rgba(0,229,255,.28);background:rgba(0,229,255,.09);}
+.morning-action-chip.is-watch{color:var(--muted);border-color:rgba(255,255,255,.1);background:rgba(255,255,255,.04);}
 .morning-verified-chip{display:inline-flex;align-items:center;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:900;color:var(--plus);background:rgba(57,255,20,.1);border:1px solid rgba(57,255,20,.28);}
 .morning-candidate-layer,.morning-candidate-note{display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:flex-start;margin-top:5px;}
 .morning-layer-label{font-size:10px;color:var(--muted);font-weight:700;}

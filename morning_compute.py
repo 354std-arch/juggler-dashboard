@@ -156,6 +156,58 @@ def build_payload_meta(now_jst, source_date):
     }
 
 
+def classify_morning_candidate(total_score, store_score, store_sample, model_score, model_sample, tai_score, tai_sample, warnings):
+    cautions = [str(w) for w in (warnings or []) if str(w).strip()]
+    if store_sample < 30:
+        cautions.append("店条件サンプル不足")
+    if model_sample < 20:
+        cautions.append("機種条件サンプル不足")
+    if tai_sample < 20:
+        cautions.append("台番号サンプル不足")
+    if store_score < 0.2:
+        cautions.append("店条件が弱い")
+    if model_score < 0.2:
+        cautions.append("機種条件が弱い")
+
+    enough_sample = store_sample >= 30 and model_sample >= 20 and tai_sample >= 20
+    if (
+        enough_sample
+        and total_score >= 0.38
+        and store_score >= 0.28
+        and model_score >= 0.32
+        and tai_score >= 0.18
+    ):
+        return {
+            "action": "main",
+            "action_label": "本命",
+            "actionable": True,
+            "cautions": cautions[:4],
+        }
+    if (
+        enough_sample
+        and total_score >= 0.30
+        and store_score >= 0.20
+        and (model_score >= 0.25 or tai_score >= 0.22)
+    ):
+        return {
+            "action": "candidate",
+            "action_label": "候補",
+            "actionable": True,
+            "cautions": cautions[:4],
+        }
+    return {
+        "action": "watch",
+        "action_label": "観察",
+        "actionable": False,
+        "cautions": cautions[:4],
+    }
+
+
+def morning_candidate_sort_key(row):
+    action_priority = {"main": 2, "candidate": 1, "watch": 0}
+    return (action_priority.get(row.get("action"), 0), float(row.get("score") or 0))
+
+
 def classify_label(total_g, bb, rb, diff, syn_threshold, rb_threshold):
     syn_ratio = (total_g / (bb + rb)) if (bb + rb) > 0 else None
     rb_ratio = (total_g / rb) if rb > 0 else None
@@ -516,8 +568,8 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
         else:
             trend = "横ばい"
 
-        store_day_score, _ = store_day_lookup.get((store, today_weekday, today_special), (0.0, 0))
-        model_score, _ = model_day_lookup.get((store, recent_model, today_weekday, today_special), (0.0, 0))
+        store_day_score, store_day_sample = store_day_lookup.get((store, today_weekday, today_special), (0.0, 0))
+        model_score, model_sample = model_day_lookup.get((store, recent_model, today_weekday, today_special), (0.0, 0))
         total_score = 0.35 * store_day_score + 0.40 * model_score + 0.25 * tai_upper_rate
 
         warnings = []
@@ -527,23 +579,37 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
             days_since_change = (today_date - last_change_date.date()).days
             if days_since_change <= 90:
                 warnings.append(f"台番号変動あり（直近{days_since_change}日）")
+        decision = classify_morning_candidate(
+            total_score,
+            store_day_score,
+            store_day_sample,
+            model_score,
+            model_sample,
+            tai_upper_rate,
+            sample,
+            warnings,
+        )
 
         candidate_by_store[store].append(
             {
                 "tai": int(tai),
                 "model": recent_model,
                 "score": round(total_score, 6),
+                "action": decision["action"],
+                "action_label": decision["action_label"],
+                "actionable": decision["actionable"],
                 "reasons": [
                     f"上候補以上率{tai_upper_rate:.0%}",
                     f"サンプル{sample}件",
                     f"推移{trend}",
                 ][:3],
                 "warnings": warnings[:2],
+                "cautions": decision["cautions"],
             }
         )
 
     for store in list(candidate_by_store.keys()):
-        candidate_by_store[store].sort(key=lambda x: x["score"], reverse=True)
+        candidate_by_store[store].sort(key=morning_candidate_sort_key, reverse=True)
 
     stores_payload = {}
     store_names = sorted({r["store"] for r in rows})
@@ -716,12 +782,12 @@ def build_payload(df, normalized_models, unsupported_models):
 
     candidate_by_store = {}
     for store, rows in tai_weighted.groupby("store", sort=False):
-        store_day_score, _ = store_day_lookup.get((store, today_weekday, today_special), (0.0, 0))
+        store_day_score, store_day_sample = store_day_lookup.get((store, today_weekday, today_special), (0.0, 0))
         candidates = []
         for r in rows.itertuples(index=False):
             tai_key = (store, int(r.tai))
             model = recent_model_by_tai.get(tai_key, "")
-            model_score, _ = model_day_lookup.get((store, model, today_weekday, today_special), (0.0, 0))
+            model_score, model_sample = model_day_lookup.get((store, model, today_weekday, today_special), (0.0, 0))
             tai_score = float(r.tai_upper_rate)
             total_score = 0.35 * store_day_score + 0.40 * model_score + 0.25 * tai_score
 
@@ -748,18 +814,32 @@ def build_payload(df, normalized_models, unsupported_models):
                 days_since_change = (today_date - lc.date()).days
                 if days_since_change <= 90:
                     warnings.append(f"台番号変動あり（直近{days_since_change}日）")
+            decision = classify_morning_candidate(
+                total_score,
+                store_day_score,
+                store_day_sample,
+                model_score,
+                model_sample,
+                tai_score,
+                int(r.sample),
+                warnings,
+            )
 
             candidates.append(
                 {
                     "tai": int(r.tai),
                     "model": model,
                     "score": round(total_score, 6),
+                    "action": decision["action"],
+                    "action_label": decision["action_label"],
+                    "actionable": decision["actionable"],
                     "reasons": reasons,
                     "warnings": warnings[:2],
+                    "cautions": decision["cautions"],
                 }
             )
 
-        candidates.sort(key=lambda x: x["score"], reverse=True)
+        candidates.sort(key=morning_candidate_sort_key, reverse=True)
         candidate_by_store[store] = candidates
 
     stores_payload = {}
