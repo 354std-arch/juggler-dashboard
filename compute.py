@@ -567,6 +567,20 @@ def jst_today() -> date:
     return datetime.now(JST).date()
 
 
+def parse_ymd_date(value):
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(text, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
 def load_raw(special_by_store):
     seen = set()
     rows = []
@@ -1697,7 +1711,7 @@ def get_evidence_decision(evidence_backtest):
         "message": decision.get("message", "検証データが不足しています。"),
     }
 
-def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top_k=20, target_weekday=None):
+def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top_k=20, target_weekday=None, target_date=None):
     decision = get_evidence_decision(evidence_backtest)
     if not decision["actionable"]:
         return []
@@ -1711,9 +1725,28 @@ def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top
     if not validated_map:
         return []
 
+    target_date_obj = target_date.date() if isinstance(target_date, datetime) else target_date
+    if isinstance(target_date_obj, str):
+        target_date_obj = parse_ymd_date(target_date_obj)
+    expected_prev_date = target_date_obj - timedelta(days=1) if target_date_obj else None
+
     targets = []
     for t in tai_detail:
         tai_num = int(t.get("taiNum") or 0)
+        raw_prev_row = t.get("prevRow") if isinstance(t.get("prevRow"), dict) else None
+        raw_prev_date = parse_ymd_date(raw_prev_row.get("dateStr")) if raw_prev_row else None
+        prev_row = raw_prev_row if expected_prev_date and raw_prev_date == expected_prev_date else None
+        target_cautions = []
+        if expected_prev_date and raw_prev_row and raw_prev_date != expected_prev_date:
+            target_cautions.append({
+                "label": "前日条件なし",
+                "message": "対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。",
+            })
+        elif expected_prev_date and not raw_prev_row:
+            target_cautions.append({
+                "label": "前日条件なし",
+                "message": "対象日前日の台データがないため、前日根拠は使っていません。",
+            })
         pseudo_row = {
             "day": target_day,
             "weekday": target_weekday,
@@ -1724,7 +1757,7 @@ def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top
             "installSegment": t.get("installSegment"),
         }
         matched = []
-        for f_type, f_key, label in build_evidence_feature_keys(pseudo_row, t.get("prevRow")):
+        for f_type, f_key, label in build_evidence_feature_keys(pseudo_row, prev_row):
             root = validated_map.get((f_type, f_key))
             if not root:
                 continue
@@ -1773,11 +1806,12 @@ def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top
         rank = "本命" if score >= 260 else "対抗" if score >= 180 else "保留"
         targets.append({
             **t,
+            "prevRow": prev_row,
             "totalScore": r1(score),
             "rank": rank,
             "reasons": reasons,
             "evidence": matched[:3],
-            "cautions": [],
+            "cautions": target_cautions,
             "scoreSource": "validated_evidence",
         })
     targets.sort(key=lambda item: (-item["totalScore"], item.get("taiNum") or 0))
@@ -1936,6 +1970,7 @@ def compute_today_analysis(rows, special, today=None, tai_detail=None, evidence_
         evidence_backtest,
         top_k=20,
         target_weekday=weekday_data,
+        target_date=today,
     )
     return {
         "date":today.strftime("%Y-%m-%d"),"day":day,"weekday":weekday,
@@ -1971,6 +2006,7 @@ def build_store_recommendations(store, store_rows, special, tai_detail, today=No
         evidence_backtest,
         top_k=8,
         target_weekday=recommendation_weekday_data,
+        target_date=today,
     )
     recs = []
     for t in targets:
