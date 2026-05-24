@@ -11,6 +11,21 @@ try:
 except Exception:
     pd = None
 
+try:
+    from compute import (
+        DEFAULT_SPECIAL_DAYS,
+        load_store_configs,
+        normalize_store_name,
+    )
+except Exception:
+    DEFAULT_SPECIAL_DAYS = [1, 11, 21, 31]
+
+    def normalize_store_name(store_name):
+        return str(store_name or "").strip()
+
+    def load_store_configs():
+        return {"specialByStore": {}}
+
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_CSV = os.path.join(REPO_DIR, "raw_data.csv")
 OUT_JSON = os.path.join(REPO_DIR, "morning_data.json")
@@ -44,6 +59,7 @@ UPPER_LABELS = {"強上候補", "上候補"}
 DECAY = math.log(2.0) / 180.0
 CHUNK_SIZE = 200_000
 INSTALL_SEGMENT_GAP_DAYS = 21
+_SPECIAL_BY_STORE_CACHE = None
 
 COLUMN_ALIASES = {
     "date": ["date", "日付", "data_date", "target_date"],
@@ -87,11 +103,59 @@ def to_numeric(series):
     )
 
 
-def is_special_day(day):
+def load_store_special_map():
+    global _SPECIAL_BY_STORE_CACHE
+    if _SPECIAL_BY_STORE_CACHE is not None:
+        return _SPECIAL_BY_STORE_CACHE
+
+    try:
+        config = load_store_configs()
+        raw_specials = config.get("specialByStore", {}) if isinstance(config, dict) else {}
+    except Exception:
+        raw_specials = {}
+
+    specials = {}
+    for store, days in (raw_specials or {}).items():
+        key = normalize_store_name(store)
+        if not key or not isinstance(days, list):
+            continue
+        values = []
+        for value in days:
+            try:
+                day = int(value)
+            except Exception:
+                continue
+            if 1 <= day <= 31:
+                values.append(day)
+        if values:
+            specials[key] = sorted(set(values))
+
+    _SPECIAL_BY_STORE_CACHE = specials
+    return _SPECIAL_BY_STORE_CACHE
+
+
+def is_generic_special_day(day):
     day_int = int(day)
     text = str(day_int)
     is_repdigit = len(text) >= 2 and len(set(text)) == 1
     return (day_int % 10 in (0, 7)) or is_repdigit
+
+
+def is_store_special_day(store, day, special_by_store=None):
+    try:
+        day_int = int(day)
+    except Exception:
+        return False
+    store_key = normalize_store_name(store)
+    specials = special_by_store if isinstance(special_by_store, dict) else load_store_special_map()
+    store_days = specials.get(store_key, DEFAULT_SPECIAL_DAYS)
+    return day_int in set(store_days)
+
+
+def is_special_day(day, store=None, special_by_store=None):
+    if store:
+        return is_store_special_day(store, day, special_by_store)
+    return is_generic_special_day(day)
 
 
 def parse_number(value, default=0.0):
@@ -252,6 +316,7 @@ def rate_table(df, group_keys):
 
 
 def read_labeled_rows_fallback():
+    special_by_store = load_store_special_map()
     with open(RAW_CSV, "r", encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
         resolved_cols = resolve_columns(reader.fieldnames or [])
@@ -299,7 +364,7 @@ def read_labeled_rows_fallback():
                     "diff": diff,
                     "total_g": total_g,
                     "weekday": dt.weekday(),
-                    "is_special": is_special_day(dt.day),
+                    "is_special": is_store_special_day(raw_store, dt.day, special_by_store),
                     "label": label,
                 }
             )
@@ -311,6 +376,7 @@ def read_labeled_rows():
     if pd is None:
         return read_labeled_rows_fallback()
 
+    special_by_store = load_store_special_map()
     header = pd.read_csv(RAW_CSV, encoding="utf-8-sig", nrows=0)
     resolved_cols = resolve_columns(header.columns.tolist())
     usecols = list(dict.fromkeys(resolved_cols.values()))
@@ -366,7 +432,10 @@ def read_labeled_rows():
         chunk["tai"] = chunk["tai"].astype(int)
         chunk["weekday"] = chunk["date"].dt.weekday.astype(int)
         chunk["day"] = chunk["date"].dt.day.astype(int)
-        chunk["is_special"] = chunk["day"].isin([11, 22]) | chunk["day"].mod(10).isin([0, 7])
+        chunk["is_special"] = [
+            is_store_special_day(store, day, special_by_store)
+            for store, day in zip(chunk["store"], chunk["day"])
+        ]
 
         bonus_total = chunk["bb"] + chunk["rb"]
         chunk["syn_ratio"] = (chunk["total_g"] / bonus_total).where(bonus_total > 0)
@@ -428,7 +497,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
     now_jst = datetime.now(JST)
     today_date = now_jst.date()
     today_weekday = now_jst.weekday()
-    today_special = is_special_day(now_jst.day)
+    special_by_store = load_store_special_map()
     payload_meta = build_payload_meta(now_jst, max((r["date"] for r in rows), default=None))
 
     if not rows:
@@ -460,12 +529,13 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
         label = r["label"]
         model = r["model"]
         tai = int(r["tai"])
+        target_special = is_store_special_day(store, now_jst.day, special_by_store)
 
         add_rate_stat(store_day, (store, weekday, is_special), label)
         add_rate_stat(store_model_day, (store, model, weekday, is_special), label)
         add_rate_stat(store_tail, (store, tai % 10), label)
 
-        if weekday == today_weekday and is_special == today_special:
+        if weekday == today_weekday and is_special == target_special:
             today_label_counter[store][label] += 1
         by_tai[(store, tai)].append(r)
 
@@ -483,7 +553,8 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
 
     model_rankings = defaultdict(list)
     for (store, model, weekday, is_special), stat in store_model_day.items():
-        if weekday != today_weekday or is_special != today_special:
+        target_special = is_store_special_day(store, now_jst.day, special_by_store)
+        if weekday != today_weekday or is_special != target_special:
             continue
         total = stat["total"]
         upper_rate = (stat["upper"] / total) if total else 0.0
@@ -512,6 +583,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
     candidate_by_store = defaultdict(list)
     recent_cutoff = (now_jst - timedelta(days=90)).replace(tzinfo=None)
     for (store, tai), tai_rows in by_tai.items():
+        target_special = is_store_special_day(store, now_jst.day, special_by_store)
         tai_rows.sort(key=lambda x: x["date"])
         last_change_date = None
         prev_model = None
@@ -568,8 +640,8 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
         else:
             trend = "横ばい"
 
-        store_day_score, store_day_sample = store_day_lookup.get((store, today_weekday, today_special), (0.0, 0))
-        model_score, model_sample = model_day_lookup.get((store, recent_model, today_weekday, today_special), (0.0, 0))
+        store_day_score, store_day_sample = store_day_lookup.get((store, today_weekday, target_special), (0.0, 0))
+        model_score, model_sample = model_day_lookup.get((store, recent_model, today_weekday, target_special), (0.0, 0))
         total_score = 0.35 * store_day_score + 0.40 * model_score + 0.25 * tai_upper_rate
 
         warnings = []
@@ -614,7 +686,8 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
     stores_payload = {}
     store_names = sorted({r["store"] for r in rows})
     for store in store_names:
-        today_score, today_sample = store_day_lookup.get((store, today_weekday, today_special), (0.0, 0))
+        target_special = is_store_special_day(store, now_jst.day, special_by_store)
+        today_score, today_sample = store_day_lookup.get((store, today_weekday, target_special), (0.0, 0))
         if today_score >= 0.4:
             today_label = "強い"
         elif today_score < 0.2:
@@ -625,6 +698,8 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
         counter = today_label_counter.get(store, Counter())
         mode_label = counter.most_common(1)[0][0] if counter else "データ不足"
         stores_payload[store] = {
+            "target_is_special": bool(target_special),
+            "target_day_type": "特定日" if target_special else "通常日",
             "today_score": round(float(today_score), 6),
             "today_label": today_label,
             "today_reason": [
@@ -649,7 +724,7 @@ def build_payload(df, normalized_models, unsupported_models):
     now_jst = datetime.now(JST)
     today_date = now_jst.date()
     today_weekday = now_jst.weekday()
-    today_special = is_special_day(now_jst.day)
+    special_by_store = load_store_special_map()
     payload_meta = build_payload_meta(now_jst, None if df.empty else df["date"].max())
 
     if df.empty:
@@ -673,6 +748,11 @@ def build_payload(df, normalized_models, unsupported_models):
     model_day_lookup = {
         (r.store, r.model, int(r.weekday), bool(r.is_special)): (float(r.upper_rate), int(r.sample))
         for r in store_model_day_stats.itertuples(index=False)
+    }
+    store_names_for_target = sorted(df["store"].dropna().astype(str).unique().tolist())
+    target_special_by_store = {
+        store: is_store_special_day(store, now_jst.day, special_by_store)
+        for store in store_names_for_target
     }
 
     df_sorted = df.sort_values(["store", "tai", "date"]).copy()
@@ -742,15 +822,27 @@ def build_payload(df, normalized_models, unsupported_models):
     tai_weighted = tai_weighted.join(recent_upper, on=["store", "tai"])
     tai_weighted["recent_upper"] = tai_weighted["recent_upper"].fillna(tai_weighted["overall_upper"])
 
-    today_rows = df.loc[(df["weekday"] == today_weekday) & (df["is_special"] == today_special)]
+    target_special_series = df["store"].map(
+        lambda store: target_special_by_store.get(
+            str(store), is_store_special_day(store, now_jst.day, special_by_store)
+        )
+    )
+    today_rows = df.loc[
+        (df["weekday"] == today_weekday)
+        & (df["is_special"].astype(bool) == target_special_series.astype(bool))
+    ]
     today_label_mode = (
         today_rows.groupby("store")["label"].agg(lambda s: s.value_counts().idxmax()).to_dict()
     )
 
-    model_today = store_model_day_stats.loc[
-        (store_model_day_stats["weekday"] == today_weekday)
-        & (store_model_day_stats["is_special"] == today_special)
-    ].copy()
+    model_today_mask = store_model_day_stats.apply(
+        lambda r: int(r["weekday"]) == today_weekday
+        and bool(r["is_special"]) == target_special_by_store.get(
+            str(r["store"]), is_store_special_day(r["store"], now_jst.day, special_by_store)
+        ),
+        axis=1,
+    )
+    model_today = store_model_day_stats.loc[model_today_mask].copy()
     model_rankings = {}
     for store, rows in model_today.groupby("store", sort=False):
         sorted_rows = rows.sort_values("upper_rate", ascending=False).head(5)
@@ -782,12 +874,15 @@ def build_payload(df, normalized_models, unsupported_models):
 
     candidate_by_store = {}
     for store, rows in tai_weighted.groupby("store", sort=False):
-        store_day_score, store_day_sample = store_day_lookup.get((store, today_weekday, today_special), (0.0, 0))
+        target_special = target_special_by_store.get(
+            store, is_store_special_day(store, now_jst.day, special_by_store)
+        )
+        store_day_score, store_day_sample = store_day_lookup.get((store, today_weekday, target_special), (0.0, 0))
         candidates = []
         for r in rows.itertuples(index=False):
             tai_key = (store, int(r.tai))
             model = recent_model_by_tai.get(tai_key, "")
-            model_score, model_sample = model_day_lookup.get((store, model, today_weekday, today_special), (0.0, 0))
+            model_score, model_sample = model_day_lookup.get((store, model, today_weekday, target_special), (0.0, 0))
             tai_score = float(r.tai_upper_rate)
             total_score = 0.35 * store_day_score + 0.40 * model_score + 0.25 * tai_score
 
@@ -843,9 +938,12 @@ def build_payload(df, normalized_models, unsupported_models):
         candidate_by_store[store] = candidates
 
     stores_payload = {}
-    store_names = sorted(df["store"].dropna().astype(str).unique().tolist())
+    store_names = store_names_for_target
     for store in store_names:
-        today_score, today_sample = store_day_lookup.get((store, today_weekday, today_special), (0.0, 0))
+        target_special = target_special_by_store.get(
+            store, is_store_special_day(store, now_jst.day, special_by_store)
+        )
+        today_score, today_sample = store_day_lookup.get((store, today_weekday, target_special), (0.0, 0))
         if today_score >= 0.4:
             today_label = "強い"
         elif today_score < 0.2:
@@ -861,6 +959,8 @@ def build_payload(df, normalized_models, unsupported_models):
         ][:3]
 
         stores_payload[store] = {
+            "target_is_special": bool(target_special),
+            "target_day_type": "特定日" if target_special else "通常日",
             "today_score": round(float(today_score), 6),
             "today_label": today_label,
             "today_reason": today_reason,

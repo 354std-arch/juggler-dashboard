@@ -48,6 +48,7 @@ def load_store_model_condition_stats():
     if not os.path.exists(STORE_MODEL_SUMMARY_CSV):
         return model_stats, store_stats
 
+    special_by_store = morning.load_store_special_map()
     with open(STORE_MODEL_SUMMARY_CSV, "r", encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -62,7 +63,7 @@ def load_store_model_condition_stats():
                 continue
 
             weekday = dt.weekday()
-            is_special = morning.is_special_day(dt.day)
+            is_special = morning.is_store_special_day(store, dt.day, special_by_store)
             model_key = (store, model, weekday, is_special)
             store_key = (store, weekday, is_special)
 
@@ -111,7 +112,7 @@ def load_store_model_condition_stats():
 def enrich_model_ranking_with_summary(payload):
     data_date = parse_date(payload.get("target_date") or payload.get("data_date")) or datetime.now(JST).replace(tzinfo=None)
     weekday = data_date.weekday()
-    is_special = morning.is_special_day(data_date.day)
+    special_by_store = morning.load_store_special_map()
     model_summary, store_summary = load_store_model_condition_stats()
 
     stores_payload = payload.get("stores", {})
@@ -121,6 +122,7 @@ def enrich_model_ranking_with_summary(payload):
     for store, store_data in stores_payload.items():
         if not isinstance(store_data, dict):
             continue
+        is_special = morning.is_store_special_day(store, data_date.day, special_by_store)
         store_cond = store_summary.get((store, weekday, is_special), {})
         store_win_rate = store_cond.get("win_rate")
 

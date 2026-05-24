@@ -9645,6 +9645,7 @@ function renderMorningSummaryForCalendar() {
     const qualityWarning = getStoreDataQualityWarning(storePrecomputed);
     const trustMeta = getMorningStoreTrustMeta(store, freshness.targetYmd);
     const verifiedTargetTais = new Set((trustMeta.targets || []).map((t) => Number(t?.tai || t?.taiNum)).filter(Number.isFinite));
+    const dayType = String(data.target_day_type || (data.target_is_special ? '特定日' : '通常日'));
     const todayLabel = String(data.today_label || '判定なし');
     const todayScoreText = formatMorningScorePercent(data.today_score);
     const todayReasons = Array.isArray(data.today_reason)
@@ -9734,7 +9735,7 @@ function renderMorningSummaryForCalendar() {
             </div>
             <div class="morning-candidate-layer">
               <div class="morning-layer-label">店条件</div>
-              <div class="morning-layer-text">判定 ${escapeHtml(todayLabel)} / スコア ${todayScoreText} / ${escapeHtml(todayReasonText)}</div>
+              <div class="morning-layer-text">${escapeHtml(dayType)} / 判定 ${escapeHtml(todayLabel)} / スコア ${todayScoreText} / ${escapeHtml(todayReasonText)}</div>
             </div>
             <div class="morning-candidate-layer">
               <div class="morning-layer-label">機種条件</div>
@@ -9756,6 +9757,7 @@ function renderMorningSummaryForCalendar() {
       <div class="morning-store-head">
         <div class="morning-store-name">🏪 ${escapeHtml(store)}</div>
         <div class="morning-store-badges">
+          <span class="morning-trust-badge">${escapeHtml(dayType)}</span>
           <span class="morning-label ${todayLabelClass}">${escapeHtml(todayLabel)} / ${todayScoreText}</span>
           <span class="morning-trust-badge ${trustMeta.className}">${escapeHtml(trustMeta.label)}</span>
         </div>
