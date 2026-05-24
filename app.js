@@ -10050,6 +10050,26 @@ const WITHDRAW_SETTINGS = [
   { bb: 1 / 220, rb: 1 / 210, grape: 1 / 5.75, cherry: 1 / 32.5 },
 ];
 
+function getWithdrawModelName() {
+  const contextModel = normalizeModelName(G.currentTargetContext?.model || '');
+  if(MODEL_SETTINGS[contextModel]) return contextModel;
+  const selectedModel = normalizeModelName(document.getElementById('stModel')?.value || '');
+  if(MODEL_SETTINGS[selectedModel]) return selectedModel;
+  return 'マイジャグラーV';
+}
+
+function getWithdrawSettingsForModel(model) {
+  const normalized = normalizeModelName(model || '');
+  const ms = MODEL_SETTINGS[normalized] || MODEL_SETTINGS['マイジャグラーV'];
+  const yak = MODEL_YAKUS[normalized] || MODEL_YAKUS['マイジャグラーV'] || {};
+  return [1, 2, 3, 4, 5, 6].map((setting, idx) => ({
+    bb: 1 / ms.bb[setting],
+    rb: 1 / ms.rb[setting],
+    grape: yak.budo?.[setting] ? 1 / yak.budo[setting] : WITHDRAW_SETTINGS[idx].grape,
+    cherry: yak.cherry?.[setting] ? 1 / yak.cherry[setting] : WITHDRAW_SETTINGS[idx].cherry,
+  }));
+}
+
 function wdSafeNum(v) {
   const n = Number(v);
   return Number.isFinite(n) && n >= 0 ? n : 0;
@@ -10062,10 +10082,11 @@ function wdLogBinomialLike(trials, success, p) {
   return k * Math.log(pp) + (n - k) * Math.log(1 - pp);
 }
 
-function calcWithdrawPosterior(games, big, reg, grape, cherry) {
+function calcWithdrawPosterior(games, big, reg, grape, cherry, model) {
   if(games <= 0) return null;
 
-  let logs = WITHDRAW_SETTINGS.map((s, i) => {
+  const settings = getWithdrawSettingsForModel(model);
+  let logs = settings.map((s, i) => {
     let logL = Math.log(WITHDRAW_PRIOR[i]);
     logL += wdLogBinomialLike(games, big, s.bb);
     logL += wdLogBinomialLike(games, reg, s.rb);
@@ -10079,20 +10100,64 @@ function calcWithdrawPosterior(games, big, reg, grape, cherry) {
   const sum = logs.reduce((a, b) => a + b, 0);
   if(sum <= 0) return null;
   const probs = logs.map(v => v / sum);
-  return probs[3] + probs[4] + probs[5];
+  const p4OrMore = probs[3] + probs[4] + probs[5];
+  const p5OrMore = probs[4] + probs[5];
+  const expSet = probs.reduce((acc, p, idx) => acc + p * (idx + 1), 0);
+  return { probs, p4OrMore, p5OrMore, expSet };
 }
 
-function setWithdrawBanner(isWarn, message) {
+function getWithdrawReliability(games, big, reg, grape, cherry) {
+  const bonus = big + reg;
+  const notes = [];
+  if(games < 300) notes.push('G数が浅い');
+  if(bonus < 3) notes.push('ボーナス回数が少ない');
+  if(grape <= 0 && cherry <= 0) notes.push('小役未入力');
+  if(games >= 2000 && bonus >= 8) return { level: '高め', notes };
+  if(games >= 1000 && bonus >= 4) return { level: '中', notes };
+  return { level: '低め', notes };
+}
+
+function buildWithdrawDecision(stats, counts) {
+  if(!stats) {
+    return { tone: 'neutral', message: 'G数を入れると判定できます' };
+  }
+  const { games, big, reg, investment, grape, cherry, model } = counts;
+  const p = stats.p4OrMore;
+  const pPercent = Math.round(p * 100);
+  const expSet = stats.expSet.toFixed(1);
+  const reliability = getWithdrawReliability(games, big, reg, grape, cherry);
+  const suffix = `（${model} / P4+ ${pPercent}% / 期待${expSet} / 信頼度${reliability.level}）`;
+
+  if(games < 300) {
+    return { tone: 'neutral', message: `判定保留：まだ浅いです ${suffix}` };
+  }
+  if(investment >= 20000 && p < 0.45) {
+    return { tone: 'warn', message: `撤退寄り：投資が重く、根拠が弱いです ${suffix}` };
+  }
+  if(games >= 500 && p <= 0.30) {
+    return { tone: 'warn', message: `撤退寄り：高設定根拠が弱いです ${suffix}` };
+  }
+  if(games >= 1000 && p >= 0.65 && reg > 0) {
+    return { tone: 'ok', message: `続行の補強材料あり ${suffix}` };
+  }
+  if(p >= 0.50) {
+    return { tone: 'neutral', message: `様子見：根拠はありますが断定はしません ${suffix}` };
+  }
+  return { tone: 'neutral', message: `弱め：追加確認が必要です ${suffix}` };
+}
+
+function setWithdrawBanner(tone, message) {
   const banner = document.getElementById('withdrawJudgeBanner');
   const text = document.getElementById('withdrawJudgeBannerText');
   if(!banner || !text) return;
 
-  banner.classList.remove('warn', 'ok', 'show');
-  banner.classList.add(isWarn ? 'warn' : 'ok', 'show');
+  const normalizedTone = tone === true ? 'warn' : tone === false ? 'ok' : String(tone || 'neutral');
+  banner.classList.remove('warn', 'ok', 'neutral', 'show');
+  banner.classList.add(['warn', 'ok', 'neutral'].includes(normalizedTone) ? normalizedTone : 'neutral', 'show');
   text.textContent = message;
 
   try {
-    if(typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    if(normalizedTone === 'warn' && typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
       navigator.vibrate([500, 200, 500]);
     }
   } catch (e) {
@@ -10105,6 +10170,17 @@ function closeWithdrawPopup() {
   if(overlay) overlay.classList.remove('open');
 }
 
+function renderWithdrawJudgeContext() {
+  const el = document.getElementById('withdrawJudgeContext');
+  if(!el) return;
+  const model = getWithdrawModelName();
+  const context = G.currentTargetContext;
+  const contextText = context?.tai
+    ? `${context.store || '店舗不明'} / ${context.tai}番台`
+    : '設定推測タブの選択機種を使用';
+  el.textContent = `判定機種: ${model} / ${contextText}`;
+}
+
 function runWithdrawJudge() {
   const games = wdSafeNum(document.getElementById('withdrawGames')?.value);
   const big = wdSafeNum(document.getElementById('withdrawBig')?.value);
@@ -10112,19 +10188,11 @@ function runWithdrawJudge() {
   const investment = wdSafeNum(document.getElementById('withdrawInvestment')?.value);
   const grape = wdSafeNum(document.getElementById('withdrawGrape')?.value);
   const cherry = wdSafeNum(document.getElementById('withdrawCherry')?.value);
+  const model = getWithdrawModelName();
 
-  const p4OrMore = calcWithdrawPosterior(games, big, reg, grape, cherry);
-  const pPercent = p4OrMore == null ? 0 : Math.round(p4OrMore * 100);
-
-  const warnByInvestment = investment >= 20000;
-  const warnByProb = p4OrMore !== null ? p4OrMore <= 0.30 : true;
-  const isWarn = warnByInvestment || warnByProb;
-
-  if(isWarn) {
-    setWithdrawBanner(true, `⚠️ 撤退を検討してください（P(設定4以上) ${pPercent}%）`);
-  } else {
-    setWithdrawBanner(false, `✅ 続行推奨：P(設定4以上) ${pPercent}%`);
-  }
+  const stats = calcWithdrawPosterior(games, big, reg, grape, cherry, model);
+  const decision = buildWithdrawDecision(stats, { games, big, reg, investment, grape, cherry, model });
+  setWithdrawBanner(decision.tone, decision.message);
 
   closeWithdrawPopup();
 }
@@ -10140,6 +10208,7 @@ function initWithdrawJudgeUI() {
   if(!fab || !overlay || !popup || !runBtn || !bannerClose || !banner) return;
 
   fab.addEventListener('click', () => {
+    renderWithdrawJudgeContext();
     overlay.classList.add('open');
   });
   overlay.addEventListener('click', (ev) => {

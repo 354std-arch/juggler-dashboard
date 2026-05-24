@@ -1139,6 +1139,13 @@ button.seat-heatmap-cell{
 
 .withdraw-judge-field input:focus{border-color:var(--accent);}
 
+.withdraw-judge-context{
+  margin:-4px 0 10px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.5;
+}
+
 .withdraw-judge-run-btn{
   grid-column:1 / -1;
   margin-top:2px;
@@ -1163,6 +1170,7 @@ button.seat-heatmap-cell{
 .withdraw-judge-banner.show{display:flex;}
 .withdraw-judge-banner.warn{background:#d72f2f;}
 .withdraw-judge-banner.ok{background:#1f9a45;}
+.withdraw-judge-banner.neutral{background:#b7791f;}
 
 .withdraw-judge-banner-text{
   font-size:14px;
