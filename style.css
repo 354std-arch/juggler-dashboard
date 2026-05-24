@@ -102,6 +102,7 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .recommendation-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted);}
 .recommendation-meta b{font-family:'Share Tech Mono',monospace;color:var(--text);}
 .recommendation-reasons{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5;}
+.recommendation-cautions{margin-top:8px;border:1px solid rgba(255,159,0,.25);border-radius:6px;padding:7px 8px;background:rgba(255,159,0,.07);font-size:11px;color:var(--accent4);line-height:1.45;}
 .target-judgment-board{
   margin-top:10px;
   border:1px solid rgba(255,255,255,.08);

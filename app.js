@@ -5813,10 +5813,13 @@ function buildPrecomputedTargetRecommendations(targetDate) {
     const decision = analysis.evidenceDecision || storeData?.evidenceBacktest?.summary?.decision || {};
     if(decision.actionable === false) return;
     const targets = Array.isArray(analysis.topTargets) ? analysis.topTargets : [];
-    targets.forEach((t) => {
-      const evidence = Array.isArray(t.evidence) ? t.evidence : [];
-      const reasons = [];
-      reasons.push(analysis.isSpecial ? '特定日' : '通常日');
+      targets.forEach((t) => {
+        const evidence = Array.isArray(t.evidence) ? t.evidence : [];
+        const cautions = Array.isArray(t.cautions)
+          ? t.cautions.map((c) => c?.message || c?.label || String(c)).filter(Boolean)
+          : [];
+        const reasons = [];
+        reasons.push(analysis.isSpecial ? '特定日' : '通常日');
       if(decision.label) reasons.push(`検証済み根拠: ${decision.label}`);
       evidence.slice(0, 3).forEach((item) => {
         const validation = item.validation || {};
@@ -5840,6 +5843,7 @@ function buildPrecomputedTargetRecommendations(targetDate) {
         confidence: rank === '本命' ? '★★★' : rank === '対抗' ? '★★' : '★',
         day_type: analysis.isSpecial ? '特定日' : '通常日',
         reasons,
+        cautions,
         score: Number(t.totalScore || t.score || 0),
       });
     });
@@ -5914,8 +5918,14 @@ function renderRecommendations() {
         const reasons = Array.isArray(r.reasons)
           ? r.reasons.filter(v => typeof v === 'string' && v.trim())
           : [];
+        const cautions = Array.isArray(r.cautions)
+          ? r.cautions.map((c) => c?.message || c?.label || String(c)).filter(Boolean)
+          : [];
         const reasonHtml = reasons.length
           ? `<div class="recommendation-reasons">根拠: ${reasons.map(v => escapeHtml(v)).join(' / ')}</div>`
+          : '';
+        const cautionHtml = cautions.length
+          ? `<div class="recommendation-cautions">注意: ${cautions.slice(0, 2).map(v => escapeHtml(v)).join(' / ')}</div>`
           : '';
         return `
           <article class="recommendation-card">
@@ -5936,6 +5946,7 @@ function renderRecommendations() {
               <span>信頼度 <b>${r.confidence || '★'}</b></span>
             </div>
             ${reasonHtml}
+            ${cautionHtml}
           </article>
         `;
       }).join('')}

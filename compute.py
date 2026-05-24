@@ -2038,6 +2038,7 @@ def build_store_recommendations(store, store_rows, special, tai_detail, today=No
             "day_type": "特定日" if is_special else "特定日翌日",
             "recent_count_3m": t.get("weightedCount") or t.get("count") or 0,
             "reasons": reasons,
+            "cautions": t.get("cautions", []),
             "score": weighted_score,
         })
     recs.sort(key=lambda x: (-x["score"], -x["recent_count_3m"], x["store"], x["tai"]))
