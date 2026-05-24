@@ -9727,7 +9727,24 @@ function renderMorningSummaryForCalendar() {
           const taiReasons = Array.isArray(c?.reasons) ? c.reasons.filter(Boolean).slice(0, 3) : [];
           while(taiReasons.length < 3) taiReasons.push('根拠データなし');
 
-          const isVerifiedTarget = verifiedTargetTais.has(Number(c?.tai));
+          const isVerifiedTarget = verifiedTargetTais.has(Number(c?.tai)) || c?.verified_target === true;
+          const verifiedEvidence = Array.isArray(c?.verified_evidence) ? c.verified_evidence.filter(Boolean).slice(0, 3) : [];
+          const verifiedRank = String(c?.verified_rank || '検証候補');
+          const verifiedScore = Number(c?.verified_score);
+          const verifiedScoreText = Number.isFinite(verifiedScore) ? ` / ${round1(verifiedScore)}pt` : '';
+          const verifiedEvidenceHtml = verifiedEvidence.length
+            ? `<div class="morning-candidate-layer morning-candidate-verified-evidence">
+              <div class="morning-layer-label">検証根拠</div>
+              <ul class="morning-inline-list morning-verified-evidence-list">${verifiedEvidence.map((e) => {
+                const lift = Number(e?.lift);
+                const count = Number(e?.count);
+                const liftText = Number.isFinite(lift) ? `予測${formatTargetSigned枚(lift)}` : '予測実績あり';
+                const topHitText = Number.isFinite(Number(e?.topHitRate)) ? ` / 上位${formatTargetPercent(e.topHitRate)}` : '';
+                const countText = Number.isFinite(count) ? ` / ${Math.round(count)}件` : '';
+                return `<li><strong>${escapeHtml(e?.label || '検証根拠')}</strong><span>${escapeHtml(liftText + topHitText + countText)}</span></li>`;
+              }).join('')}</ul>
+            </div>`
+            : '';
           const storeEvidenceBlocked = trustMeta.actionable === false && !isVerifiedTarget;
           let action = String(c?.action || 'watch');
           let actionLabel = String(c?.action_label || (action === 'main' ? '本命' : action === 'candidate' ? '候補' : '観察'));
@@ -9739,17 +9756,19 @@ function renderMorningSummaryForCalendar() {
           const warnings = [
             ...(Array.isArray(c?.warnings) ? c.warnings : []),
             ...(Array.isArray(c?.cautions) ? c.cautions : []),
+            ...(Array.isArray(c?.verified_cautions) ? c.verified_cautions : []),
             ...(storeEvidenceBlocked ? [`店舗検証: ${trustMeta.label}。${trustMeta.detail}`] : []),
           ].filter(Boolean);
           const uniqueWarnings = Array.from(new Set(warnings)).slice(0, 3);
           if(!uniqueWarnings.length) uniqueWarnings.push('特記事項なし');
-          const verifiedHtml = isVerifiedTarget ? '<span class="morning-verified-chip">検証候補</span>' : '';
+          const verifiedHtml = isVerifiedTarget ? `<span class="morning-verified-chip">${escapeHtml(verifiedRank)}${escapeHtml(verifiedScoreText)}</span>` : '';
 
           return `<div class="morning-candidate-card ${actionClass}">
             <div class="morning-candidate-head">
               <div class="morning-candidate-name">${idx + 1}. ${escapeHtml(String(c?.tai ?? '-'))}番台 / ${escapeHtml(modelName)}</div>
               <div class="morning-candidate-score"><span class="morning-action-chip ${actionClass}">${escapeHtml(actionLabel)}</span>${verifiedHtml}${formatMorningScorePercent(c?.score)}</div>
             </div>
+            ${verifiedEvidenceHtml}
             <div class="morning-candidate-layer">
               <div class="morning-layer-label">店条件</div>
               <div class="morning-layer-text">${escapeHtml(dayType)} / 判定 ${escapeHtml(todayLabel)} / スコア ${todayScoreText} / ${escapeHtml(todayReasonText)}</div>

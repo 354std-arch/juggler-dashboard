@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-25 02:29 JST",
+  "generated_at": "2026-05-25 02:42 JST",
   "data_date": "2026-05-25",
   "target_date": "2026-05-25",
   "source_data_date": "2026-05-18",
@@ -2864,8 +2864,8 @@
           "tai": 1050,
           "model": "ハッピージャグラーVIII",
           "score": 0.345711,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率44%",
@@ -2878,14 +2878,30 @@
           "cautions": [
             "台番号変動あり（直近35日）"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 453.1,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ハッピージャグラーVIII",
+              "lift": 453.1,
+              "avg": 676.7,
+              "count": 287,
+              "plusRate": 55.1,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1047,
           "model": "ハッピージャグラーVIII",
           "score": 0.336966,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率41%",
@@ -2898,14 +2914,30 @@
           "cautions": [
             "台番号変動あり（直近35日）"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 453.1,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ハッピージャグラーVIII",
+              "lift": 453.1,
+              "avg": 676.7,
+              "count": 287,
+              "plusRate": 55.1,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1049,
           "model": "ハッピージャグラーVIII",
           "score": 0.335701,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率40%",
@@ -2918,14 +2950,30 @@
           "cautions": [
             "台番号変動あり（直近35日）"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 453.1,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ハッピージャグラーVIII",
+              "lift": 453.1,
+              "avg": 676.7,
+              "count": 287,
+              "plusRate": 55.1,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1046,
           "model": "ハッピージャグラーVIII",
           "score": 0.326298,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率37%",
@@ -2938,14 +2986,30 @@
           "cautions": [
             "台番号変動あり（直近35日）"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 453.1,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ハッピージャグラーVIII",
+              "lift": 453.1,
+              "avg": 676.7,
+              "count": 287,
+              "plusRate": 55.1,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1042,
           "model": "ミスタージャグラー",
           "score": 0.320581,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率39%",
@@ -2954,14 +3018,48 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 1445.3,
+          "verified_evidence": [
+            {
+              "label": "25日×ミスタージャグラー",
+              "lift": 1311.3,
+              "avg": 1572.2,
+              "count": 36,
+              "plusRate": 69.4,
+              "topHitRate": 47.2,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×ミスタージャグラー",
+              "lift": 435.5,
+              "avg": 655.0,
+              "count": 222,
+              "plusRate": 52.7,
+              "topHitRate": 32.4,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "月曜×ミスタージャグラー",
+              "lift": 413.5,
+              "avg": 542.9,
+              "count": 156,
+              "plusRate": 54.5,
+              "topHitRate": 30.8,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1062,
           "model": "ウルトラミラクルジャグラー",
           "score": 0.318948,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率38%",
@@ -2970,14 +3068,30 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 333.8,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ウルトラミラクルジャグラー",
+              "lift": 333.8,
+              "avg": 555.3,
+              "count": 190,
+              "plusRate": 53.2,
+              "topHitRate": 28.9,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1044,
           "model": "ミスタージャグラー",
           "score": 0.318162,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率38%",
@@ -2986,14 +3100,48 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 1511.9,
+          "verified_evidence": [
+            {
+              "label": "25日×ミスタージャグラー",
+              "lift": 1311.3,
+              "avg": 1572.2,
+              "count": 36,
+              "plusRate": 69.4,
+              "topHitRate": 47.2,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "1044番台設置期間",
+              "lift": 490.6,
+              "avg": 632.5,
+              "count": 123,
+              "plusRate": 56.1,
+              "topHitRate": 34.1,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×ミスタージャグラー",
+              "lift": 435.5,
+              "avg": 655.0,
+              "count": 222,
+              "plusRate": 52.7,
+              "topHitRate": 32.4,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1052,
           "model": "ハッピージャグラーVIII",
           "score": 0.317461,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率33%",
@@ -3006,14 +3154,30 @@
           "cautions": [
             "台番号変動あり（直近35日）"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 453.1,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ハッピージャグラーVIII",
+              "lift": 453.1,
+              "avg": 676.7,
+              "count": 287,
+              "plusRate": 55.1,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1058,
           "model": "ウルトラミラクルジャグラー",
           "score": 0.315874,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率36%",
@@ -3022,14 +3186,48 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 417.6,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ウルトラミラクルジャグラー",
+              "lift": 333.8,
+              "avg": 555.3,
+              "count": 190,
+              "plusRate": 53.2,
+              "topHitRate": 28.9,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "1058番台設置期間",
+              "lift": 68.3,
+              "avg": 210.9,
+              "count": 230,
+              "plusRate": 47.4,
+              "topHitRate": 22.6,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×末尾8",
+              "lift": 63.1,
+              "avg": 252.4,
+              "count": 147,
+              "plusRate": 48.3,
+              "topHitRate": 23.1,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1059,
           "model": "ウルトラミラクルジャグラー",
           "score": 0.312163,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率35%",
@@ -3038,14 +3236,39 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 375.8,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ウルトラミラクルジャグラー",
+              "lift": 333.8,
+              "avg": 555.3,
+              "count": 190,
+              "plusRate": 53.2,
+              "topHitRate": 28.9,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "1059番台設置期間",
+              "lift": 226.2,
+              "avg": 369.9,
+              "count": 219,
+              "plusRate": 47.5,
+              "topHitRate": 25.6,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1060,
           "model": "ウルトラミラクルジャグラー",
           "score": 0.309241,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率34%",
@@ -3054,14 +3277,30 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 333.8,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ウルトラミラクルジャグラー",
+              "lift": 333.8,
+              "avg": 555.3,
+              "count": 190,
+              "plusRate": 53.2,
+              "topHitRate": 28.9,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1048,
           "model": "ハッピージャグラーVIII",
           "score": 0.308956,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率30%",
@@ -3074,14 +3313,39 @@
           "cautions": [
             "台番号変動あり（直近35日）"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 513.0,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ハッピージャグラーVIII",
+              "lift": 453.1,
+              "avg": 676.7,
+              "count": 287,
+              "plusRate": 55.1,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×末尾8",
+              "lift": 63.1,
+              "avg": 252.4,
+              "count": 147,
+              "plusRate": 48.3,
+              "topHitRate": 23.1,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1051,
           "model": "ハッピージャグラーVIII",
           "score": 0.308494,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率30%",
@@ -3094,14 +3358,30 @@
           "cautions": [
             "台番号変動あり（直近35日）"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 453.1,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ハッピージャグラーVIII",
+              "lift": 453.1,
+              "avg": 676.7,
+              "count": 287,
+              "plusRate": 55.1,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1043,
           "model": "ミスタージャグラー",
           "score": 0.307776,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率34%",
@@ -3110,14 +3390,48 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 1445.3,
+          "verified_evidence": [
+            {
+              "label": "25日×ミスタージャグラー",
+              "lift": 1311.3,
+              "avg": 1572.2,
+              "count": 36,
+              "plusRate": 69.4,
+              "topHitRate": 47.2,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×ミスタージャグラー",
+              "lift": 435.5,
+              "avg": 655.0,
+              "count": 222,
+              "plusRate": 52.7,
+              "topHitRate": 32.4,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "月曜×ミスタージャグラー",
+              "lift": 413.5,
+              "avg": 542.9,
+              "count": 156,
+              "plusRate": 54.5,
+              "topHitRate": 30.8,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1045,
           "model": "ミスタージャグラー",
           "score": 0.306039,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率33%",
@@ -3126,14 +3440,48 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 1565.7,
+          "verified_evidence": [
+            {
+              "label": "25日×ミスタージャグラー",
+              "lift": 1311.3,
+              "avg": 1572.2,
+              "count": 36,
+              "plusRate": 69.4,
+              "topHitRate": 47.2,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×ミスタージャグラー",
+              "lift": 435.5,
+              "avg": 655.0,
+              "count": 222,
+              "plusRate": 52.7,
+              "topHitRate": 32.4,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "月曜×ミスタージャグラー",
+              "lift": 413.5,
+              "avg": 542.9,
+              "count": 156,
+              "plusRate": 54.5,
+              "topHitRate": 30.8,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1061,
           "model": "ウルトラミラクルジャグラー",
           "score": 0.301208,
-          "action": "candidate",
-          "action_label": "候補",
+          "action": "main",
+          "action_label": "検証本命",
           "actionable": true,
           "reasons": [
             "上候補以上率31%",
@@ -3142,15 +3490,31 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 333.8,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ウルトラミラクルジャグラー",
+              "lift": 333.8,
+              "avg": 555.3,
+              "count": 190,
+              "plusRate": 53.2,
+              "topHitRate": 28.9,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1040,
           "model": "ミスタージャグラー",
           "score": 0.299187,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率30%",
             "サンプル173件",
@@ -3158,15 +3522,49 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 1403.3,
+          "verified_evidence": [
+            {
+              "label": "25日×ミスタージャグラー",
+              "lift": 1311.3,
+              "avg": 1572.2,
+              "count": 36,
+              "plusRate": 69.4,
+              "topHitRate": 47.2,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×ミスタージャグラー",
+              "lift": 435.5,
+              "avg": 655.0,
+              "count": 222,
+              "plusRate": 52.7,
+              "topHitRate": 32.4,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "月曜×ミスタージャグラー",
+              "lift": 413.5,
+              "avg": 542.9,
+              "count": 156,
+              "plusRate": 54.5,
+              "topHitRate": 30.8,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1055,
           "model": "ゴーゴージャグラー3",
           "score": 0.294569,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率30%",
             "サンプル502件",
@@ -3174,15 +3572,49 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 316.3,
+          "verified_evidence": [
+            {
+              "label": "25日×末尾5",
+              "lift": 127.0,
+              "avg": 336.7,
+              "count": 289,
+              "plusRate": 51.6,
+              "topHitRate": 26.0,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×ゴーゴージャグラー3",
+              "lift": 105.9,
+              "avg": 312.2,
+              "count": 377,
+              "plusRate": 47.7,
+              "topHitRate": 22.8,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×ゴーゴージャグラー3",
+              "lift": 61.2,
+              "avg": 284.3,
+              "count": 1392,
+              "plusRate": 50.5,
+              "topHitRate": 21.3,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1041,
           "model": "ミスタージャグラー",
           "score": 0.291703,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率27%",
             "サンプル173件",
@@ -3190,15 +3622,49 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 1403.3,
+          "verified_evidence": [
+            {
+              "label": "25日×ミスタージャグラー",
+              "lift": 1311.3,
+              "avg": 1572.2,
+              "count": 36,
+              "plusRate": 69.4,
+              "topHitRate": 47.2,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×ミスタージャグラー",
+              "lift": 435.5,
+              "avg": 655.0,
+              "count": 222,
+              "plusRate": 52.7,
+              "topHitRate": 32.4,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "月曜×ミスタージャグラー",
+              "lift": 413.5,
+              "avg": 542.9,
+              "count": 156,
+              "plusRate": 54.5,
+              "topHitRate": 30.8,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1145,
           "model": "ジャグラーガールズSS",
           "score": 0.277881,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率26%",
             "サンプル502件",
@@ -3206,7 +3672,32 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 336.5,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ジャグラーガールズSS",
+              "lift": 203.2,
+              "avg": 422.4,
+              "count": 196,
+              "plusRate": 51.5,
+              "topHitRate": 25.5,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×末尾5",
+              "lift": 127.0,
+              "avg": 336.7,
+              "count": 289,
+              "plusRate": 51.6,
+              "topHitRate": 26.0,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1076,
@@ -10216,9 +10707,9 @@
           "tai": 2082,
           "model": "ミスタージャグラー",
           "score": 0.151809,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率20%",
             "サンプル24件",
@@ -10230,15 +10721,31 @@
             "店条件が弱い",
             "機種条件が弱い"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 273.5,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×末尾2",
+              "lift": 287.9,
+              "avg": 477.6,
+              "count": 85,
+              "plusRate": 51.8,
+              "topHitRate": 29.4,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 2032,
           "model": "マイジャグラーV",
           "score": 0.136904,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率25%",
             "サンプル24件",
@@ -10249,15 +10756,31 @@
             "店条件が弱い",
             "機種条件が弱い"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 273.5,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×末尾2",
+              "lift": 287.9,
+              "avg": 477.6,
+              "count": 85,
+              "plusRate": 51.8,
+              "topHitRate": 29.4,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 2062,
           "model": "ファンキージャグラー2",
           "score": 0.136826,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率25%",
             "サンプル24件",
@@ -10268,15 +10791,31 @@
             "店条件が弱い",
             "機種条件が弱い"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 273.5,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×末尾2",
+              "lift": 287.9,
+              "avg": 477.6,
+              "count": 85,
+              "plusRate": 51.8,
+              "topHitRate": 29.4,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 2002,
           "model": "マイジャグラーV",
           "score": 0.127629,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率21%",
             "サンプル24件",
@@ -10287,15 +10826,31 @@
             "店条件が弱い",
             "機種条件が弱い"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 273.5,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×末尾2",
+              "lift": 287.9,
+              "avg": 477.6,
+              "count": 85,
+              "plusRate": 51.8,
+              "topHitRate": 29.4,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 2022,
           "model": "マイジャグラーV",
           "score": 0.126439,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率20%",
             "サンプル24件",
@@ -10306,15 +10861,31 @@
             "店条件が弱い",
             "機種条件が弱い"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 273.5,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×末尾2",
+              "lift": 287.9,
+              "avg": 477.6,
+              "count": 85,
+              "plusRate": 51.8,
+              "topHitRate": 29.4,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 2052,
           "model": "ネオアイムジャグラー",
           "score": 0.125277,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率25%",
             "サンプル24件",
@@ -10325,15 +10896,31 @@
             "店条件が弱い",
             "機種条件が弱い"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 273.5,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×末尾2",
+              "lift": 287.9,
+              "avg": 477.6,
+              "count": 85,
+              "plusRate": 51.8,
+              "topHitRate": 29.4,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 2072,
           "model": "ジャグラーガールズSS",
           "score": 0.115561,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率8%",
             "サンプル24件",
@@ -10345,15 +10932,31 @@
             "店条件が弱い",
             "機種条件が弱い"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 273.5,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×末尾2",
+              "lift": 287.9,
+              "avg": 477.6,
+              "count": 85,
+              "plusRate": 51.8,
+              "topHitRate": 29.4,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 2012,
           "model": "マイジャグラーV",
           "score": 0.105372,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率12%",
             "サンプル24件",
@@ -10364,7 +10967,23 @@
             "店条件が弱い",
             "機種条件が弱い"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 273.5,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×末尾2",
+              "lift": 287.9,
+              "avg": 477.6,
+              "count": 85,
+              "plusRate": 51.8,
+              "topHitRate": 29.4,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 2071,
@@ -28821,9 +29440,9 @@
           "tai": 1196,
           "model": "ネオアイムジャグラー",
           "score": 0.273367,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率36%",
             "サンプル231件",
@@ -28831,15 +29450,49 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 268.6,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ネオアイムジャグラー",
+              "lift": 127.3,
+              "avg": 168.7,
+              "count": 189,
+              "plusRate": 48.1,
+              "topHitRate": 27.5,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×末尾6",
+              "lift": 86.6,
+              "avg": 151.7,
+              "count": 79,
+              "plusRate": 48.1,
+              "topHitRate": 21.5,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×末尾6",
+              "lift": 53.0,
+              "avg": 184.5,
+              "count": 360,
+              "plusRate": 48.6,
+              "topHitRate": 23.3,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1176,
           "model": "ネオアイムジャグラー",
           "score": 0.253169,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率28%",
             "サンプル214件",
@@ -28847,15 +29500,49 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 268.6,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ネオアイムジャグラー",
+              "lift": 127.3,
+              "avg": 168.7,
+              "count": 189,
+              "plusRate": 48.1,
+              "topHitRate": 27.5,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×末尾6",
+              "lift": 86.6,
+              "avg": 151.7,
+              "count": 79,
+              "plusRate": 48.1,
+              "topHitRate": 21.5,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×末尾6",
+              "lift": 53.0,
+              "avg": 184.5,
+              "count": 360,
+              "plusRate": 48.6,
+              "topHitRate": 23.3,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1188,
           "model": "ネオアイムジャグラー",
           "score": 0.252935,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率28%",
             "サンプル231件",
@@ -28863,15 +29550,40 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 353.8,
+          "verified_evidence": [
+            {
+              "label": "25日×末尾8",
+              "lift": 215.7,
+              "avg": 281.3,
+              "count": 71,
+              "plusRate": 49.3,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×ネオアイムジャグラー",
+              "lift": 127.3,
+              "avg": 168.7,
+              "count": 189,
+              "plusRate": 48.1,
+              "topHitRate": 27.5,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1186,
           "model": "ネオアイムジャグラー",
           "score": 0.241652,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率23%",
             "サンプル231件",
@@ -28879,15 +29591,49 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 268.6,
+          "verified_evidence": [
+            {
+              "label": "日付末尾5×ネオアイムジャグラー",
+              "lift": 127.3,
+              "avg": 168.7,
+              "count": 189,
+              "plusRate": 48.1,
+              "topHitRate": 27.5,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×末尾6",
+              "lift": 86.6,
+              "avg": 151.7,
+              "count": 79,
+              "plusRate": 48.1,
+              "topHitRate": 21.5,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×末尾6",
+              "lift": 53.0,
+              "avg": 184.5,
+              "count": 360,
+              "plusRate": 48.6,
+              "topHitRate": 23.3,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1178,
           "model": "ネオアイムジャグラー",
           "score": 0.234161,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率20%",
             "サンプル195件",
@@ -28895,47 +29641,40 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
-        },
-        {
-          "tai": 1156,
-          "model": "ゴーゴージャグラー3",
-          "score": 0.22832,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率28%",
-            "サンプル500件",
-            "推移横ばい"
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 353.8,
+          "verified_evidence": [
+            {
+              "label": "25日×末尾8",
+              "lift": 215.7,
+              "avg": 281.3,
+              "count": 71,
+              "plusRate": 49.3,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×ネオアイムジャグラー",
+              "lift": 127.3,
+              "avg": 168.7,
+              "count": 189,
+              "plusRate": 48.1,
+              "topHitRate": 27.5,
+              "verdict": "予測実績あり"
+            }
           ],
-          "warnings": [],
-          "cautions": [],
-          "verified_target": true
-        },
-        {
-          "tai": 1166,
-          "model": "ゴーゴージャグラー3",
-          "score": 0.21837,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率24%",
-            "サンプル500件",
-            "推移横ばい"
-          ],
-          "warnings": [],
-          "cautions": [],
-          "verified_target": true
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1168,
           "model": "ゴーゴージャグラー3",
           "score": 0.216778,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率23%",
             "サンプル500件",
@@ -28943,15 +29682,40 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 332.7,
+          "verified_evidence": [
+            {
+              "label": "25日×末尾8",
+              "lift": 215.7,
+              "avg": 281.3,
+              "count": 71,
+              "plusRate": 49.3,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×ゴーゴージャグラー3",
+              "lift": 92.4,
+              "avg": 247.8,
+              "count": 168,
+              "plusRate": 53.0,
+              "topHitRate": 20.2,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1158,
           "model": "ゴーゴージャグラー3",
           "score": 0.212629,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率22%",
             "サンプル500件",
@@ -28959,15 +29723,40 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 332.7,
+          "verified_evidence": [
+            {
+              "label": "25日×末尾8",
+              "lift": 215.7,
+              "avg": 281.3,
+              "count": 71,
+              "plusRate": 49.3,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×ゴーゴージャグラー3",
+              "lift": 92.4,
+              "avg": 247.8,
+              "count": 168,
+              "plusRate": 53.0,
+              "topHitRate": 20.2,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 3168,
           "model": "新ハナビ",
           "score": 0.20714,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率21%",
             "サンプル79件",
@@ -28975,15 +29764,49 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 517.8,
+          "verified_evidence": [
+            {
+              "label": "25日×末尾8",
+              "lift": 215.7,
+              "avg": 281.3,
+              "count": 71,
+              "plusRate": 49.3,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "月曜×新ハナビ",
+              "lift": 209.0,
+              "avg": 239.4,
+              "count": 571,
+              "plusRate": 48.2,
+              "topHitRate": 27.3,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "新ハナビ",
+              "lift": 85.3,
+              "avg": 105.9,
+              "count": 396,
+              "plusRate": 38.6,
+              "topHitRate": 22.7,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 3165,
           "model": "新ハナビ",
           "score": 0.206761,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率21%",
             "サンプル79件",
@@ -28991,15 +29814,40 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 275.3,
+          "verified_evidence": [
+            {
+              "label": "月曜×新ハナビ",
+              "lift": 209.0,
+              "avg": 239.4,
+              "count": 571,
+              "plusRate": 48.2,
+              "topHitRate": 27.3,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "新ハナビ",
+              "lift": 85.3,
+              "avg": 105.9,
+              "count": 396,
+              "plusRate": 38.6,
+              "topHitRate": 22.7,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 3166,
           "model": "新ハナビ",
           "score": 0.203294,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率19%",
             "サンプル78件",
@@ -29007,33 +29855,49 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
-        },
-        {
-          "tai": 1137,
-          "model": "ジャグラーガールズSS",
-          "score": 0.202313,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率23%",
-            "サンプル500件",
-            "推移横ばい"
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 416.6,
+          "verified_evidence": [
+            {
+              "label": "月曜×新ハナビ",
+              "lift": 209.0,
+              "avg": 239.4,
+              "count": 571,
+              "plusRate": 48.2,
+              "topHitRate": 27.3,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×末尾6",
+              "lift": 86.6,
+              "avg": 151.7,
+              "count": 79,
+              "plusRate": 48.1,
+              "topHitRate": 21.5,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "新ハナビ",
+              "lift": 85.3,
+              "avg": 105.9,
+              "count": 396,
+              "plusRate": 38.6,
+              "topHitRate": 22.7,
+              "verdict": "予測実績あり"
+            }
           ],
-          "warnings": [],
-          "cautions": [
-            "機種条件が弱い"
-          ],
-          "verified_target": true
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 3164,
           "model": "新ハナビ",
           "score": 0.200245,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率18%",
             "サンプル78件",
@@ -29041,15 +29905,49 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 366.0,
+          "verified_evidence": [
+            {
+              "label": "月曜×新ハナビ",
+              "lift": 209.0,
+              "avg": 239.4,
+              "count": 571,
+              "plusRate": 48.2,
+              "topHitRate": 27.3,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "月曜×末尾4",
+              "lift": 100.8,
+              "avg": 116.9,
+              "count": 291,
+              "plusRate": 43.0,
+              "topHitRate": 25.8,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "新ハナビ",
+              "lift": 85.3,
+              "avg": 105.9,
+              "count": 396,
+              "plusRate": 38.6,
+              "topHitRate": 22.7,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1138,
           "model": "ジャグラーガールズSS",
           "score": 0.200103,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率22%",
             "サンプル499件",
@@ -29059,15 +29957,49 @@
           "cautions": [
             "機種条件が弱い"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 470.8,
+          "verified_evidence": [
+            {
+              "label": "25日×末尾8",
+              "lift": 215.7,
+              "avg": 281.3,
+              "count": 71,
+              "plusRate": 49.3,
+              "topHitRate": 29.6,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×ジャグラーガールズSS",
+              "lift": 183.4,
+              "avg": 190.8,
+              "count": 12,
+              "plusRate": 58.3,
+              "topHitRate": 33.3,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×ジャグラーガールズSS",
+              "lift": 33.4,
+              "avg": 181.5,
+              "count": 148,
+              "plusRate": 45.9,
+              "topHitRate": 23.6,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1136,
           "model": "ジャグラーガールズSS",
           "score": 0.198093,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率21%",
             "サンプル500件",
@@ -29077,15 +30009,49 @@
           "cautions": [
             "機種条件が弱い"
           ],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 385.6,
+          "verified_evidence": [
+            {
+              "label": "25日×ジャグラーガールズSS",
+              "lift": 183.4,
+              "avg": 190.8,
+              "count": 12,
+              "plusRate": 58.3,
+              "topHitRate": 33.3,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×末尾6",
+              "lift": 86.6,
+              "avg": 151.7,
+              "count": 79,
+              "plusRate": 48.1,
+              "topHitRate": 21.5,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×末尾6",
+              "lift": 53.0,
+              "avg": 184.5,
+              "count": 360,
+              "plusRate": 48.6,
+              "topHitRate": 23.3,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1146,
           "model": "ファンキージャグラー2",
           "score": 0.192025,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
           "reasons": [
             "上候補以上率14%",
             "サンプル93件",
@@ -29093,15 +30059,274 @@
           ],
           "warnings": [],
           "cautions": [],
-          "verified_target": true
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 261.9,
+          "verified_evidence": [
+            {
+              "label": "25日×ファンキージャグラー2",
+              "lift": 104.9,
+              "avg": 147.0,
+              "count": 50,
+              "plusRate": 38.0,
+              "topHitRate": 24.0,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×末尾6",
+              "lift": 86.6,
+              "avg": 151.7,
+              "count": 79,
+              "plusRate": 48.1,
+              "topHitRate": 21.5,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×末尾6",
+              "lift": 53.0,
+              "avg": 184.5,
+              "count": 360,
+              "plusRate": 48.6,
+              "topHitRate": 23.3,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
+        },
+        {
+          "tai": 3167,
+          "model": "新ハナビ",
+          "score": 0.180024,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
+          "reasons": [
+            "上候補以上率10%",
+            "サンプル79件",
+            "推移横ばい"
+          ],
+          "warnings": [],
+          "cautions": [],
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 275.3,
+          "verified_evidence": [
+            {
+              "label": "月曜×新ハナビ",
+              "lift": 209.0,
+              "avg": 239.4,
+              "count": 571,
+              "plusRate": 48.2,
+              "topHitRate": 27.3,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "新ハナビ",
+              "lift": 85.3,
+              "avg": 105.9,
+              "count": 396,
+              "plusRate": 38.6,
+              "topHitRate": 22.7,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
+        },
+        {
+          "tai": 3169,
+          "model": "新ハナビ",
+          "score": 0.17482,
+          "action": "main",
+          "action_label": "検証本命",
+          "actionable": true,
+          "reasons": [
+            "上候補以上率8%",
+            "サンプル64件",
+            "推移横ばい"
+          ],
+          "warnings": [],
+          "cautions": [],
+          "verified_target": true,
+          "verified_rank": "本命",
+          "verified_score": 275.3,
+          "verified_evidence": [
+            {
+              "label": "月曜×新ハナビ",
+              "lift": 209.0,
+              "avg": 239.4,
+              "count": 571,
+              "plusRate": 48.2,
+              "topHitRate": 27.3,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "新ハナビ",
+              "lift": 85.3,
+              "avg": 105.9,
+              "count": 396,
+              "plusRate": 38.6,
+              "topHitRate": 22.7,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
+        },
+        {
+          "tai": 1156,
+          "model": "ゴーゴージャグラー3",
+          "score": 0.22832,
+          "action": "candidate",
+          "action_label": "検証候補",
+          "actionable": true,
+          "reasons": [
+            "上候補以上率28%",
+            "サンプル500件",
+            "推移横ばい"
+          ],
+          "warnings": [],
+          "cautions": [],
+          "verified_target": true,
+          "verified_rank": "対抗",
+          "verified_score": 247.5,
+          "verified_evidence": [
+            {
+              "label": "25日×ゴーゴージャグラー3",
+              "lift": 92.4,
+              "avg": 247.8,
+              "count": 168,
+              "plusRate": 53.0,
+              "topHitRate": 20.2,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×末尾6",
+              "lift": 86.6,
+              "avg": 151.7,
+              "count": 79,
+              "plusRate": 48.1,
+              "topHitRate": 21.5,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×末尾6",
+              "lift": 53.0,
+              "avg": 184.5,
+              "count": 360,
+              "plusRate": 48.6,
+              "topHitRate": 23.3,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
+        },
+        {
+          "tai": 1166,
+          "model": "ゴーゴージャグラー3",
+          "score": 0.21837,
+          "action": "candidate",
+          "action_label": "検証候補",
+          "actionable": true,
+          "reasons": [
+            "上候補以上率24%",
+            "サンプル500件",
+            "推移横ばい"
+          ],
+          "warnings": [],
+          "cautions": [],
+          "verified_target": true,
+          "verified_rank": "対抗",
+          "verified_score": 247.5,
+          "verified_evidence": [
+            {
+              "label": "25日×ゴーゴージャグラー3",
+              "lift": 92.4,
+              "avg": 247.8,
+              "count": 168,
+              "plusRate": 53.0,
+              "topHitRate": 20.2,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "25日×末尾6",
+              "lift": 86.6,
+              "avg": 151.7,
+              "count": 79,
+              "plusRate": 48.1,
+              "topHitRate": 21.5,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×末尾6",
+              "lift": 53.0,
+              "avg": 184.5,
+              "count": 360,
+              "plusRate": 48.6,
+              "topHitRate": 23.3,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
+        },
+        {
+          "tai": 1137,
+          "model": "ジャグラーガールズSS",
+          "score": 0.202313,
+          "action": "candidate",
+          "action_label": "検証候補",
+          "actionable": true,
+          "reasons": [
+            "上候補以上率23%",
+            "サンプル500件",
+            "推移横ばい"
+          ],
+          "warnings": [],
+          "cautions": [
+            "機種条件が弱い"
+          ],
+          "verified_target": true,
+          "verified_rank": "対抗",
+          "verified_score": 244.3,
+          "verified_evidence": [
+            {
+              "label": "25日×ジャグラーガールズSS",
+              "lift": 183.4,
+              "avg": 190.8,
+              "count": 12,
+              "plusRate": 58.3,
+              "topHitRate": 33.3,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×ジャグラーガールズSS",
+              "lift": 33.4,
+              "avg": 181.5,
+              "count": 148,
+              "plusRate": 45.9,
+              "topHitRate": 23.6,
+              "verdict": "予測実績あり"
+            }
+          ],
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 1135,
           "model": "ジャグラーガールズSS",
           "score": 0.181718,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
+          "action": "candidate",
+          "action_label": "検証候補",
+          "actionable": true,
           "reasons": [
             "上候補以上率14%",
             "サンプル500件",
@@ -29111,39 +30336,32 @@
           "cautions": [
             "機種条件が弱い"
           ],
-          "verified_target": true
-        },
-        {
-          "tai": 3167,
-          "model": "新ハナビ",
-          "score": 0.180024,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率10%",
-            "サンプル79件",
-            "推移横ばい"
+          "verified_target": true,
+          "verified_rank": "対抗",
+          "verified_score": 244.3,
+          "verified_evidence": [
+            {
+              "label": "25日×ジャグラーガールズSS",
+              "lift": 183.4,
+              "avg": 190.8,
+              "count": 12,
+              "plusRate": 58.3,
+              "topHitRate": 33.3,
+              "verdict": "予測実績あり"
+            },
+            {
+              "label": "日付末尾5×ジャグラーガールズSS",
+              "lift": 33.4,
+              "avg": 181.5,
+              "count": 148,
+              "plusRate": 45.9,
+              "topHitRate": 23.6,
+              "verdict": "予測実績あり"
+            }
           ],
-          "warnings": [],
-          "cautions": [],
-          "verified_target": true
-        },
-        {
-          "tai": 3169,
-          "model": "新ハナビ",
-          "score": 0.17482,
-          "action": "watch",
-          "action_label": "観察",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率8%",
-            "サンプル64件",
-            "推移横ばい"
-          ],
-          "warnings": [],
-          "cautions": [],
-          "verified_target": true
+          "verified_cautions": [
+            "前日条件なし: 対象日前日の台データがないため、前日凹み/RB先行根拠は使っていません。"
+          ]
         },
         {
           "tai": 2180,

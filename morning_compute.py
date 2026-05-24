@@ -278,6 +278,7 @@ def load_evidence_guards(target_ymd):
         decision = analysis.get("evidenceDecision") or summary.get("decision") or None
         targets = analysis.get("topTargets") if isinstance(analysis.get("topTargets"), list) else []
         target_tais = set()
+        target_lookup = {}
         for target in targets:
             if not isinstance(target, dict):
                 continue
@@ -286,6 +287,7 @@ def load_evidence_guards(target_ymd):
             except Exception:
                 continue
             target_tais.add(tai)
+            target_lookup[tai] = target
 
         if isinstance(decision, dict) and decision.get("actionable") is False:
             actionable = False
@@ -308,8 +310,38 @@ def load_evidence_guards(target_ymd):
             "label": label,
             "detail": detail,
             "target_tais": sorted(target_tais),
+            "target_lookup": target_lookup,
         }
     return guards
+
+
+def summarize_verified_target(target):
+    if not isinstance(target, dict):
+        return [], []
+    evidence_rows = []
+    for item in (target.get("evidence") or [])[:3]:
+        if not isinstance(item, dict):
+            continue
+        validation = item.get("validation") if isinstance(item.get("validation"), dict) else {}
+        verdict = item.get("validationVerdict") if isinstance(item.get("validationVerdict"), dict) else {}
+        evidence_rows.append({
+            "label": item.get("label") or item.get("key") or "検証根拠",
+            "lift": validation.get("lift", item.get("lift")),
+            "avg": validation.get("avg", item.get("avg")),
+            "count": validation.get("count", item.get("count")),
+            "plusRate": validation.get("plusRate"),
+            "topHitRate": validation.get("topHitRate"),
+            "verdict": verdict.get("label") or "予測実績あり",
+        })
+    caution_rows = []
+    for item in (target.get("cautions") or [])[:2]:
+        if isinstance(item, dict):
+            label = item.get("label") or "注意"
+            message = item.get("message") or ""
+            caution_rows.append(f"{label}: {message}" if message else str(label))
+        else:
+            caution_rows.append(str(item))
+    return evidence_rows, caution_rows
 
 
 def apply_evidence_guards(stores_payload, target_ymd):
@@ -322,6 +354,7 @@ def apply_evidence_guards(stores_payload, target_ymd):
         if not guard or not isinstance(payload, dict):
             continue
         target_tais = set(guard.get("target_tais") or [])
+        target_lookup = guard.get("target_lookup") or {}
         payload["evidence_guard"] = {
             "actionable": bool(guard.get("actionable")),
             "label": guard.get("label", ""),
@@ -341,6 +374,21 @@ def apply_evidence_guards(stores_payload, target_ymd):
                 tai = None
             is_verified_target = tai in target_tais
             candidate["verified_target"] = bool(is_verified_target)
+            if is_verified_target:
+                target = target_lookup.get(tai) or {}
+                evidence_rows, caution_rows = summarize_verified_target(target)
+                candidate["verified_rank"] = target.get("rank") or "検証候補"
+                candidate["verified_score"] = target.get("totalScore")
+                candidate["verified_evidence"] = evidence_rows
+                if caution_rows:
+                    candidate["verified_cautions"] = caution_rows
+                if target.get("rank") == "本命":
+                    candidate["action"] = "main"
+                    candidate["action_label"] = "検証本命"
+                else:
+                    candidate["action"] = "candidate"
+                    candidate["action_label"] = "検証候補"
+                candidate["actionable"] = True
 
             if guard.get("actionable") is False and not is_verified_target:
                 note = f"店舗検証: {guard.get('label', '検証弱め')}。{guard.get('detail', '過去検証では候補を強く出せません。')}"
