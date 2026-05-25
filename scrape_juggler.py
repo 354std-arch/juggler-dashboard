@@ -42,6 +42,25 @@ MODEL_NAME_MAP = {
     'スマスロ ハナビ': 'スマスロハナビ',
 }
 
+SMART_SLOT_MODEL_PATTERNS = [
+    (('北斗', '転生'), 'スマスロ北斗の拳 転生の章2'),
+    (('北斗の拳',), 'スマスロ北斗の拳'),
+    (('東京喰種',), 'L 東京喰種'),
+    (('グール',), 'L 東京喰種'),
+    (('喰種',), 'L 東京喰種'),
+    (('モンキーターン',), 'L モンキーターンV'),
+    (('ヴァルヴレイヴ', '2'), 'L 革命機ヴァルヴレイヴ2'),
+    (('ヴァルヴレイヴ', '２'), 'L 革命機ヴァルヴレイヴ2'),
+    (('ヴァルヴレイヴ', 'Ⅱ'), 'L 革命機ヴァルヴレイヴ2'),
+    (('VVV', '2'), 'L 革命機ヴァルヴレイヴ2'),
+    (('VVV', '２'), 'L 革命機ヴァルヴレイヴ2'),
+    (('ＶＶＶ', '2'), 'L 革命機ヴァルヴレイヴ2'),
+    (('ＶＶＶ', '２'), 'L 革命機ヴァルヴレイヴ2'),
+    (('ヴヴヴ', '2'), 'L 革命機ヴァルヴレイヴ2'),
+    (('ヴヴヴ', '２'), 'L 革命機ヴァルヴレイヴ2'),
+]
+SMART_SLOT_MODELS = {canonical for _, canonical in SMART_SLOT_MODEL_PATTERNS}
+
 NORMAL_TYPE_KEYWORDS = [
     'ジャグラー','ハナビ','クランキー','ニューパルサー',
     'ドリームクランキー','バーサス','タコスロ',
@@ -106,11 +125,15 @@ def normalize_machine_name(machine_name):
     mapped = MODEL_NAME_MAP.get(name, name)
     if mapped.replace(' ', '') == 'スマスロハナビ':
         return 'スマスロハナビ'
+    compact = mapped.replace(' ', '')
+    for tokens, canonical in SMART_SLOT_MODEL_PATTERNS:
+        if all(token in compact for token in tokens):
+            return canonical
     return mapped
 
-def is_normal_type(machine_name):
+def is_target_machine(machine_name):
     normalized = normalize_machine_name(machine_name)
-    return any(kw in normalized for kw in NORMAL_TYPE_KEYWORDS)
+    return any(kw in normalized for kw in NORMAL_TYPE_KEYWORDS) or normalized in SMART_SLOT_MODELS
 
 def load_store_freshness():
     if not os.path.exists(STORE_FRESHNESS_JSON):
@@ -181,7 +204,7 @@ def scrape(target_date, store_name, slug, target_models=None):
         # 11列+: 機種名,台番号,G数,差枚,BB,RB,?,合成確率,BB確率,RB確率,...
         if len(cols) == 8:
             model_name = normalize_machine_name(cols[0])
-            if not is_normal_type(model_name):
+            if not is_target_machine(model_name):
                 continue
             if target_models and model_name not in target_models:
                 continue
@@ -195,7 +218,7 @@ def scrape(target_date, store_name, slug, target_models=None):
             continue
         if len(cols) == 9:
             model_name = normalize_machine_name(cols[0])
-            if not is_normal_type(model_name):
+            if not is_target_machine(model_name):
                 continue
             if target_models and model_name not in target_models:
                 continue
@@ -210,7 +233,7 @@ def scrape(target_date, store_name, slug, target_models=None):
         if len(cols) < 11:
             continue
         model_name = normalize_machine_name(cols[0])
-        if not is_normal_type(model_name):
+        if not is_target_machine(model_name):
             continue
         if target_models and model_name not in target_models:
             continue

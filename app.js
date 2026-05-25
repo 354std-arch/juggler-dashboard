@@ -175,11 +175,53 @@ const MODEL_NAME_MAP_CANONICAL = {
   'スマスロ ハナビ': 'スマスロハナビ',
 };
 
+const SMART_SLOT_MODEL_PATTERNS = [
+  { tokens:['北斗','転生'], canonical:'スマスロ北斗の拳 転生の章2' },
+  { tokens:['北斗の拳'], canonical:'スマスロ北斗の拳' },
+  { tokens:['東京喰種'], canonical:'L 東京喰種' },
+  { tokens:['グール'], canonical:'L 東京喰種' },
+  { tokens:['喰種'], canonical:'L 東京喰種' },
+  { tokens:['モンキーターン'], canonical:'L モンキーターンV' },
+  { tokens:['ヴァルヴレイヴ','2'], canonical:'L 革命機ヴァルヴレイヴ2' },
+  { tokens:['ヴァルヴレイヴ','２'], canonical:'L 革命機ヴァルヴレイヴ2' },
+  { tokens:['ヴァルヴレイヴ','Ⅱ'], canonical:'L 革命機ヴァルヴレイヴ2' },
+  { tokens:['VVV','2'], canonical:'L 革命機ヴァルヴレイヴ2' },
+  { tokens:['VVV','２'], canonical:'L 革命機ヴァルヴレイヴ2' },
+  { tokens:['ＶＶＶ','2'], canonical:'L 革命機ヴァルヴレイヴ2' },
+  { tokens:['ＶＶＶ','２'], canonical:'L 革命機ヴァルヴレイヴ2' },
+  { tokens:['ヴヴヴ','2'], canonical:'L 革命機ヴァルヴレイヴ2' },
+  { tokens:['ヴヴヴ','２'], canonical:'L 革命機ヴァルヴレイヴ2' },
+];
+
+const SMART_SLOT_MODELS = new Set([
+  'スマスロ北斗の拳 転生の章2',
+  'スマスロ北斗の拳',
+  'L 東京喰種',
+  'L モンキーターンV',
+  'L 革命機ヴァルヴレイヴ2',
+]);
+
 function normalizeModelName(name) {
   const raw = String(name || '').replace(/　/g, ' ').trim();
   const mapped = MODEL_NAME_MAP_CANONICAL[raw] || raw;
   if(mapped.replace(/\s+/g, '') === 'スマスロハナビ') return 'スマスロハナビ';
+  const compact = mapped.replace(/\s+/g, '');
+  const hit = SMART_SLOT_MODEL_PATTERNS.find(({tokens}) => tokens.every(token => compact.includes(token)));
+  if(hit) return hit.canonical;
   return mapped;
+}
+
+function isSettingAnalysisModel(model) {
+  return !!MODEL_SETTINGS[normalizeModelName(model)];
+}
+
+function isSmartSlotModel(model) {
+  return SMART_SLOT_MODELS.has(normalizeModelName(model));
+}
+
+function isAnalysisTargetModel(model) {
+  const normalized = normalizeModelName(model);
+  return !!MODEL_SETTINGS[normalized] || SMART_SLOT_MODELS.has(normalized);
 }
 
 // ====== 機種別設定値（合成・BB・RB確率の分母） ======
@@ -2110,6 +2152,7 @@ function bindTargetDateInputEvents() {
 
 function isHighSetRBLead(model, g, bb, rb) {
   if(!g||!rb||!bb) return false;
+  if(!isSettingAnalysisModel(model)) return false;
   const synThreshold = getGoodSynThreshold(model);
   if(synThreshold) {
     const totalBonus = bb + rb;
@@ -2119,7 +2162,7 @@ function isHighSetRBLead(model, g, bb, rb) {
   const actualRB = g / rb;
   const actualBB = g / bb;
   const ms = MODEL_SETTINGS[model];
-  if(!ms) return rb > bb; // 設定値不明なら単純比較
+  if(!ms) return false;
   // RBが設定4以上相当 かつ BBが設定4未満相当
   const rb4 = ms.rb[4];
   const bb4 = ms.bb[4];
@@ -5790,7 +5833,8 @@ function buildCalculatedRecommendations(targetDate, predictionBaseDate) {
 
   const scored = taiRows.map(t => {
     const refAvg = isSpecial ? t.spAvg : t.nmAvg;
-    const bayes = Number(isSpecial ? (t.bayesProbSp ?? t.bayesProbAll) : (t.bayesProbNm ?? t.bayesProbAll)) || 0;
+    const supportsSetting = t.supportsSettingAnalysis !== false && isSettingAnalysisModel(t.model);
+    const bayes = supportsSetting ? (Number(isSpecial ? (t.bayesProbSp ?? t.bayesProbAll) : (t.bayesProbNm ?? t.bayesProbAll)) || 0) : 0;
     const calc = hasRawRows ? calcScore(t, scoringDate) : null;
     const score = calc ? Number(calc.score || 0) : ((Number(refAvg) || 0) / 120 + bayes / 30);
     const rankScore = score * 100 + bayes * 2 + (Number(refAvg) || 0) * 0.15;
@@ -5798,7 +5842,7 @@ function buildCalculatedRecommendations(targetDate, predictionBaseDate) {
       ? (calc.reasons || []).slice(0, 3).map(r => `${r.label}: ${r.val}`)
       : [
           `${isSpecial ? '特定日' : '通常日'}平均 ${refAvg !== null ? `${refAvg >= 0 ? '+' : ''}${refAvg}枚` : '—'}`,
-          `P(設定4+) ${bayes.toFixed(1)}%`,
+          supportsSetting ? `P(設定4+) ${bayes.toFixed(1)}%` : 'スマスロ: 差枚/G数で評価',
         ];
     const confidence = rankScore >= 700 ? '★★★' : rankScore >= 450 ? '★★☆' : '★☆☆';
     const expectedHourly = Math.round(((Number(refAvg) || 0) + bayes * 20) / 8);
@@ -6033,11 +6077,11 @@ function finishLoad() {
   // 機種名の表記揺れを正規化（アナスロの表記ゆれ対応）
   G.raw.forEach(r => { r.model = normalizeModelName(r.model); });
 
-  // 対応外機種を除外（MODEL_SETTINGS未登録機種はスコアリング不能のため）
+  // 対応外機種を除外。スマスロは設定推測ではなく差枚分析対象として通す。
   const before = G.raw.length;
-  G.raw = G.raw.filter(r => MODEL_SETTINGS[r.model]);
+  G.raw = G.raw.filter(r => isAnalysisTargetModel(r.model));
   const skipped = before - G.raw.length;
-  if(skipped > 0) console.info(`[finishLoad] 非対応機種 ${skipped}行を除外（残:${G.raw.length}行）`);
+  if(skipped > 0) console.info(`[finishLoad] 分析対象外機種 ${skipped}行を除外（残:${G.raw.length}行）`);
   if(G.raw.length < 3) {
     setDataEmptyState(DATA_EMPTY_STATE.EMPTY, '対応機種データが3件未満です');
     setHeaderDataStatus('データ空', 'error');
@@ -6437,7 +6481,7 @@ function calcTaiRbGoodRates(taiMap, modelName) {
   };
 }
 
-function scoreModelStrength({ avgDiff, mechRitu, plusRate, rb3GoodRate, rb4GoodRate, sampleCount }) {
+function scoreModelStrength({ avgDiff, mechRitu, plusRate, rb3GoodRate, rb4GoodRate, sampleCount, supportsSettingAnalysis = true }) {
   let pts = 0;
 
   // 差枚点
@@ -6455,8 +6499,8 @@ function scoreModelStrength({ avgDiff, mechRitu, plusRate, rb3GoodRate, rb4GoodR
   if(plusRate >= 60)      pts += 1;
   else if(plusRate >= 50) pts += 0.5;
 
-  // RB良好率点（上書き式・最大2pt）
-  pts += calcRbGoodScore(rb3GoodRate, rb4GoodRate);
+  // RB良好率点（上書き式・最大2pt）。スマスロ系は差枚/G数だけで評価する。
+  if(supportsSettingAnalysis) pts += calcRbGoodScore(rb3GoodRate, rb4GoodRate);
 
   const sampleState = sampleCount >= 10 ? '通常評価' : sampleCount >= 5 ? '参考値' : '不足';
   const label = sampleState === '不足' ? '傾向薄い'
@@ -6495,13 +6539,17 @@ function calcModelStrength(rows, conditionType) {
     const mechRitu    = totalIn > 0 ? (totalIn + totalDiff) / totalIn * 100 : null;
     const plusRate    = sampleCount ? m.rows.filter(x=>x.diff>0).length / sampleCount * 100 : 0;
 
-    const { rb3GoodRate, rb4GoodRate } = calcTaiRbGoodRates(m.taiMap, modelName);
-    const scored = scoreModelStrength({ avgDiff, mechRitu, plusRate, rb3GoodRate, rb4GoodRate, sampleCount });
+    const supportsSettingAnalysis = isSettingAnalysisModel(modelName);
+    const { rb3GoodRate, rb4GoodRate } = supportsSettingAnalysis
+      ? calcTaiRbGoodRates(m.taiMap, modelName)
+      : { rb3GoodRate: null, rb4GoodRate: null };
+    const scored = scoreModelStrength({ avgDiff, mechRitu, plusRate, rb3GoodRate, rb4GoodRate, sampleCount, supportsSettingAnalysis });
 
     result.push({
       model: modelName,
       avgDiff: round1(avgDiff), mechRitu: mechRitu !== null ? round1(mechRitu) : null,
       plusRate: round1(plusRate), rb3GoodRate, rb4GoodRate, sampleCount,
+      supportsSettingAnalysis,
       score: scored.score, label: scored.label, sampleState: scored.sampleState,
     });
   }
@@ -6866,9 +6914,21 @@ function calcTaiConfigScore(tai, context) {
 
   // ① 台別ベイズスコア（キャッシュ済みの値を参照）
   const condN  = isSpecial ? (tai.spCount || 0) : (tai.nmCount || 0);
-  const bayesProb = isSpecial ? tai.bayesProbSp : tai.bayesProbNm;
+  const supportsSetting = tai.supportsSettingAnalysis !== false && isSettingAnalysisModel(tai.model);
+  const bayesProb = supportsSetting ? (isSpecial ? tai.bayesProbSp : tai.bayesProbNm) : null;
 
-  if(bayesProb !== null) {
+  if(!supportsSetting) {
+    const ref = isSpecial && tai.spAvg !== null ? tai.spAvg : (!isSpecial && tai.nmAvg !== null ? tai.nmAvg : tai.avg);
+    if(ref !== null && ref >= 800 && condN >= 3) {
+      score += 2;
+      reasons.push({ label: `${isSpecial?'特定日':'通常日'}差枚評価`, val: `平均${ref>=0?'+':''}${ref}枚（N=${condN || tai.count}）`, pts: 2 });
+    } else if(ref !== null && ref >= 200 && condN >= 3) {
+      score += 1;
+      reasons.push({ label: `${isSpecial?'特定日':'通常日'}差枚評価`, val: `平均${ref>=0?'+':''}${ref}枚（N=${condN || tai.count}）`, pts: 1 });
+    } else {
+      reasons.push({ label: `${isSpecial?'特定日':'通常日'}差枚評価`, val: `平均${ref!==null ? `${ref>=0?'+':''}${ref}枚` : 'データ不足'}（N=${condN || tai.count}）`, pts: 0 });
+    }
+  } else if(bayesProb !== null) {
     let pts = 0;
     if(condN >= 5) {
       if(bayesProb >= 60)      pts = 3;
@@ -6925,6 +6985,31 @@ function calcTaiValueScore(tai, context) {
   const { isSpecial, rows } = context;
   let score = 0;
   const reasons = [];
+  const supportsSetting = tai.supportsSettingAnalysis !== false && isSettingAnalysisModel(tai.model);
+  if(!supportsSetting) {
+    const ref = isSpecial && tai.spAvg !== null ? tai.spAvg : (!isSpecial && tai.nmAvg !== null ? tai.nmAvg : tai.avg);
+    const sample = isSpecial ? (tai.spCount || 0) : (tai.nmCount || 0);
+    let pts = 0;
+    if((sample || tai.count) >= 3 && ref !== null) {
+      if(ref >= 1500) pts = 3;
+      else if(ref >= 700) pts = 2;
+      else if(ref >= 200) pts = 1;
+      else if(ref <= -800) pts = -1;
+    }
+    reasons.push({
+      label: `${isSpecial?'特定日':'通常日'}差枚`,
+      val: ref !== null ? `${ref>=0?'+':''}${ref}枚（N=${sample || tai.count}）` : 'データ不足',
+      pts,
+      rawPts: pts,
+    });
+    return {
+      score: round1(pts),
+      reasons,
+      rbMeta: { valid:false, adjPts:0, pts:0, setLevel:null, rbRate:null, totalRB:0, source:'対象外' },
+      synMeta: { valid:false, adjPts:0, pts:0, setLevel:null, synRate:null, totalBonus:0, source:'対象外' },
+      reliabilityMeta: applyReliabilityAdjust(pts, tai.avgG || 0, isSmallCountModel(tai.model, rows)),
+    };
+  }
 
   // RB確率（主軸）
   const { rbRate, totalRB, source: rbSrc } = getConditionalRbRate(tai, isSpecial);
@@ -6984,15 +7069,16 @@ function buildTaiWarningFlags(tai, valueResult, configScore, isSpecial, rows) {
   const ref = isSpecial ? tai.spAvg : tai.nmAvg;
   const rbPts = valueResult.rbMeta.adjPts;
   const synPts = valueResult.synMeta.adjPts;
+  const supportsSetting = tai.supportsSettingAnalysis !== false && isSettingAnalysisModel(tai.model);
 
   // === strong: ランク低下対象 ===
 
   // 差枚プラスだがRB弱い（誤爆系）
-  if(ref !== null && ref > 200 && rbPts <= 0)
+  if(supportsSetting && ref !== null && ref > 200 && rbPts <= 0)
     flags.push({ level: 'strong', text: '差枚プラスだがRBが弱い → 誤爆・一撃依存の可能性' });
 
   // 合算良いがRB弱い（BB偏り系）
-  if(synPts >= 1 && rbPts <= 0)
+  if(supportsSetting && synPts >= 1 && rbPts <= 0)
     flags.push({ level: 'strong', text: '合算は良いがRBが弱い → BB偏り型の可能性' });
 
   // 稼働浅い＋差枚先行（見かけ強台）
@@ -7006,7 +7092,7 @@ function buildTaiWarningFlags(tai, valueResult, configScore, isSpecial, rows) {
     flags.push({ level: 'weak', text: `平均稼働${tai.avgG}G/日（サンプル浅・信頼度低）` });
 
   // RB高いが差枚マイナス（不発・参考情報）
-  if(rbPts >= 2 && ref !== null && ref < -200)
+  if(supportsSetting && rbPts >= 2 && ref !== null && ref < -200)
     flags.push({ level: 'weak', text: 'RBは高設定寄りだが差枚マイナス → 高設定不発の可能性' });
 
   // 特定日依存
@@ -7035,6 +7121,7 @@ function adjustRankByWarnings(baseRank, warningFlags) {
 function buildFieldCheckPoints(tai, context, warningFlags, valueResult) {
   const { isSpecial, rows, targetDate, model } = context;
   const rbPts = valueResult.rbMeta.adjPts;
+  const supportsSetting = tai.supportsSettingAnalysis !== false && isSettingAnalysisModel(tai.model);
   const candidates = []; // { priority, text }
 
   // 前日データ取得
@@ -7050,11 +7137,12 @@ function buildFieldCheckPoints(tai, context, warningFlags, valueResult) {
   if(hasGobaku)  candidates.push({ priority: 1, text: 'グラフが一山型でないか確認（一撃依存型は見送り）' });
   if(hasFupatu)  candidates.push({ priority: 1, text: 'RBペースが続くなら高設定不発型 → 続行検討' });
   if(hasBBbias)  candidates.push({ priority: 1, text: 'BB偏り型の可能性 → RBが少なすぎるなら見送り' });
-  if(!valueResult.rbMeta.valid) candidates.push({ priority: 1, text: 'RBデータ不足 → 当日RBペースを最重視' });
+  if(supportsSetting && !valueResult.rbMeta.valid) candidates.push({ priority: 1, text: 'RBデータ不足 → 当日RBペースを最重視' });
+  if(!supportsSetting) candidates.push({ priority: 1, text: 'スマスロは差枚推移・初当たり履歴・周辺の同時投入感を確認' });
 
   // 優先度2: 周辺・並び・前日
   if(prevRow) {
-    if(prevRow.isRBLead && prevRow.diff < 0)
+    if(supportsSetting && prevRow.isRBLead && prevRow.diff < 0)
       candidates.push({ priority: 2, text: `前日RB先行不発(${prevRow.diff}枚) → 粘り型か確認` });
     else if(prevRow.diff <= -2000)
       candidates.push({ priority: 2, text: `前日大負け(${prevRow.diff}枚) → 低設定の可能性。慎重に` });
@@ -7623,8 +7711,8 @@ function renderLayer2() {
 
   // 機種（calcModelStrength）
   if(topModel && topModel.label !== '傾向薄い') {
-    const rbNote = topModel.rb4GoodRate !== null && topModel.rb4GoodRate >= 20 ? '・RB高設定寄り台あり'
-      : topModel.rb3GoodRate !== null && topModel.rb3GoodRate >= 40 ? '・RB中高設定台あり' : '';
+    const rbNote = topModel.supportsSettingAnalysis && Number.isFinite(Number(topModel.rb4GoodRate)) && topModel.rb4GoodRate >= 20 ? '・RB高設定寄り台あり'
+      : topModel.supportsSettingAnalysis && Number.isFinite(Number(topModel.rb3GoodRate)) && topModel.rb3GoodRate >= 40 ? '・RB中高設定台あり' : '';
     const sampleNote = topModel.sampleState !== '通常評価' ? `（${topModel.sampleState}）` : '';
     conclusions.push({
       icon:'🎰', label:'狙い機種',
@@ -7743,8 +7831,9 @@ function renderLayer2() {
         const barW = Math.min(Math.max(m.score / 8 * 100, 0), 100);
         const barColor = m.label==='有力'?'var(--plus)':m.label==='対抗'?'var(--accent)':'var(--muted)';
         const labelColor = m.label==='有力'?'var(--plus)':m.label==='対抗'?'var(--accent)':'var(--muted)';
-        const rb3 = m.rb3GoodRate !== null ? `RB3+:${m.rb3GoodRate}%` : '';
-        const rb4 = m.rb4GoodRate !== null ? `RB4+:${m.rb4GoodRate}%` : '';
+        const supportsSetting = isSettingAnalysisModel(m.model);
+        const rb3 = supportsSetting && Number.isFinite(Number(m.rb3GoodRate)) ? `RB3+:${m.rb3GoodRate}%` : '';
+        const rb4 = supportsSetting && Number.isFinite(Number(m.rb4GoodRate)) ? `RB4+:${m.rb4GoodRate}%` : '';
         const cov = calcModelDataCoverage(m.model, allRows);
         const covColor = cov.label==='高'?'var(--plus)':cov.label==='中'?'var(--accent)':cov.label==='低'?'var(--muted)':'#555';
         return `<div style="margin-bottom:6px">
@@ -7817,6 +7906,7 @@ function renderLayer3(model) {
 
     const rankColor = r => r.rank==='本命'?'var(--plus)':r.rank==='対抗'?'var(--accent)':r.rank==='保留'?'var(--muted)':'var(--minus)';
     const rankIcon  = r => r.rank==='本命'?'🎯':r.rank==='対抗'?'★':r.rank==='保留'?'△':'⚠️';
+    const supportsSelectedModelSetting = isSettingAnalysisModel(model);
 
     const html = targets.map((t, idx) => {
       const rc = rankColor(t);
@@ -7832,7 +7922,7 @@ function renderLayer3(model) {
           <div style="text-align:right">
             <div style="font-size:14px;font-weight:900;color:${rc}">${ri} ${t.rank}</div>
             <div style="font-size:10px;color:var(--muted)">スコア ${t.totalScore}pt</div>
-            <button class="btn" onclick="selectLayer3CandidatePrecomputed(${idx},'${model}')" style="margin-top:6px;padding:4px 8px;font-size:10px">この台で設定推測</button>
+            ${supportsSelectedModelSetting ? `<button class="btn" onclick="selectLayer3CandidatePrecomputed(${idx},'${model}')" style="margin-top:6px;padding:4px 8px;font-size:10px">この台で設定推測</button>` : '<div style="font-size:10px;color:var(--muted);margin-top:6px">差枚/G数で確認</div>'}
           </div>
         </div>
         ${renderTargetCandidateEvidenceDetails(t)}
@@ -7845,7 +7935,7 @@ function renderLayer3(model) {
         <div style="display:flex;gap:10px;font-size:11px;color:var(--muted);padding:5px 8px;background:var(--bg4);border-radius:6px;flex-wrap:wrap">
           <span>${condLabel}平均 <b style="color:${ref!==null&&ref>=0?'var(--plus)':'var(--minus)'}">${ref!==null?(ref>=0?'+':'')+ref+'枚':'—'}</b></span>
           <span>全体平均 <b style="color:${t.avg>=0?'var(--plus)':'var(--minus)'}">${t.avg>=0?'+':''}${t.avg}枚</b></span>
-          ${t.scoreSource !== 'validated_evidence' && t.bayesProbSp!==null?`<span>P(設定4+) <b style="color:var(--accent3)">${ta.isSpecial?t.bayesProbSp:t.bayesProbNm}%</b></span>`:''}
+          ${supportsSelectedModelSetting && t.scoreSource !== 'validated_evidence' && t.bayesProbSp!==null?`<span>P(設定4+) <b style="color:var(--accent3)">${ta.isSpecial?t.bayesProbSp:t.bayesProbNm}%</b></span>`:''}
         </div>
       </div>`;
     }).join('');
@@ -7951,7 +8041,7 @@ function renderLayer3(model) {
         <div style="text-align:right">
           <div style="font-size:14px;font-weight:900;color:${rc}">${ri} ${t.rank}</div>
           <div style="font-size:10px;color:var(--muted)">数値${t.valueScore}pt + 配分${t.configScore}pt = 計${t.totalScore}pt</div>
-          <button class="btn" onclick="selectLayer3Candidate(${idx})" style="margin-top:6px;padding:4px 8px;font-size:10px">この台で設定推測</button>
+          ${isSettingAnalysisModel(t.model) ? `<button class="btn" onclick="selectLayer3Candidate(${idx})" style="margin-top:6px;padding:4px 8px;font-size:10px">この台で設定推測</button>` : '<div style="font-size:10px;color:var(--muted);margin-top:6px">差枚/G数で確認</div>'}
         </div>
       </div>
 
@@ -8023,6 +8113,11 @@ function renderLayer3(model) {
 }
 
 function selectLayer3CandidatePrecomputed(idx, model) {
+  if(!isSettingAnalysisModel(model)) {
+    if(typeof showToast === 'function') showToast('この機種は差枚/G数評価のみです');
+    else alert('この機種は差枚/G数評価のみです');
+    return;
+  }
   const analysis = getCurrentStoreTodayAnalysis();
   if(!analysis) return;
   const targets = (analysis.topTargets || []).filter(t => t.model === model);
@@ -8047,6 +8142,11 @@ function selectLayer3CandidatePrecomputed(idx, model) {
 function selectLayer3Candidate(idx) {
   const t = G.layer3Scored && G.layer3Scored[idx];
   if(!t) return;
+  if(!isSettingAnalysisModel(t.model)) {
+    if(typeof showToast === 'function') showToast('この機種は差枚/G数評価のみです');
+    else alert('この機種は差枚/G数評価のみです');
+    return;
+  }
   const meta = G.layer3SelectionMeta || {};
   const rbSource = t.valueDetail?.rbMeta?.source || null;
   const synSource = t.valueDetail?.synMeta?.source || null;
@@ -9040,6 +9140,7 @@ function getTaiRowsForCurrentPeriod() {
 
 function getModelTreatmentLabel(stat) {
   if(stat.count < 10) return { label:'標準', note:'サンプル少なめ', color:'var(--muted)' };
+  const settingCapable = stat.supportsSettingAnalysis !== false;
   let score = 0;
   if(stat.avg >= 120) score += 2;
   else if(stat.avg >= 30) score += 1;
@@ -9047,11 +9148,13 @@ function getModelTreatmentLabel(stat) {
   else if(stat.avg <= -20) score -= 1;
   if(stat.plusRate >= 58) score += 1;
   else if(stat.plusRate < 45) score -= 1;
-  if(stat.rbGoodRate >= 35) score += 1;
-  else if(stat.rbGoodRate < 18) score -= 1;
+  if(settingCapable) {
+    if(stat.rbGoodRate >= 35) score += 1;
+    else if(stat.rbGoodRate < 18) score -= 1;
+  }
 
   if(score >= 2) {
-    const note = stat.rbGoodRate >= 30 ? 'RB良好率高め' : (stat.avg >= 120 ? '平均差枚が強め' : '機種全体で安定');
+    const note = settingCapable && stat.rbGoodRate >= 30 ? 'RB良好率高め' : (stat.avg >= 120 ? '平均差枚が強め' : '機種全体で安定');
     return { label:'良扱い', note, color:'var(--plus)' };
   }
   if(score <= -1) {
@@ -9078,8 +9181,9 @@ function renderTaiModelSummary(sourceRows) {
   if (G._precomputed && G.modelStats && G.modelStats.length) {
     const stats = G.modelStats.map(m => {
       const rbGoodRate = 0;
-      const treatment = getModelTreatmentLabel({ avg: m.allAvg, plusRate: 0, rbGoodRate, count: m.count });
-      return { model:m.model, count:m.count, avg:m.allAvg, plusRate:0, rbGoodRate, ...treatment };
+      const supportsSettingAnalysis = m.supportsSettingAnalysis !== false && isSettingAnalysisModel(m.model);
+      const treatment = getModelTreatmentLabel({ avg: m.allAvg, plusRate: 0, rbGoodRate, count: m.count, supportsSettingAnalysis });
+      return { model:m.model, count:m.count, avg:m.allAvg, plusRate:0, rbGoodRate, supportsSettingAnalysis, ...treatment };
     }).sort((a,b) => {
       const order = x => x.label==='良扱い' ? 2 : x.label==='標準' ? 1 : 0;
       if(order(b) !== order(a)) return order(b) - order(a);
@@ -9129,9 +9233,9 @@ function renderTaiModelSummary(sourceRows) {
 
   const byModel = {};
   rows.forEach(r => {
-    if(!byModel[r.model]) byModel[r.model] = { model:r.model, diffs:[], rbGood:0, rbCount:0 };
+    if(!byModel[r.model]) byModel[r.model] = { model:r.model, diffs:[], rbGood:0, rbCount:0, supportsSettingAnalysis:isSettingAnalysisModel(r.model) };
     byModel[r.model].diffs.push(r.diff);
-    if(r.rb > 0) {
+    if(byModel[r.model].supportsSettingAnalysis && r.rb > 0) {
       byModel[r.model].rbCount++;
       const rbRate = Math.round((r.g||0)/r.rb);
       const lv = rbRateToSetLevel(r.model, rbRate);
@@ -9144,8 +9248,8 @@ function renderTaiModelSummary(sourceRows) {
     const avgDiff = round1(avg(m.diffs));
     const plusRate = round1(m.diffs.filter(v=>v>0).length / count * 100);
     const rbGoodRate = m.rbCount > 0 ? round1(m.rbGood / m.rbCount * 100) : 0;
-    const treatment = getModelTreatmentLabel({ avg: avgDiff, plusRate, rbGoodRate, count });
-    return { model:m.model, count, avg: avgDiff, plusRate, rbGoodRate, ...treatment };
+    const treatment = getModelTreatmentLabel({ avg: avgDiff, plusRate, rbGoodRate, count, supportsSettingAnalysis:m.supportsSettingAnalysis });
+    return { model:m.model, count, avg: avgDiff, plusRate, rbGoodRate, supportsSettingAnalysis:m.supportsSettingAnalysis, ...treatment };
   }).sort((a,b) => {
     const order = x => x.label==='良扱い' ? 2 : x.label==='標準' ? 1 : 0;
     if(order(b) !== order(a)) return order(b) - order(a);
@@ -9217,7 +9321,8 @@ function renderTaiList() {
     const html = taiData.map(t => {
       const isPlus = t.avg >= 0;
       const ref = t.spAvg !== null ? t.spAvg : t.avg;
-      const bayesProb = t.bayesProbSp !== null ? t.bayesProbSp : t.bayesProbAll;
+      const supportsSetting = t.supportsSettingAnalysis !== false && isSettingAnalysisModel(t.model);
+      const bayesProb = supportsSetting ? (t.bayesProbSp !== null ? t.bayesProbSp : t.bayesProbAll) : null;
       return `
       <div class="tai-row" style="border-color:${isPlus?'rgba(57,255,20,.2)':'rgba(255,77,109,.1)'}">
         <div>
@@ -9228,7 +9333,7 @@ function renderTaiList() {
           <div style="font-size:10px;color:var(--muted)">特定日平均</div>
           <div style="font-size:12px;font-weight:700;color:${t.spAvg!==null&&t.spAvg>=0?'var(--plus)':'var(--minus)'}">${t.spAvg!==null?(t.spAvg>=0?'+':'')+t.spAvg+'枚':'—'}</div>
           <div style="font-size:10px;color:var(--muted)">全体平均 ${t.avg>=0?'+':''}${t.avg}枚</div>
-          ${bayesProb!==null?`<div style="font-size:10px;color:var(--accent3)">P(設定4+) ${bayesProb}%</div>`:''}
+          ${bayesProb!==null?`<div style="font-size:10px;color:var(--accent3)">P(設定4+) ${bayesProb}%</div>`:`<div style="font-size:10px;color:var(--muted)">差枚/G数で評価</div>`}
           ${t.prevRow?`<div style="font-size:10px;color:var(--muted)">前日:${t.prevRow.diff>=0?'+':''}${t.prevRow.diff}枚 BB${t.prevRow.bb} RB${t.prevRow.rb}</div>`:''}
         </div>
         <div class="tai-diff" style="color:${isPlus?'var(--plus)':'var(--minus)'}">${t.avg>=0?'+':''}${t.avg}</div>
@@ -9283,7 +9388,8 @@ function renderTaiList() {
 
   const col = v => v>=0 ? 'var(--plus)' : 'var(--minus)';
   document.getElementById('taiList').innerHTML=data.map(t=>{
-    const rbScr  = scoreTaiRbRate(t.model, t.rbRate, t.totalRB);
+    const supportsSetting = isSettingAnalysisModel(t.model);
+    const rbScr  = supportsSetting ? scoreTaiRbRate(t.model, t.rbRate, t.totalRB) : { pts:0, setLevel:null, valid:false };
     const rbColor = rbScr.pts >= 3 ? 'var(--plus)' : rbScr.pts >= 2 ? 'var(--accent)' :
                     rbScr.pts <= 0 ? 'var(--muted)' : 'var(--muted)';
     const rbLabel = t.rbRate ? `1/${t.rbRate}` : '—';
@@ -9297,8 +9403,8 @@ function renderTaiList() {
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;color:var(--muted);margin-bottom:3px">${t.model}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px">
-          <span>RB <span style="font-weight:700;color:${rbColor}">${rbLabel}</span>${rbScr.pts>0?' <span style="font-size:9px;color:var(--plus)">▲</span>':rbScr.pts<0?' <span style="font-size:9px;color:var(--minus)">▼</span>':''}</span>
-          <span style="color:var(--muted)">合算 <span style="color:var(--text)">${synLabel}</span></span>
+          ${supportsSetting ? `<span>RB <span style="font-weight:700;color:${rbColor}">${rbLabel}</span>${rbScr.pts>0?' <span style="font-size:9px;color:var(--plus)">▲</span>':rbScr.pts<0?' <span style="font-size:9px;color:var(--minus)">▼</span>':''}</span>
+          <span style="color:var(--muted)">合算 <span style="color:var(--text)">${synLabel}</span></span>` : '<span style="color:var(--muted)">スマスロ: 差枚/G数評価</span>'}
           <span style="color:var(--muted)">${t.avgG.toLocaleString()}G</span>
         </div>
         <div style="font-size:10px;color:var(--muted);margin-top:2px">

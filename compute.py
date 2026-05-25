@@ -37,6 +37,32 @@ MODEL_NAME_MAP = {
     "スマスロ ハナビ":       "スマスロハナビ",
 }
 
+SMART_SLOT_MODEL_PATTERNS = [
+    (("北斗", "転生"), "スマスロ北斗の拳 転生の章2"),
+    (("北斗の拳",), "スマスロ北斗の拳"),
+    (("東京喰種",), "L 東京喰種"),
+    (("グール",), "L 東京喰種"),
+    (("喰種",), "L 東京喰種"),
+    (("モンキーターン",), "L モンキーターンV"),
+    (("ヴァルヴレイヴ", "2"), "L 革命機ヴァルヴレイヴ2"),
+    (("ヴァルヴレイヴ", "２"), "L 革命機ヴァルヴレイヴ2"),
+    (("ヴァルヴレイヴ", "Ⅱ"), "L 革命機ヴァルヴレイヴ2"),
+    (("VVV", "2"), "L 革命機ヴァルヴレイヴ2"),
+    (("VVV", "２"), "L 革命機ヴァルヴレイヴ2"),
+    (("ＶＶＶ", "2"), "L 革命機ヴァルヴレイヴ2"),
+    (("ＶＶＶ", "２"), "L 革命機ヴァルヴレイヴ2"),
+    (("ヴヴヴ", "2"), "L 革命機ヴァルヴレイヴ2"),
+    (("ヴヴヴ", "２"), "L 革命機ヴァルヴレイヴ2"),
+]
+
+SMART_SLOT_MODELS = {
+    "スマスロ北斗の拳 転生の章2",
+    "スマスロ北斗の拳",
+    "L 東京喰種",
+    "L モンキーターンV",
+    "L 革命機ヴァルヴレイヴ2",
+}
+
 MODEL_SETTINGS = {
     "ネオアイムジャグラー":      {"syn":{1:168,2:161,3:148,4:142,5:128,6:128},"bb":{1:273,2:269,3:269,4:259,5:259,6:255},"rb":{1:439,2:399,3:331,4:315,5:255,6:255}},
     "ウルトラミラクルジャグラー": {"syn":{1:164,2:158,3:147,4:138,5:130,6:121},"bb":{1:267,2:261,3:256,4:242,5:233,6:216},"rb":{1:425,2:402,3:350,4:322,5:297,6:277}},
@@ -179,7 +205,20 @@ def normalize_model_name(model_name):
     mapped = MODEL_NAME_MAP.get(name, name)
     if mapped.replace(" ", "") == "スマスロハナビ":
         return "スマスロハナビ"
+    compact = mapped.replace(" ", "")
+    for tokens, canonical in SMART_SLOT_MODEL_PATTERNS:
+        if all(token in compact for token in tokens):
+            return canonical
     return mapped
+
+def supports_setting_analysis(model):
+    return model in MODEL_SETTINGS
+
+def supports_diff_analysis(model):
+    return model in MODEL_SETTINGS or model in SMART_SLOT_MODELS
+
+def get_model_analysis_mode(model):
+    return "setting" if supports_setting_analysis(model) else "diff"
 
 def is_good_result_model(model, g, bb, rb):
     if g <= 0 or (bb + rb) <= 0:
@@ -654,7 +693,7 @@ def load_raw(special_by_store):
             if key in seen: continue
             seen.add(key)
             model = normalize_model_name(model_name)
-            if model not in MODEL_SETTINGS: continue
+            if not supports_diff_analysis(model): continue
             try:
                 dt = datetime.strptime(date_str, "%Y-%m-%d")
             except: continue
@@ -683,6 +722,8 @@ def load_raw(special_by_store):
                 "isSpecialDay": is_special_day,
                 "hasDiff": diff_raw != "",
                 "isHighSettingSyn": is_high_setting_syn_model(model, g, bb, rb),
+                "analysisMode": get_model_analysis_mode(model),
+                "supportsSettingAnalysis": supports_setting_analysis(model),
             })
     rows.sort(key=lambda r: r["date"])
     global DIFF_QUALITY_BY_STORE
@@ -931,6 +972,9 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
             "installStartedAt": t.get("installStartedAt"),
             "installLastSeenAt": t.get("installLastSeenAt"),
             "historyScope": "current_install_segment",
+            "analysisMode": get_model_analysis_mode(t["model"]),
+            "supportsSettingAnalysis": supports_setting_analysis(t["model"]),
+            "modelCategory": "smart_slot" if t["model"] in SMART_SLOT_MODELS else "normal",
             "avg":r1(weighted_avg_rows(t["all"], "diff")),"count":n,
             "weightedCount": r1(wn),
             "plus":len([v for v in t["all"] if has_trustworthy_diff(v) and v["diff"]>0]),
@@ -1013,6 +1057,9 @@ def compute_model_stats(rows, special):
         zoro_avg = r1(weighted_avg_rows(m["zoro"], "diff")) if m["zoro"] else None
         result.append({
             "model":model,"allAvg":r1(weighted_avg_rows(m["all"], "diff")),"count":len(m["all"]),
+            "analysisMode": get_model_analysis_mode(model),
+            "supportsSettingAnalysis": supports_setting_analysis(model),
+            "modelCategory": "smart_slot" if model in SMART_SLOT_MODELS else "normal",
             "spAvg":r1(weighted_avg_rows(m["sp"], "diff")) if m["sp"] else None,"spCount":len(m["sp"]),
             "nmAvg":r1(weighted_avg_rows(m["nm"], "diff")) if m["nm"] else None,"nmCount":len(m["nm"]),
             "mechRitu":r1(total_out/total_in*100) if total_in>0 else None,
@@ -1117,10 +1164,11 @@ def get_prev_state_label(prev):
     if not prev:
         return None
     diff = prev.get("diff", 0)
-    if prev.get("isHighSettingSyn") or prev.get("isHighSetRBLead"):
-        return "前日強挙動"
-    if prev.get("isRBLead") and diff < 0:
-        return "前日RB先行不発"
+    if supports_setting_analysis(prev.get("model")):
+        if prev.get("isHighSettingSyn") or prev.get("isHighSetRBLead"):
+            return "前日強挙動"
+        if prev.get("isRBLead") and diff < 0:
+            return "前日RB先行不発"
     if diff <= -2000:
         return "前日-2000以下"
     if diff <= -1000:

@@ -2,6 +2,7 @@ import csv
 import json
 import os
 import argparse
+import re
 from datetime import datetime, timedelta, timezone
 
 import morning_compute as morning
@@ -20,8 +21,11 @@ def parse_number(value):
     text = str(value or "").replace(",", "").replace("+", "").replace("枚", "").replace("%", "").strip()
     if not text:
         return None
+    match = re.search(r"-?\d+(?:\.\d+)?", text)
+    if not match:
+        return None
     try:
-        return float(text)
+        return float(match.group(0))
     except Exception:
         return None
 

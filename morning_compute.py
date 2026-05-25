@@ -39,6 +39,32 @@ MODEL_NAME_MAP = {
     "スマスロ ハナビ": "スマスロハナビ",
 }
 
+SMART_SLOT_MODEL_PATTERNS = [
+    (("北斗", "転生"), "スマスロ北斗の拳 転生の章2"),
+    (("北斗の拳",), "スマスロ北斗の拳"),
+    (("東京喰種",), "L 東京喰種"),
+    (("グール",), "L 東京喰種"),
+    (("喰種",), "L 東京喰種"),
+    (("モンキーターン",), "L モンキーターンV"),
+    (("ヴァルヴレイヴ", "2"), "L 革命機ヴァルヴレイヴ2"),
+    (("ヴァルヴレイヴ", "２"), "L 革命機ヴァルヴレイヴ2"),
+    (("ヴァルヴレイヴ", "Ⅱ"), "L 革命機ヴァルヴレイヴ2"),
+    (("VVV", "2"), "L 革命機ヴァルヴレイヴ2"),
+    (("VVV", "２"), "L 革命機ヴァルヴレイヴ2"),
+    (("ＶＶＶ", "2"), "L 革命機ヴァルヴレイヴ2"),
+    (("ＶＶＶ", "２"), "L 革命機ヴァルヴレイヴ2"),
+    (("ヴヴヴ", "2"), "L 革命機ヴァルヴレイヴ2"),
+    (("ヴヴヴ", "２"), "L 革命機ヴァルヴレイヴ2"),
+]
+
+SMART_SLOT_MODELS = {
+    "スマスロ北斗の拳 転生の章2",
+    "スマスロ北斗の拳",
+    "L 東京喰種",
+    "L モンキーターンV",
+    "L 革命機ヴァルヴレイヴ2",
+}
+
 MODEL_SETTINGS = {
     "ネオアイムジャグラー": {"syn": {1: 168, 2: 161, 3: 148, 4: 142, 5: 128, 6: 128}, "bb": {1: 273, 2: 269, 3: 269, 4: 259, 5: 259, 6: 255}, "rb": {1: 439, 2: 399, 3: 331, 4: 315, 5: 255, 6: 255}},
     "ウルトラミラクルジャグラー": {"syn": {1: 164, 2: 158, 3: 147, 4: 138, 5: 130, 6: 121}, "bb": {1: 267, 2: 261, 3: 256, 4: 242, 5: 233, 6: 216}, "rb": {1: 425, 2: 402, 3: 350, 4: 322, 5: 297, 6: 277}},
@@ -80,7 +106,31 @@ def normalize_model(model_name):
     mapped = MODEL_NAME_MAP.get(name, name)
     if mapped.replace(" ", "") == "スマスロハナビ":
         return "スマスロハナビ"
+    compact = mapped.replace(" ", "")
+    for tokens, canonical in SMART_SLOT_MODEL_PATTERNS:
+        if all(token in compact for token in tokens):
+            return canonical
     return mapped
+
+
+def supports_setting_analysis(model):
+    return model in MODEL_SETTINGS
+
+
+def supports_diff_analysis(model):
+    return model in MODEL_SETTINGS or model in SMART_SLOT_MODELS
+
+
+def classify_diff_label(total_g, diff):
+    if total_g >= 3500 and diff >= 2500:
+        return "強上候補"
+    if total_g >= 2500 and diff >= 800:
+        return "上候補"
+    if total_g < 1500:
+        return "除外寄り"
+    if diff <= -1500:
+        return "除外寄り"
+    return "中間"
 
 
 def resolve_columns(columns):
@@ -574,15 +624,20 @@ def read_labeled_rows_fallback():
             if dt is None or not raw_store or not math.isfinite(tai_raw) or total_g <= 0:
                 continue
 
-            if normalized_model not in MODEL_SETTINGS:
+            if not supports_diff_analysis(normalized_model):
                 if normalized_model:
                     unsupported_models.add(normalized_model)
                 continue
 
             tai = int(tai_raw)
-            syn_threshold = MODEL_SYN_T4[normalized_model]
-            rb_threshold = MODEL_RB_T4[normalized_model]
-            label = classify_label(total_g, bb, rb, diff, syn_threshold, rb_threshold)
+            if supports_setting_analysis(normalized_model):
+                syn_threshold = MODEL_SYN_T4[normalized_model]
+                rb_threshold = MODEL_RB_T4[normalized_model]
+                label = classify_label(total_g, bb, rb, diff, syn_threshold, rb_threshold)
+                analysis_mode = "setting"
+            else:
+                label = classify_diff_label(total_g, diff)
+                analysis_mode = "diff"
 
             rows.append(
                 {
@@ -597,6 +652,7 @@ def read_labeled_rows_fallback():
                     "weekday": dt.weekday(),
                     "is_special": is_store_special_day(raw_store, dt.day, special_by_store),
                     "label": label,
+                    "analysis_mode": analysis_mode,
                 }
             )
 
@@ -651,7 +707,8 @@ def read_labeled_rows():
         if chunk.empty:
             continue
 
-        supported_mask = chunk["model"].isin(MODEL_SETTINGS)
+        supported_models = set(MODEL_SETTINGS) | SMART_SLOT_MODELS
+        supported_mask = chunk["model"].isin(supported_models)
         unsupported = chunk.loc[~supported_mask, "model"].dropna().astype(str).str.strip()
         for name in unsupported:
             if name:
@@ -673,15 +730,23 @@ def read_labeled_rows():
         chunk["rb_ratio"] = (chunk["total_g"] / chunk["rb"]).where(chunk["rb"] > 0)
         chunk["bb_ratio"] = (chunk["total_g"] / chunk["bb"]).where(chunk["bb"] > 0)
 
+        chunk["analysis_mode"] = chunk["model"].map(
+            lambda model: "setting" if supports_setting_analysis(model) else "diff"
+        )
+        setting_mask = chunk["analysis_mode"] == "setting"
         chunk["syn_threshold"] = chunk["model"].map(MODEL_SYN_T4)
         chunk["rb_threshold"] = chunk["model"].map(MODEL_RB_T4)
 
         cond1 = (
+            setting_mask
+            &
             (chunk["total_g"] >= 5000)
             & (chunk["rb_ratio"] <= chunk["rb_threshold"])
             & (chunk["syn_ratio"] <= chunk["syn_threshold"])
         )
         cond2 = (
+            setting_mask
+            &
             (chunk["total_g"] >= 3500)
             & (
                 (chunk["rb_ratio"] <= chunk["rb_threshold"])
@@ -691,15 +756,22 @@ def read_labeled_rows():
         rb_bad_or_none = chunk["rb_ratio"].isna() | (chunk["rb_ratio"] > chunk["rb_threshold"])
         syn_bad_or_none = chunk["syn_ratio"].isna() | (chunk["syn_ratio"] > chunk["syn_threshold"])
         cond3 = (
-            (chunk["total_g"] < 2500)
-            | ((chunk["bb"] > 0) & (chunk["bb_ratio"] < 240) & rb_bad_or_none)
-            | ((chunk["diff"] > 0) & rb_bad_or_none & syn_bad_or_none)
+            setting_mask
+            & (
+                (chunk["total_g"] < 2500)
+                | ((chunk["bb"] > 0) & (chunk["bb_ratio"] < 240) & rb_bad_or_none)
+                | ((chunk["diff"] > 0) & rb_bad_or_none & syn_bad_or_none)
+            )
         )
 
         chunk["label"] = "中間"
         chunk.loc[cond3, "label"] = "除外寄り"
         chunk.loc[cond2, "label"] = "上候補"
         chunk.loc[cond1, "label"] = "強上候補"
+        diff_mode_mask = chunk["analysis_mode"] == "diff"
+        chunk.loc[diff_mode_mask & (chunk["total_g"] >= 2500) & (chunk["diff"] >= 800), "label"] = "上候補"
+        chunk.loc[diff_mode_mask & (chunk["total_g"] >= 3500) & (chunk["diff"] >= 2500), "label"] = "強上候補"
+        chunk.loc[diff_mode_mask & ((chunk["total_g"] < 1500) | (chunk["diff"] <= -1500)), "label"] = "除外寄り"
 
         frames.append(
             chunk[
@@ -715,6 +787,7 @@ def read_labeled_rows():
                     "weekday",
                     "is_special",
                     "label",
+                    "analysis_mode",
                 ]
             ]
         )
@@ -792,6 +865,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
         model_rankings[store].append(
             {
                 "model": model,
+                "analysis_mode": "setting" if supports_setting_analysis(model) else "diff",
                 "score": round(upper_rate, 6),
                 "reason": f"上候補以上率{upper_rate:.0%}({total}件)",
                 "sample": total,
@@ -897,6 +971,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
             {
                 "tai": int(tai),
                 "model": recent_model,
+                "analysis_mode": "setting" if supports_setting_analysis(recent_model) else "diff",
                 "score": round(total_score, 6),
                 "action": decision["action"],
                 "action_label": decision["action_label"],
@@ -1085,6 +1160,7 @@ def build_payload(df, normalized_models, unsupported_models):
             ranking.append(
                 {
                     "model": r.model,
+                    "analysis_mode": "setting" if supports_setting_analysis(r.model) else "diff",
                     "score": round(float(r.upper_rate), 6),
                     "reason": f"上候補以上率{float(r.upper_rate):.0%}({int(r.sample)}件)",
                     "sample": int(r.sample),
@@ -1158,6 +1234,7 @@ def build_payload(df, normalized_models, unsupported_models):
                 {
                     "tai": int(r.tai),
                     "model": model,
+                    "analysis_mode": "setting" if supports_setting_analysis(model) else "diff",
                     "score": round(total_score, 6),
                     "action": decision["action"],
                     "action_label": decision["action_label"],
