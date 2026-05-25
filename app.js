@@ -5741,9 +5741,12 @@ function getPredictionFreshnessMeta() {
       badgeClass: 'red',
       badgeText: '🔴 データ日付不明',
       subText: '予測データ日を判定できません',
-      alertText: ''
+      alertText: '⚠️ 予測データ日を判定できないため、推薦候補は参考扱いです',
+      blockRecommendations: true,
+      lagDays: null,
     };
   }
+  const lagDays = diffDaysLocal(dataDate, today);
   const dataYmd = toYmdLocal(dataDate);
   const todayYmd = toYmdLocal(today);
   const yesterdayYmd = toYmdLocal(yesterday);
@@ -5752,22 +5755,29 @@ function getPredictionFreshnessMeta() {
       badgeClass: 'green',
       badgeText: '🟢 通常予測',
       subText: `data_date: ${dataYmd}`,
-      alertText: ''
+      alertText: '',
+      blockRecommendations: false,
+      lagDays,
     };
   }
   if(dataYmd === yesterdayYmd) {
     return {
-      badgeClass: 'red',
-      badgeText: '🔴 前日データ',
+      badgeClass: 'green',
+      badgeText: '🟢 前日データ',
       subText: `data_date: ${dataYmd}`,
-      alertText: '⚠️ 前日データで予測中'
+      alertText: '',
+      blockRecommendations: false,
+      lagDays,
     };
   }
+  const blockRecommendations = Number.isFinite(lagDays) ? lagDays > 2 : true;
   return {
     badgeClass: 'red',
     badgeText: '🔴 古いデータ',
     subText: `data_date: ${dataYmd}`,
-    alertText: '⚠️ 古いデータで予測中'
+    alertText: `⚠️ ${Number.isFinite(lagDays) ? `${lagDays}日前` : '古い'}データです。入替・傾向変化の影響が大きいため、推薦候補は強く信用しないでください。`,
+    blockRecommendations,
+    lagDays,
   };
 }
 
@@ -5896,10 +5906,11 @@ function renderRecommendations() {
     el.innerHTML = '<div class="empty-msg">日付を選択してください</div>';
     return;
   }
-  const rows = getRecommendationRowsForTargetDate(target);
+  let rows = getRecommendationRowsForTargetDate(target);
   const freshness = getPredictionFreshnessMeta();
   const alerts = [];
   if(freshness.alertText) alerts.push(freshness.alertText);
+  if(freshness.blockRecommendations) rows = [];
   if(currentStore !== 'all') {
     const qualityWarning = getStoreDataQualityWarning(getCurrentStorePrecomputedData());
     if(qualityWarning) alerts.push(qualityWarning);
@@ -5913,7 +5924,7 @@ function renderRecommendations() {
         <span class="recommendation-status-note">${freshness.subText}</span>
       </div>
       ${alerts.map(text => `<div class="recommendation-alert">${text}</div>`).join('')}
-      <div class="empty-msg">${suppressionText ? escapeHtml(suppressionText) : '推薦候補がありません'}</div>
+      <div class="empty-msg">${freshness.blockRecommendations ? 'データが古いため推薦候補を非表示にしています' : (suppressionText ? escapeHtml(suppressionText) : '推薦候補がありません')}</div>
     `;
     return;
   }

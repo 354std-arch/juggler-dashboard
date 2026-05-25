@@ -60,6 +60,7 @@ UPPER_LABELS = {"強上候補", "上候補"}
 DECAY = math.log(2.0) / 180.0
 CHUNK_SIZE = 200_000
 INSTALL_SEGMENT_GAP_DAYS = 21
+MAX_MORNING_SOURCE_LAG_DAYS = 2
 _SPECIAL_BY_STORE_CACHE = None
 
 COLUMN_ALIASES = {
@@ -211,6 +212,28 @@ def build_payload_meta(now_jst, source_date):
     source_day = date_only(source_date)
     source_ymd = source_day.strftime("%Y-%m-%d") if source_day else None
     lag_days = (target_date - source_day).days if source_day else None
+    if lag_days is None:
+        freshness_guard = {
+            "actionable": False,
+            "level": "unknown",
+            "label": "鮮度不明",
+            "message": "元データの日付を確認できないため、朝候補は参考扱いにします。",
+        }
+    elif lag_days > MAX_MORNING_SOURCE_LAG_DAYS:
+        freshness_guard = {
+            "actionable": False,
+            "level": "stale",
+            "label": f"{lag_days}日前データ",
+            "message": f"元データが{lag_days}日前です。入替・傾向変化の影響が大きいため、朝候補は参考扱いにします。",
+        }
+    else:
+        freshness_guard = {
+            "actionable": True,
+            "level": "fresh",
+            "label": "鮮度OK",
+            "message": "",
+        }
+
     return {
         "generated_at": now_jst.strftime("%Y-%m-%d %H:%M JST"),
         # Backward compatible: existing UI/code treats data_date as the prediction target date.
@@ -218,6 +241,7 @@ def build_payload_meta(now_jst, source_date):
         "target_date": target_date.strftime("%Y-%m-%d"),
         "source_data_date": source_ymd,
         "source_data_lag_days": lag_days,
+        "freshness_guard": freshness_guard,
     }
 
 
@@ -399,6 +423,30 @@ def apply_evidence_guards(stores_payload, target_ymd):
                 candidate["actionable"] = False
 
         candidates.sort(key=morning_candidate_sort_key, reverse=True)
+    return stores_payload
+
+
+def apply_freshness_guard(stores_payload, payload_meta):
+    guard = payload_meta.get("freshness_guard") if isinstance(payload_meta, dict) else None
+    if not isinstance(guard, dict) or guard.get("actionable") is not False:
+        return stores_payload
+    note = guard.get("message") or "元データが古いため、朝候補は参考扱いにします。"
+    for payload in stores_payload.values():
+        if not isinstance(payload, dict):
+            continue
+        payload["freshness_guard"] = guard
+        candidates = payload.get("candidates")
+        if not isinstance(candidates, list):
+            continue
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            candidate["stale_source"] = True
+            candidate["warnings"] = unique_items([*(candidate.get("warnings") or []), f"データ鮮度: {note}"], limit=3)
+            candidate["cautions"] = unique_items([*(candidate.get("cautions") or []), "データ鮮度が古い"], limit=4)
+            candidate["action"] = "watch"
+            candidate["action_label"] = "参考"
+            candidate["actionable"] = False
     return stores_payload
 
 
@@ -896,6 +944,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
         }
 
     apply_evidence_guards(stores_payload, payload_meta["target_date"])
+    apply_freshness_guard(stores_payload, payload_meta)
 
     return {
         **payload_meta,
@@ -1155,6 +1204,7 @@ def build_payload(df, normalized_models, unsupported_models):
         }
 
     apply_evidence_guards(stores_payload, payload_meta["target_date"])
+    apply_freshness_guard(stores_payload, payload_meta)
 
     return {
         **payload_meta,
