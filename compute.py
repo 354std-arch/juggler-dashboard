@@ -336,28 +336,81 @@ def build_hall_layout_feature_map(layouts):
         rows = math.ceil(len(cells) / cols)
         occupied_set = set(occupied)
         adjacent_pairs = 0
+        neighbors_by_idx = {}
         for idx in occupied:
+            row = idx // cols
+            col = idx % cols
+            raw_neighbors = [
+                idx - 1 if col > 0 else None,
+                idx + 1 if col < cols - 1 else None,
+                idx - cols if row > 0 else None,
+                idx + cols if row < rows - 1 else None,
+            ]
+            neighbors = [n for n in raw_neighbors if n in occupied_set]
+            neighbors_by_idx[idx] = neighbors
             if idx + 1 in occupied_set and idx // cols == (idx + 1) // cols:
                 adjacent_pairs += 1
             if idx + cols in occupied_set:
                 adjacent_pairs += 1
         occupied_count = len(occupied)
         analysis_ready = adjacent_pairs >= max(4, occupied_count * 0.20)
+        component_no_by_idx = {}
+        component_meta = {}
+        visited = set()
+        components = []
+        for start in sorted(occupied):
+            if start in visited:
+                continue
+            stack = [start]
+            visited.add(start)
+            component = []
+            while stack:
+                idx = stack.pop()
+                component.append(idx)
+                for nxt in neighbors_by_idx.get(idx, []):
+                    if nxt not in visited:
+                        visited.add(nxt)
+                        stack.append(nxt)
+            components.append(sorted(component))
+        components.sort(key=lambda items: (min(items), len(items)))
+        for component_no, component in enumerate(components, start=1):
+            horizontal_links = 0
+            vertical_links = 0
+            component_set = set(component)
+            for idx in component:
+                if idx + 1 in component_set and idx // cols == (idx + 1) // cols:
+                    horizontal_links += 1
+                if idx + cols in component_set:
+                    vertical_links += 1
+            if horizontal_links > vertical_links:
+                shape = "横島"
+            elif vertical_links > horizontal_links:
+                shape = "縦島"
+            else:
+                shape = "複合島" if len(component) >= 3 else "小島"
+            for idx in component:
+                component_no_by_idx[idx] = component_no
+                component_meta[idx] = {
+                    "size": len(component),
+                    "shape": shape,
+                }
         store_features = {}
         for idx, tai in occupied.items():
             row = idx // cols
             col = idx % cols
             features = []
             if analysis_ready:
-                left = idx - 1 if col > 0 else None
-                right = idx + 1 if col < cols - 1 else None
-                up = idx - cols if row > 0 else None
-                down = idx + cols if row < rows - 1 else None
-                neighbor_count = sum(1 for n in (left, right, up, down) if n in occupied_set)
+                neighbor_count = len(neighbors_by_idx.get(idx, []))
                 if neighbor_count <= 1:
                     features.append(("hall_edge", "島端", "ホール図:島端"))
+                    features.append(("hall_corner", "角/端", "ホール図:角/端"))
                 elif neighbor_count >= 3:
                     features.append(("hall_edge", "島中", "ホール図:島中"))
+                component_no = component_no_by_idx.get(idx)
+                component = component_meta.get(idx) or {}
+                if component_no and component.get("size", 0) >= 3:
+                    features.append(("hall_island", f"島{component_no}", f"ホール図:島{component_no}"))
+                    features.append(("hall_island_shape", component.get("shape", "島"), f"ホール図:{component.get('shape', '島')}"))
                 if col <= max(1, cols * 0.25):
                     features.append(("hall_col_band", "左側", "ホール図:左側"))
                 elif col >= cols * 0.75:
@@ -377,6 +430,7 @@ def build_hall_layout_feature_map(layouts):
             "cells": len(cells),
             "occupied": occupied_count,
             "adjacentPairs": adjacent_pairs,
+            "islands": len(components),
             "analysisReady": analysis_ready,
         }
     return result, meta
@@ -1043,6 +1097,12 @@ EVIDENCE_BACKTEST_CONFIG = {
         "prev_state_model": 0.9,
         "prev_state_tail": 0.85,
         "hall_edge": 0.75,
+        "hall_edge_model": 0.85,
+        "hall_corner": 0.75,
+        "hall_corner_model": 0.85,
+        "hall_island": 0.55,
+        "hall_island_model": 0.75,
+        "hall_island_shape": 0.45,
         "hall_col_band": 0.45,
         "hall_row_band": 0.45,
         "tai_install": 0.35,
@@ -1151,7 +1211,12 @@ def build_evidence_feature_keys(row, prev=None):
         keys.append(("prev_state_tail", f"{prev_label}|末尾{suef}", f"{prev_label}×末尾{suef}"))
     for feature in row.get("hallFeatures") or []:
         if isinstance(feature, (list, tuple)) and len(feature) >= 3:
-            keys.append((str(feature[0]), str(feature[1]), str(feature[2])))
+            f_type = str(feature[0])
+            f_key = str(feature[1])
+            label = str(feature[2])
+            keys.append((f_type, f_key, label))
+            if f_type in ("hall_edge", "hall_corner", "hall_island"):
+                keys.append((f"{f_type}_model", f"{f_key}|{model}", f"{label}×{model}"))
     return keys
 
 def score_evidence_item(evidence, cfg):
