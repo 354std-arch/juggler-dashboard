@@ -2540,6 +2540,23 @@ function formatMorningScorePercent(score) {
   return `${Math.round(toMorningScoreUnit(score) * 100)}%`;
 }
 
+function formatMorningRankCondition(row) {
+  if(!row || typeof row !== 'object') return '';
+  const avgDiff = Number(row.same_condition_avg_diff);
+  const winRate = Number(row.same_condition_win_rate);
+  const sample = Number(row.same_condition_sample);
+  const storeWinRate = Number(row.store_same_condition_win_rate);
+  const parts = [];
+  if(Number.isFinite(avgDiff)) parts.push(`同条件 ${formatTargetSigned枚(avgDiff)}`);
+  if(Number.isFinite(winRate)) parts.push(`勝率 ${Math.round(winRate)}%`);
+  if(Number.isFinite(storeWinRate) && Number.isFinite(winRate)) {
+    const diff = Math.round(winRate - storeWinRate);
+    parts.push(`店比 ${diff > 0 ? '+' : ''}${diff}pt`);
+  }
+  if(Number.isFinite(sample) && sample > 0) parts.push(`N=${Math.round(sample)}${sample < 3 ? ' 参考' : ''}`);
+  return parts.join(' / ');
+}
+
 function getSeatLayoutStorageKey(store) {
   return String(store || '');
 }
@@ -9800,9 +9817,11 @@ function renderMorningSummaryForCalendar() {
       ? modelRanking.slice(0, 5).map((m, idx) => {
           const sample = Number(m?.sample);
           const sampleText = Number.isFinite(sample) ? `${Math.round(sample)}件` : '0件';
+          const conditionText = formatMorningRankCondition(m);
           return `<div class="morning-rank-row">
             <div class="morning-rank-main">${idx + 1}. ${escapeHtml(m?.model || '不明')}</div>
             <div class="morning-rank-sub">${escapeHtml(m?.reason || '理由データなし')}</div>
+            ${conditionText ? `<div class="morning-rank-cond">${escapeHtml(conditionText)}</div>` : ''}
             <div class="morning-rank-meta">${formatMorningScorePercent(m?.score)} / ${sampleText}</div>
           </div>`;
         }).join('')
@@ -9838,7 +9857,12 @@ function renderMorningSummaryForCalendar() {
           const modelSample = Number(matchModel?.sample);
           const modelSampleText = Number.isFinite(modelSample) ? `${Math.round(modelSample)}件` : '0件';
           const modelCondition = matchModel
-            ? `${matchModel.reason || '機種傾向あり'} / スコア${formatMorningScorePercent(matchModel.score)} / サンプル${modelSampleText}`
+            ? [
+                matchModel.reason || '機種傾向あり',
+                formatMorningRankCondition(matchModel),
+                `スコア${formatMorningScorePercent(matchModel.score)}`,
+                `サンプル${modelSampleText}`,
+              ].filter(Boolean).join(' / ')
             : '機種ランキング情報なし';
 
           const taiReasons = Array.isArray(c?.reasons) ? c.reasons.filter(Boolean).slice(0, 3) : [];
