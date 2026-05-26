@@ -760,6 +760,14 @@ button.seat-heatmap-cell{
   border-color:#facc15;
   box-shadow:0 0 0 2px rgba(250,204,21,.6),0 0 0 4px rgba(99,102,241,.24),0 0 22px rgba(250,204,21,.26);
 }
+.seat-heatmap-grid.is-layer-smart .seat-heatmap-cell:not(.is-blank):not(.is-smart-slot):not(.is-selected){
+  opacity:.16;
+  filter:grayscale(.7) saturate(.35);
+}
+.seat-heatmap-grid.is-layer-smart .seat-heatmap-cell.is-smart-slot{
+  border-color:#38bdf8;
+  box-shadow:0 0 0 2px rgba(56,189,248,.48),0 0 20px rgba(56,189,248,.2);
+}
 .seat-heatmap-evidence-rank{
   position:absolute;
   top:-7px;

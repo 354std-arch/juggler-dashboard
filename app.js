@@ -23,7 +23,7 @@ const SEAT_LAYOUT_CONFIG_PREFIX = 'juggler_seat_layout_config_';
 const SEAT_LAYOUT_UI_STORAGE_KEY = 'juggler_seat_layout_ui';
 const SEAT_LAYOUT_VIEW_MODES = new Set(['view', 'edit']);
 const SEAT_LAYOUT_DENSITIES = new Set(['normal', 'compact', 'tiny']);
-const SEAT_LAYOUT_LAYERS = new Set(['diff', 'evidence', 'target']);
+const SEAT_LAYOUT_LAYERS = new Set(['diff', 'evidence', 'target', 'smart']);
 const SEAT_LAYOUT_COL_MIN = 4;
 const SEAT_LAYOUT_COL_MAX = 40;
 const SEAT_LAYOUT_ZOOM_MIN = 0.15;
@@ -3620,6 +3620,11 @@ function formatSeatHeatmapModelLabel(model, density = seatLayoutState.density) {
     ['ネオアイムジャグラー', 'アイム'],
     ['ミスタージャグラー', 'ミスター'],
     ['スマスロハナビ', 'スマハナ'],
+    ['スマスロ北斗の拳 転生の章2', '北斗転生'],
+    ['スマスロ北斗の拳', 'スマ北斗'],
+    ['L 東京喰種', '喰種'],
+    ['L モンキーターンV', 'モンキー'],
+    ['L 革命機ヴァルヴレイヴ2', 'VVV2'],
   ];
   const match = map.find(([name]) => text.includes(name));
   const label = match ? match[1] : text
@@ -4025,9 +4030,11 @@ function renderSeatHeatmap(store) {
 
   const allRows = Array.from(rowsByTai.values()).sort((a, b) => a.tai - b.tai);
   renderSeatHeatmapModelFilter(allRows);
+  const layer = normalizeSeatLayoutLayer(seatLayoutState.layer);
+  const smartLayer = layer === 'smart';
   const matchingTai = new Set();
   allRows.forEach((row) => {
-    if(doesSeatLayoutCardMatchFilters(row)) matchingTai.add(Number(row.tai));
+    if(doesSeatLayoutCardMatchFilters(row) && (!smartLayer || isSmartSlotModel(row.model))) matchingTai.add(Number(row.tai));
   });
   const rows = allRows.filter((row) => matchingTai.has(Number(row.tai)));
   renderSeatHeatmapSummary(rows, allRows.length);
@@ -4087,9 +4094,10 @@ function renderSeatHeatmap(store) {
       ? ` is-evidence-candidate${Number.isFinite(evidenceRank) && evidenceRank <= 5 ? ' is-target-candidate' : ''}${Array.isArray(evidenceCandidate.cautions) && evidenceCandidate.cautions.length ? ' is-evidence-caution' : ''}`
       : '';
     const model = row.model || card.model || '不明';
+    const smartClass = isSmartSlotModel(model) ? ' is-smart-slot' : '';
     const shortModel = formatSeatHeatmapModelLabel(model, density);
     return `<button type="button"
-      class="${colorClass}${selectedClass}${hiddenClass}${groupSelectedClass}${evidenceClass}"
+      class="${colorClass}${selectedClass}${hiddenClass}${groupSelectedClass}${evidenceClass}${smartClass}"
       data-cell-index="${idx}"
       draggable="false"
       title="${escapeHtml(`${store} ${tai}番台 ${model} ${formatSeatHeatmapDiff(row.diff)}`)}"
@@ -4414,7 +4422,7 @@ function renderSeatLayoutChromeState() {
   shell?.classList.toggle('is-edit-mode', viewMode === 'edit');
   shell?.classList.toggle('is-mobile-view', mobileMode);
   shell?.classList.toggle('is-side-collapsed', !!seatLayoutState.sidePanelCollapsed);
-  ['diff', 'evidence', 'target'].forEach((name) => {
+  ['diff', 'evidence', 'target', 'smart'].forEach((name) => {
     shell?.classList.toggle(`is-layer-${name}`, layer === name);
   });
   restoreSeatLayoutDesktopZoomIfNeeded();
@@ -4433,7 +4441,7 @@ function renderSeatLayoutChromeState() {
     ['normal', 'compact', 'tiny'].forEach((name) => {
       grid.classList.toggle(`is-density-${name}`, density === name);
     });
-    ['diff', 'evidence', 'target'].forEach((name) => {
+    ['diff', 'evidence', 'target', 'smart'].forEach((name) => {
       grid.classList.toggle(`is-layer-${name}`, layer === name);
     });
   }
