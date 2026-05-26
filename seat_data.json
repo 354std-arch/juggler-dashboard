@@ -9627,6 +9627,186 @@
     "2026-05-17": {
       "鶴見UNO": [
         {
+          "machine_no": 304,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": -579
+        },
+        {
+          "machine_no": 305,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": -810
+        },
+        {
+          "machine_no": 306,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": 4829
+        },
+        {
+          "machine_no": 307,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": -751
+        },
+        {
+          "machine_no": 308,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": 2285
+        },
+        {
+          "machine_no": 309,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": 1130
+        },
+        {
+          "machine_no": 310,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": 35
+        },
+        {
+          "machine_no": 311,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": 105
+        },
+        {
+          "machine_no": 312,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 7286
+        },
+        {
+          "machine_no": 313,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -288
+        },
+        {
+          "machine_no": 314,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 1358
+        },
+        {
+          "machine_no": 315,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1579
+        },
+        {
+          "machine_no": 316,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 1274
+        },
+        {
+          "machine_no": 317,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1715
+        },
+        {
+          "machine_no": 318,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 2558
+        },
+        {
+          "machine_no": 319,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 203
+        },
+        {
+          "machine_no": 320,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1186
+        },
+        {
+          "machine_no": 321,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1989
+        },
+        {
+          "machine_no": 322,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 133
+        },
+        {
+          "machine_no": 323,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -933
+        },
+        {
+          "machine_no": 324,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -147
+        },
+        {
+          "machine_no": 325,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 63
+        },
+        {
+          "machine_no": 397,
+          "model": "L 東京喰種",
+          "diff": 2829
+        },
+        {
+          "machine_no": 398,
+          "model": "L 東京喰種",
+          "diff": 3739
+        },
+        {
+          "machine_no": 399,
+          "model": "L 東京喰種",
+          "diff": 5619
+        },
+        {
+          "machine_no": 400,
+          "model": "L 東京喰種",
+          "diff": 1674
+        },
+        {
+          "machine_no": 401,
+          "model": "L 東京喰種",
+          "diff": 4511
+        },
+        {
+          "machine_no": 402,
+          "model": "L 東京喰種",
+          "diff": 6938
+        },
+        {
+          "machine_no": 403,
+          "model": "L 東京喰種",
+          "diff": -3239
+        },
+        {
+          "machine_no": 404,
+          "model": "L 東京喰種",
+          "diff": 10233
+        },
+        {
+          "machine_no": 405,
+          "model": "L 東京喰種",
+          "diff": 193
+        },
+        {
+          "machine_no": 406,
+          "model": "L 東京喰種",
+          "diff": 11561
+        },
+        {
+          "machine_no": 407,
+          "model": "L 東京喰種",
+          "diff": -1466
+        },
+        {
+          "machine_no": 408,
+          "model": "L 東京喰種",
+          "diff": -6175
+        },
+        {
+          "machine_no": 409,
+          "model": "L 東京喰種",
+          "diff": 8103
+        },
+        {
+          "machine_no": 410,
+          "model": "L 東京喰種",
+          "diff": 4134
+        },
+        {
           "machine_no": 477,
           "model": "スマスロハナビ",
           "diff": 723
@@ -9963,6 +10143,306 @@
         }
       ],
       "マルハン都築": [
+        {
+          "machine_no": 586,
+          "model": "L 東京喰種",
+          "diff": -2900
+        },
+        {
+          "machine_no": 587,
+          "model": "L 東京喰種",
+          "diff": -2600
+        },
+        {
+          "machine_no": 588,
+          "model": "L 東京喰種",
+          "diff": 2700
+        },
+        {
+          "machine_no": 589,
+          "model": "L 東京喰種",
+          "diff": 1200
+        },
+        {
+          "machine_no": 590,
+          "model": "L 東京喰種",
+          "diff": 1900
+        },
+        {
+          "machine_no": 591,
+          "model": "L 東京喰種",
+          "diff": -5900
+        },
+        {
+          "machine_no": 592,
+          "model": "L 東京喰種",
+          "diff": 8400
+        },
+        {
+          "machine_no": 593,
+          "model": "L 東京喰種",
+          "diff": 1700
+        },
+        {
+          "machine_no": 594,
+          "model": "L 東京喰種",
+          "diff": 4500
+        },
+        {
+          "machine_no": 595,
+          "model": "L 東京喰種",
+          "diff": -2400
+        },
+        {
+          "machine_no": 596,
+          "model": "L 東京喰種",
+          "diff": 8500
+        },
+        {
+          "machine_no": 597,
+          "model": "L 東京喰種",
+          "diff": 7500
+        },
+        {
+          "machine_no": 598,
+          "model": "L 東京喰種",
+          "diff": -1600
+        },
+        {
+          "machine_no": 599,
+          "model": "L 東京喰種",
+          "diff": -2800
+        },
+        {
+          "machine_no": 600,
+          "model": "L 東京喰種",
+          "diff": -6200
+        },
+        {
+          "machine_no": 613,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 4100
+        },
+        {
+          "machine_no": 614,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -900
+        },
+        {
+          "machine_no": 615,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -2400
+        },
+        {
+          "machine_no": 616,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 700
+        },
+        {
+          "machine_no": 617,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 1000
+        },
+        {
+          "machine_no": 618,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 1500
+        },
+        {
+          "machine_no": 619,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1300
+        },
+        {
+          "machine_no": 620,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -3200
+        },
+        {
+          "machine_no": 621,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 200
+        },
+        {
+          "machine_no": 622,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1800
+        },
+        {
+          "machine_no": 623,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -2900
+        },
+        {
+          "machine_no": 624,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 7200
+        },
+        {
+          "machine_no": 625,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 2900
+        },
+        {
+          "machine_no": 626,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -900
+        },
+        {
+          "machine_no": 627,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -2000
+        },
+        {
+          "machine_no": 628,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1100
+        },
+        {
+          "machine_no": 629,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 200
+        },
+        {
+          "machine_no": 630,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -3600
+        },
+        {
+          "machine_no": 631,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 1800
+        },
+        {
+          "machine_no": 632,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 200
+        },
+        {
+          "machine_no": 633,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 3500
+        },
+        {
+          "machine_no": 634,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 3100
+        },
+        {
+          "machine_no": 635,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 500
+        },
+        {
+          "machine_no": 636,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1700
+        },
+        {
+          "machine_no": 649,
+          "model": "L 東京喰種",
+          "diff": 1400
+        },
+        {
+          "machine_no": 650,
+          "model": "L 東京喰種",
+          "diff": -2000
+        },
+        {
+          "machine_no": 651,
+          "model": "L 東京喰種",
+          "diff": -2100
+        },
+        {
+          "machine_no": 652,
+          "model": "L 東京喰種",
+          "diff": -4100
+        },
+        {
+          "machine_no": 653,
+          "model": "L 東京喰種",
+          "diff": 3400
+        },
+        {
+          "machine_no": 654,
+          "model": "L 東京喰種",
+          "diff": -1000
+        },
+        {
+          "machine_no": 655,
+          "model": "L 東京喰種",
+          "diff": -5900
+        },
+        {
+          "machine_no": 656,
+          "model": "L 東京喰種",
+          "diff": 3900
+        },
+        {
+          "machine_no": 657,
+          "model": "L 東京喰種",
+          "diff": 2600
+        },
+        {
+          "machine_no": 658,
+          "model": "L 東京喰種",
+          "diff": -1100
+        },
+        {
+          "machine_no": 659,
+          "model": "L 東京喰種",
+          "diff": 4000
+        },
+        {
+          "machine_no": 660,
+          "model": "L 東京喰種",
+          "diff": 1300
+        },
+        {
+          "machine_no": 661,
+          "model": "L 東京喰種",
+          "diff": 1600
+        },
+        {
+          "machine_no": 662,
+          "model": "L 東京喰種",
+          "diff": 1400
+        },
+        {
+          "machine_no": 663,
+          "model": "L 東京喰種",
+          "diff": -800
+        },
+        {
+          "machine_no": 682,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": 200
+        },
+        {
+          "machine_no": 683,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": 2100
+        },
+        {
+          "machine_no": 684,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": -2200
+        },
+        {
+          "machine_no": 753,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": -3500
+        },
+        {
+          "machine_no": 754,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": -400
+        },
+        {
+          "machine_no": 755,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": 9100
+        },
         {
           "machine_no": 836,
           "model": "ファンキージャグラー2",
@@ -10525,6 +11005,126 @@
         }
       ],
       "中山UNO": [
+        {
+          "machine_no": 346,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1565
+        },
+        {
+          "machine_no": 347,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 2625
+        },
+        {
+          "machine_no": 348,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 49
+        },
+        {
+          "machine_no": 349,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 4239
+        },
+        {
+          "machine_no": 350,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 821
+        },
+        {
+          "machine_no": 351,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 3670
+        },
+        {
+          "machine_no": 352,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1677
+        },
+        {
+          "machine_no": 353,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -2452
+        },
+        {
+          "machine_no": 354,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 2011
+        },
+        {
+          "machine_no": 355,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1312
+        },
+        {
+          "machine_no": 356,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -484
+        },
+        {
+          "machine_no": 357,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 0
+        },
+        {
+          "machine_no": 358,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -863
+        },
+        {
+          "machine_no": 359,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 4216
+        },
+        {
+          "machine_no": 360,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 709
+        },
+        {
+          "machine_no": 361,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -3505
+        },
+        {
+          "machine_no": 368,
+          "model": "L 東京喰種",
+          "diff": -4193
+        },
+        {
+          "machine_no": 369,
+          "model": "L 東京喰種",
+          "diff": -1860
+        },
+        {
+          "machine_no": 370,
+          "model": "L 東京喰種",
+          "diff": 1130
+        },
+        {
+          "machine_no": 371,
+          "model": "L 東京喰種",
+          "diff": 1695
+        },
+        {
+          "machine_no": 372,
+          "model": "L 東京喰種",
+          "diff": 526
+        },
+        {
+          "machine_no": 373,
+          "model": "L 東京喰種",
+          "diff": -1649
+        },
+        {
+          "machine_no": 374,
+          "model": "L 東京喰種",
+          "diff": 6650
+        },
+        {
+          "machine_no": 375,
+          "model": "L 東京喰種",
+          "diff": 1148
+        },
         {
           "machine_no": 432,
           "model": "スマスロハナビ",
@@ -12185,6 +12785,116 @@
       ],
       "中山ZoRoN": [
         {
+          "machine_no": 501,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -2452
+        },
+        {
+          "machine_no": 502,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1733
+        },
+        {
+          "machine_no": 503,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 7825
+        },
+        {
+          "machine_no": 504,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1989
+        },
+        {
+          "machine_no": 505,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 3190
+        },
+        {
+          "machine_no": 506,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -597
+        },
+        {
+          "machine_no": 507,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 8722
+        },
+        {
+          "machine_no": 508,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 7103
+        },
+        {
+          "machine_no": 509,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -161
+        },
+        {
+          "machine_no": 510,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -84
+        },
+        {
+          "machine_no": 521,
+          "model": "L モンキーターンV",
+          "diff": 5284
+        },
+        {
+          "machine_no": 522,
+          "model": "L モンキーターンV",
+          "diff": -1383
+        },
+        {
+          "machine_no": 523,
+          "model": "L モンキーターンV",
+          "diff": 2411
+        },
+        {
+          "machine_no": 524,
+          "model": "L モンキーターンV",
+          "diff": -316
+        },
+        {
+          "machine_no": 525,
+          "model": "L モンキーターンV",
+          "diff": -583
+        },
+        {
+          "machine_no": 526,
+          "model": "L モンキーターンV",
+          "diff": -190
+        },
+        {
+          "machine_no": 527,
+          "model": "L モンキーターンV",
+          "diff": 1358
+        },
+        {
+          "machine_no": 528,
+          "model": "L モンキーターンV",
+          "diff": 35
+        },
+        {
+          "machine_no": 529,
+          "model": "L モンキーターンV",
+          "diff": 765
+        },
+        {
+          "machine_no": 530,
+          "model": "L モンキーターンV",
+          "diff": 2074
+        },
+        {
+          "machine_no": 531,
+          "model": "L モンキーターンV",
+          "diff": -863
+        },
+        {
+          "machine_no": 532,
+          "model": "L モンキーターンV",
+          "diff": -119
+        },
+        {
           "machine_no": 601,
           "model": "ハッピージャグラーVIII",
           "diff": 1632
@@ -12497,6 +13207,41 @@
       ],
       "ギンザホール707": [
         {
+          "machine_no": 267,
+          "model": "L 東京喰種",
+          "diff": 1629
+        },
+        {
+          "machine_no": 268,
+          "model": "L 東京喰種",
+          "diff": -1366
+        },
+        {
+          "machine_no": 269,
+          "model": "L 東京喰種",
+          "diff": 9130
+        },
+        {
+          "machine_no": 270,
+          "model": "L 東京喰種",
+          "diff": 1884
+        },
+        {
+          "machine_no": 271,
+          "model": "L 東京喰種",
+          "diff": 8166
+        },
+        {
+          "machine_no": 272,
+          "model": "L 東京喰種",
+          "diff": -5486
+        },
+        {
+          "machine_no": 273,
+          "model": "L 東京喰種",
+          "diff": 2561
+        },
+        {
           "machine_no": 328,
           "model": "クランキークレスト",
           "diff": 1503
@@ -12790,6 +13535,156 @@
           "machine_no": 408,
           "model": "ゴーゴージャグラー3",
           "diff": 3095
+        },
+        {
+          "machine_no": 443,
+          "model": "スマスロ北斗の拳",
+          "diff": -1073
+        },
+        {
+          "machine_no": 444,
+          "model": "スマスロ北斗の拳",
+          "diff": -1850
+        },
+        {
+          "machine_no": 445,
+          "model": "スマスロ北斗の拳",
+          "diff": -340
+        },
+        {
+          "machine_no": 446,
+          "model": "スマスロ北斗の拳",
+          "diff": 1455
+        },
+        {
+          "machine_no": 447,
+          "model": "スマスロ北斗の拳",
+          "diff": -722
+        },
+        {
+          "machine_no": 448,
+          "model": "スマスロ北斗の拳",
+          "diff": 6399
+        },
+        {
+          "machine_no": 449,
+          "model": "L モンキーターンV",
+          "diff": 9400
+        },
+        {
+          "machine_no": 450,
+          "model": "L モンキーターンV",
+          "diff": -2408
+        },
+        {
+          "machine_no": 451,
+          "model": "L モンキーターンV",
+          "diff": -1139
+        },
+        {
+          "machine_no": 452,
+          "model": "L モンキーターンV",
+          "diff": 5927
+        },
+        {
+          "machine_no": 453,
+          "model": "L モンキーターンV",
+          "diff": 5211
+        },
+        {
+          "machine_no": 454,
+          "model": "L モンキーターンV",
+          "diff": -1214
+        },
+        {
+          "machine_no": 455,
+          "model": "L モンキーターンV",
+          "diff": -849
+        },
+        {
+          "machine_no": 456,
+          "model": "L モンキーターンV",
+          "diff": -797
+        },
+        {
+          "machine_no": 457,
+          "model": "L モンキーターンV",
+          "diff": -599
+        },
+        {
+          "machine_no": 458,
+          "model": "L モンキーターンV",
+          "diff": -1758
+        },
+        {
+          "machine_no": 459,
+          "model": "L モンキーターンV",
+          "diff": 5734
+        },
+        {
+          "machine_no": 460,
+          "model": "L モンキーターンV",
+          "diff": 523
+        },
+        {
+          "machine_no": 461,
+          "model": "L モンキーターンV",
+          "diff": -1166
+        },
+        {
+          "machine_no": 462,
+          "model": "L モンキーターンV",
+          "diff": -80
+        },
+        {
+          "machine_no": 463,
+          "model": "L モンキーターンV",
+          "diff": -1645
+        },
+        {
+          "machine_no": 464,
+          "model": "L モンキーターンV",
+          "diff": 1130
+        },
+        {
+          "machine_no": 465,
+          "model": "L モンキーターンV",
+          "diff": -1067
+        },
+        {
+          "machine_no": 466,
+          "model": "スマスロ北斗の拳",
+          "diff": 4021
+        },
+        {
+          "machine_no": 467,
+          "model": "スマスロ北斗の拳",
+          "diff": 1116
+        },
+        {
+          "machine_no": 468,
+          "model": "スマスロ北斗の拳",
+          "diff": -808
+        },
+        {
+          "machine_no": 469,
+          "model": "スマスロ北斗の拳",
+          "diff": -2087
+        },
+        {
+          "machine_no": 470,
+          "model": "スマスロ北斗の拳",
+          "diff": -556
+        },
+        {
+          "machine_no": 471,
+          "model": "スマスロ北斗の拳",
+          "diff": -388
+        },
+        {
+          "machine_no": 472,
+          "model": "スマスロ北斗の拳",
+          "diff": -3077
         }
       ],
       "ジアスセンター南": [
@@ -12802,6 +13697,31 @@
           "machine_no": 396,
           "model": "スマスロハナビ",
           "diff": 173
+        },
+        {
+          "machine_no": 457,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": -2223
+        },
+        {
+          "machine_no": 458,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": -531
+        },
+        {
+          "machine_no": 459,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": -1085
+        },
+        {
+          "machine_no": 460,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": 5377
+        },
+        {
+          "machine_no": 461,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "diff": 218
         },
         {
           "machine_no": 468,
@@ -13102,9 +14022,314 @@
           "machine_no": 557,
           "model": "ネオアイムジャグラー",
           "diff": 638
+        },
+        {
+          "machine_no": 583,
+          "model": "スマスロ北斗の拳",
+          "diff": -3207
+        },
+        {
+          "machine_no": 584,
+          "model": "スマスロ北斗の拳",
+          "diff": 6719
+        },
+        {
+          "machine_no": 585,
+          "model": "スマスロ北斗の拳",
+          "diff": -506
+        },
+        {
+          "machine_no": 586,
+          "model": "スマスロ北斗の拳",
+          "diff": 343
+        },
+        {
+          "machine_no": 587,
+          "model": "スマスロ北斗の拳",
+          "diff": 1725
+        },
+        {
+          "machine_no": 588,
+          "model": "スマスロ北斗の拳",
+          "diff": 1240
+        },
+        {
+          "machine_no": 589,
+          "model": "スマスロ北斗の拳",
+          "diff": 412
+        },
+        {
+          "machine_no": 590,
+          "model": "スマスロ北斗の拳",
+          "diff": -2575
+        },
+        {
+          "machine_no": 591,
+          "model": "スマスロ北斗の拳",
+          "diff": -1325
+        },
+        {
+          "machine_no": 592,
+          "model": "スマスロ北斗の拳",
+          "diff": 1348
+        },
+        {
+          "machine_no": 593,
+          "model": "スマスロ北斗の拳",
+          "diff": -850
+        },
+        {
+          "machine_no": 594,
+          "model": "スマスロ北斗の拳",
+          "diff": -280
+        },
+        {
+          "machine_no": 595,
+          "model": "スマスロ北斗の拳",
+          "diff": -1448
+        },
+        {
+          "machine_no": 596,
+          "model": "スマスロ北斗の拳",
+          "diff": -490
+        },
+        {
+          "machine_no": 597,
+          "model": "スマスロ北斗の拳",
+          "diff": -317
+        },
+        {
+          "machine_no": 598,
+          "model": "スマスロ北斗の拳",
+          "diff": -378
         }
       ],
       "マルハンメガシティ横浜町田": [
+        {
+          "machine_no": 920,
+          "model": "L 東京喰種",
+          "diff": 900
+        },
+        {
+          "machine_no": 921,
+          "model": "L 東京喰種",
+          "diff": 3000
+        },
+        {
+          "machine_no": 922,
+          "model": "L 東京喰種",
+          "diff": 10200
+        },
+        {
+          "machine_no": 923,
+          "model": "L 東京喰種",
+          "diff": 5500
+        },
+        {
+          "machine_no": 924,
+          "model": "L 東京喰種",
+          "diff": -600
+        },
+        {
+          "machine_no": 925,
+          "model": "L 東京喰種",
+          "diff": 10700
+        },
+        {
+          "machine_no": 926,
+          "model": "L 東京喰種",
+          "diff": -3900
+        },
+        {
+          "machine_no": 927,
+          "model": "L 東京喰種",
+          "diff": -3600
+        },
+        {
+          "machine_no": 928,
+          "model": "L 東京喰種",
+          "diff": 100
+        },
+        {
+          "machine_no": 929,
+          "model": "L 東京喰種",
+          "diff": 2600
+        },
+        {
+          "machine_no": 930,
+          "model": "L 東京喰種",
+          "diff": -6700
+        },
+        {
+          "machine_no": 931,
+          "model": "L 東京喰種",
+          "diff": -3200
+        },
+        {
+          "machine_no": 932,
+          "model": "L 東京喰種",
+          "diff": -3200
+        },
+        {
+          "machine_no": 933,
+          "model": "L 東京喰種",
+          "diff": -5000
+        },
+        {
+          "machine_no": 934,
+          "model": "L 東京喰種",
+          "diff": 8500
+        },
+        {
+          "machine_no": 935,
+          "model": "L 東京喰種",
+          "diff": 2200
+        },
+        {
+          "machine_no": 936,
+          "model": "L 東京喰種",
+          "diff": 8900
+        },
+        {
+          "machine_no": 937,
+          "model": "L 東京喰種",
+          "diff": 100
+        },
+        {
+          "machine_no": 938,
+          "model": "L 東京喰種",
+          "diff": 1300
+        },
+        {
+          "machine_no": 939,
+          "model": "L 東京喰種",
+          "diff": 4900
+        },
+        {
+          "machine_no": 940,
+          "model": "L 東京喰種",
+          "diff": 3200
+        },
+        {
+          "machine_no": 941,
+          "model": "L 東京喰種",
+          "diff": 300
+        },
+        {
+          "machine_no": 942,
+          "model": "L 東京喰種",
+          "diff": 4900
+        },
+        {
+          "machine_no": 943,
+          "model": "L 東京喰種",
+          "diff": 7900
+        },
+        {
+          "machine_no": 944,
+          "model": "L 東京喰種",
+          "diff": 9300
+        },
+        {
+          "machine_no": 945,
+          "model": "L 東京喰種",
+          "diff": 100
+        },
+        {
+          "machine_no": 946,
+          "model": "L 東京喰種",
+          "diff": 4600
+        },
+        {
+          "machine_no": 947,
+          "model": "L 東京喰種",
+          "diff": 300
+        },
+        {
+          "machine_no": 948,
+          "model": "L 東京喰種",
+          "diff": -5200
+        },
+        {
+          "machine_no": 949,
+          "model": "L 東京喰種",
+          "diff": -800
+        },
+        {
+          "machine_no": 950,
+          "model": "L 東京喰種",
+          "diff": -4000
+        },
+        {
+          "machine_no": 951,
+          "model": "L 東京喰種",
+          "diff": -3700
+        },
+        {
+          "machine_no": 952,
+          "model": "L 東京喰種",
+          "diff": -300
+        },
+        {
+          "machine_no": 953,
+          "model": "L 東京喰種",
+          "diff": 700
+        },
+        {
+          "machine_no": 954,
+          "model": "L 東京喰種",
+          "diff": -4100
+        },
+        {
+          "machine_no": 955,
+          "model": "L 東京喰種",
+          "diff": 3500
+        },
+        {
+          "machine_no": 956,
+          "model": "L 東京喰種",
+          "diff": -3000
+        },
+        {
+          "machine_no": 957,
+          "model": "L 東京喰種",
+          "diff": 6900
+        },
+        {
+          "machine_no": 958,
+          "model": "L 東京喰種",
+          "diff": -6200
+        },
+        {
+          "machine_no": 959,
+          "model": "L 東京喰種",
+          "diff": -2600
+        },
+        {
+          "machine_no": 960,
+          "model": "L 東京喰種",
+          "diff": 400
+        },
+        {
+          "machine_no": 961,
+          "model": "L 東京喰種",
+          "diff": 1200
+        },
+        {
+          "machine_no": 962,
+          "model": "L 東京喰種",
+          "diff": 2400
+        },
+        {
+          "machine_no": 963,
+          "model": "L 東京喰種",
+          "diff": 3100
+        },
+        {
+          "machine_no": 964,
+          "model": "L 東京喰種",
+          "diff": -1900
+        },
         {
           "machine_no": 993,
           "model": "スマスロハナビ",
@@ -13948,6 +15173,26 @@
           "diff": 1334
         },
         {
+          "machine_no": 2000,
+          "model": "スマスロ北斗の拳",
+          "diff": 4762
+        },
+        {
+          "machine_no": 2001,
+          "model": "スマスロ北斗の拳",
+          "diff": 1858
+        },
+        {
+          "machine_no": 2002,
+          "model": "スマスロ北斗の拳",
+          "diff": 2096
+        },
+        {
+          "machine_no": 2003,
+          "model": "スマスロ北斗の拳",
+          "diff": 96
+        },
+        {
           "machine_no": 2152,
           "model": "スマスロハナビ",
           "diff": -1476
@@ -14084,6 +15329,281 @@
         }
       ],
       "マルハンメガシティ2000-蒲田7": [
+        {
+          "machine_no": 2015,
+          "model": "L モンキーターンV",
+          "diff": 6600
+        },
+        {
+          "machine_no": 2016,
+          "model": "L モンキーターンV",
+          "diff": 1400
+        },
+        {
+          "machine_no": 2017,
+          "model": "L モンキーターンV",
+          "diff": -300
+        },
+        {
+          "machine_no": 2018,
+          "model": "L モンキーターンV",
+          "diff": -2400
+        },
+        {
+          "machine_no": 2019,
+          "model": "L モンキーターンV",
+          "diff": -3400
+        },
+        {
+          "machine_no": 2020,
+          "model": "L モンキーターンV",
+          "diff": 6800
+        },
+        {
+          "machine_no": 2021,
+          "model": "L モンキーターンV",
+          "diff": 3100
+        },
+        {
+          "machine_no": 2022,
+          "model": "L モンキーターンV",
+          "diff": 1300
+        },
+        {
+          "machine_no": 2023,
+          "model": "L モンキーターンV",
+          "diff": 3300
+        },
+        {
+          "machine_no": 2024,
+          "model": "L モンキーターンV",
+          "diff": -500
+        },
+        {
+          "machine_no": 2025,
+          "model": "L モンキーターンV",
+          "diff": -800
+        },
+        {
+          "machine_no": 2026,
+          "model": "L モンキーターンV",
+          "diff": 7500
+        },
+        {
+          "machine_no": 2027,
+          "model": "L モンキーターンV",
+          "diff": -200
+        },
+        {
+          "machine_no": 2028,
+          "model": "L モンキーターンV",
+          "diff": -1600
+        },
+        {
+          "machine_no": 2035,
+          "model": "L モンキーターンV",
+          "diff": -2200
+        },
+        {
+          "machine_no": 2036,
+          "model": "L モンキーターンV",
+          "diff": 900
+        },
+        {
+          "machine_no": 2037,
+          "model": "L モンキーターンV",
+          "diff": -1200
+        },
+        {
+          "machine_no": 2038,
+          "model": "L モンキーターンV",
+          "diff": 2900
+        },
+        {
+          "machine_no": 2039,
+          "model": "L モンキーターンV",
+          "diff": -1200
+        },
+        {
+          "machine_no": 2040,
+          "model": "L モンキーターンV",
+          "diff": -300
+        },
+        {
+          "machine_no": 2041,
+          "model": "L モンキーターンV",
+          "diff": 5800
+        },
+        {
+          "machine_no": 2042,
+          "model": "L モンキーターンV",
+          "diff": 6000
+        },
+        {
+          "machine_no": 2043,
+          "model": "L モンキーターンV",
+          "diff": -400
+        },
+        {
+          "machine_no": 2044,
+          "model": "L モンキーターンV",
+          "diff": -3800
+        },
+        {
+          "machine_no": 2045,
+          "model": "L モンキーターンV",
+          "diff": 5200
+        },
+        {
+          "machine_no": 2046,
+          "model": "L モンキーターンV",
+          "diff": 2700
+        },
+        {
+          "machine_no": 2047,
+          "model": "L モンキーターンV",
+          "diff": 100
+        },
+        {
+          "machine_no": 2048,
+          "model": "L モンキーターンV",
+          "diff": 2700
+        },
+        {
+          "machine_no": 2049,
+          "model": "L モンキーターンV",
+          "diff": -1000
+        },
+        {
+          "machine_no": 2187,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 700
+        },
+        {
+          "machine_no": 2188,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1800
+        },
+        {
+          "machine_no": 2189,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 2300
+        },
+        {
+          "machine_no": 2190,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 8500
+        },
+        {
+          "machine_no": 2191,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1400
+        },
+        {
+          "machine_no": 2192,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 15800
+        },
+        {
+          "machine_no": 2193,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 3300
+        },
+        {
+          "machine_no": 2194,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 5200
+        },
+        {
+          "machine_no": 2195,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 4800
+        },
+        {
+          "machine_no": 2264,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 4500
+        },
+        {
+          "machine_no": 2265,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 2200
+        },
+        {
+          "machine_no": 2266,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -900
+        },
+        {
+          "machine_no": 2267,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1300
+        },
+        {
+          "machine_no": 2268,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 11800
+        },
+        {
+          "machine_no": 2269,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -3100
+        },
+        {
+          "machine_no": 2270,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 2400
+        },
+        {
+          "machine_no": 2271,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 7400
+        },
+        {
+          "machine_no": 2272,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -1100
+        },
+        {
+          "machine_no": 2273,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -3000
+        },
+        {
+          "machine_no": 2274,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 5600
+        },
+        {
+          "machine_no": 2275,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 7800
+        },
+        {
+          "machine_no": 2276,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -2400
+        },
+        {
+          "machine_no": 2277,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 1300
+        },
+        {
+          "machine_no": 2278,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 3000
+        },
+        {
+          "machine_no": 2279,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 900
+        },
+        {
+          "machine_no": 2280,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 16100
+        },
         {
           "machine_no": 3026,
           "model": "スマスロハナビ",
@@ -15032,6 +16552,26 @@
           "diff": -400
         },
         {
+          "machine_no": 2147,
+          "model": "L 東京喰種",
+          "diff": -1300
+        },
+        {
+          "machine_no": 2148,
+          "model": "L 東京喰種",
+          "diff": 5100
+        },
+        {
+          "machine_no": 2149,
+          "model": "L 東京喰種",
+          "diff": 3100
+        },
+        {
+          "machine_no": 2150,
+          "model": "L 東京喰種",
+          "diff": 8800
+        },
+        {
           "machine_no": 2151,
           "model": "マイジャグラーV",
           "diff": -300
@@ -15085,6 +16625,81 @@
           "machine_no": 2161,
           "model": "ネオアイムジャグラー",
           "diff": -1500
+        },
+        {
+          "machine_no": 2162,
+          "model": "L 東京喰種",
+          "diff": -2400
+        },
+        {
+          "machine_no": 2163,
+          "model": "L 東京喰種",
+          "diff": 14300
+        },
+        {
+          "machine_no": 2164,
+          "model": "L 東京喰種",
+          "diff": -600
+        },
+        {
+          "machine_no": 2165,
+          "model": "L 東京喰種",
+          "diff": 700
+        },
+        {
+          "machine_no": 2166,
+          "model": "L 東京喰種",
+          "diff": -4400
+        },
+        {
+          "machine_no": 2167,
+          "model": "L 東京喰種",
+          "diff": 3700
+        },
+        {
+          "machine_no": 2168,
+          "model": "L 東京喰種",
+          "diff": -5300
+        },
+        {
+          "machine_no": 2169,
+          "model": "L 東京喰種",
+          "diff": -3300
+        },
+        {
+          "machine_no": 2170,
+          "model": "L 東京喰種",
+          "diff": -3000
+        },
+        {
+          "machine_no": 2171,
+          "model": "L 東京喰種",
+          "diff": 2400
+        },
+        {
+          "machine_no": 2172,
+          "model": "L 東京喰種",
+          "diff": 4500
+        },
+        {
+          "machine_no": 2173,
+          "model": "L 東京喰種",
+          "diff": -3200
+        },
+        {
+          "machine_no": 2174,
+          "model": "L 東京喰種",
+          "diff": 5900
+        },
+        {
+          "machine_no": 2175,
+          "model": "L 東京喰種",
+          "diff": 1700
+        },
+        {
+          "machine_no": 2176,
+          "model": "L 東京喰種",
+          "diff": 2500
         },
         {
           "machine_no": 2187,
@@ -15802,9 +17417,269 @@
           "machine_no": 202,
           "model": "スマスロハナビ",
           "diff": 141
+        },
+        {
+          "machine_no": 207,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 154
+        },
+        {
+          "machine_no": 208,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 14804
+        },
+        {
+          "machine_no": 210,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": -294
+        },
+        {
+          "machine_no": 211,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 872
+        },
+        {
+          "machine_no": 227,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 2672
+        },
+        {
+          "machine_no": 228,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 16783
+        },
+        {
+          "machine_no": 230,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 43
+        },
+        {
+          "machine_no": 231,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "diff": 8652
+        },
+        {
+          "machine_no": 311,
+          "model": "スマスロ北斗の拳",
+          "diff": -920
+        },
+        {
+          "machine_no": 312,
+          "model": "スマスロ北斗の拳",
+          "diff": 3299
+        },
+        {
+          "machine_no": 313,
+          "model": "スマスロ北斗の拳",
+          "diff": 496
+        },
+        {
+          "machine_no": 315,
+          "model": "スマスロ北斗の拳",
+          "diff": 2257
+        },
+        {
+          "machine_no": 316,
+          "model": "スマスロ北斗の拳",
+          "diff": -1238
         }
       ],
       "ヒロキmax蒲田店": [
+        {
+          "machine_no": 1013,
+          "model": "L 東京喰種",
+          "diff": -1359
+        },
+        {
+          "machine_no": 1015,
+          "model": "L 東京喰種",
+          "diff": 4207
+        },
+        {
+          "machine_no": 1016,
+          "model": "L 東京喰種",
+          "diff": 4688
+        },
+        {
+          "machine_no": 1017,
+          "model": "L 東京喰種",
+          "diff": -1058
+        },
+        {
+          "machine_no": 1018,
+          "model": "L 東京喰種",
+          "diff": -657
+        },
+        {
+          "machine_no": 1020,
+          "model": "L 東京喰種",
+          "diff": -1539
+        },
+        {
+          "machine_no": 1021,
+          "model": "L 東京喰種",
+          "diff": -3964
+        },
+        {
+          "machine_no": 1022,
+          "model": "L 東京喰種",
+          "diff": -1638
+        },
+        {
+          "machine_no": 1023,
+          "model": "L 東京喰種",
+          "diff": -825
+        },
+        {
+          "machine_no": 1025,
+          "model": "L 東京喰種",
+          "diff": 6120
+        },
+        {
+          "machine_no": 1026,
+          "model": "L 東京喰種",
+          "diff": 1359
+        },
+        {
+          "machine_no": 1027,
+          "model": "L 東京喰種",
+          "diff": 3043
+        },
+        {
+          "machine_no": 1028,
+          "model": "L 東京喰種",
+          "diff": 3630
+        },
+        {
+          "machine_no": 1030,
+          "model": "L 東京喰種",
+          "diff": -942
+        },
+        {
+          "machine_no": 1031,
+          "model": "L 東京喰種",
+          "diff": -1949
+        },
+        {
+          "machine_no": 1032,
+          "model": "L 東京喰種",
+          "diff": -675
+        },
+        {
+          "machine_no": 1033,
+          "model": "L 東京喰種",
+          "diff": -375
+        },
+        {
+          "machine_no": 1035,
+          "model": "L 東京喰種",
+          "diff": -3449
+        },
+        {
+          "machine_no": 1036,
+          "model": "L 東京喰種",
+          "diff": -1870
+        },
+        {
+          "machine_no": 1037,
+          "model": "L 東京喰種",
+          "diff": -1152
+        },
+        {
+          "machine_no": 1038,
+          "model": "L 東京喰種",
+          "diff": -1696
+        },
+        {
+          "machine_no": 1050,
+          "model": "L 東京喰種",
+          "diff": 2552
+        },
+        {
+          "machine_no": 1051,
+          "model": "L 東京喰種",
+          "diff": -865
+        },
+        {
+          "machine_no": 1052,
+          "model": "L 東京喰種",
+          "diff": 1626
+        },
+        {
+          "machine_no": 1053,
+          "model": "L 東京喰種",
+          "diff": -751
+        },
+        {
+          "machine_no": 1055,
+          "model": "L 東京喰種",
+          "diff": -422
+        },
+        {
+          "machine_no": 1056,
+          "model": "L 東京喰種",
+          "diff": 1091
+        },
+        {
+          "machine_no": 1057,
+          "model": "L 東京喰種",
+          "diff": -1458
+        },
+        {
+          "machine_no": 1058,
+          "model": "L 東京喰種",
+          "diff": -639
+        },
+        {
+          "machine_no": 1060,
+          "model": "L 東京喰種",
+          "diff": 184
+        },
+        {
+          "machine_no": 1283,
+          "model": "スマスロ北斗の拳",
+          "diff": -181
+        },
+        {
+          "machine_no": 1285,
+          "model": "スマスロ北斗の拳",
+          "diff": -207
+        },
+        {
+          "machine_no": 1286,
+          "model": "スマスロ北斗の拳",
+          "diff": 6511
+        },
+        {
+          "machine_no": 1287,
+          "model": "スマスロ北斗の拳",
+          "diff": -465
+        },
+        {
+          "machine_no": 1288,
+          "model": "スマスロ北斗の拳",
+          "diff": 842
+        },
+        {
+          "machine_no": 1300,
+          "model": "スマスロ北斗の拳",
+          "diff": -265
+        },
+        {
+          "machine_no": 1301,
+          "model": "スマスロ北斗の拳",
+          "diff": -390
+        },
+        {
+          "machine_no": 1302,
+          "model": "スマスロ北斗の拳",
+          "diff": -728
+        },
+        {
+          "machine_no": 1303,
+          "model": "スマスロ北斗の拳",
+          "diff": -1475
+        },
         {
           "machine_no": 2001,
           "model": "マイジャグラーV",
@@ -16169,6 +18044,21 @@
           "machine_no": 2117,
           "model": "スマスロハナビ",
           "diff": 913
+        },
+        {
+          "machine_no": 2218,
+          "model": "スマスロ北斗の拳",
+          "diff": 155
+        },
+        {
+          "machine_no": 2220,
+          "model": "スマスロ北斗の拳",
+          "diff": 0
+        },
+        {
+          "machine_no": 2221,
+          "model": "スマスロ北斗の拳",
+          "diff": 0
         }
       ]
     },

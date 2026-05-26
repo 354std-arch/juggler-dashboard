@@ -151,12 +151,18 @@ def get_latest_data_date(rows):
 
 def update_store_freshness(store_name, data_date):
     freshness = load_store_freshness()
+    current_date = str((freshness.get(store_name) or {}).get('data_date', '')).strip()
+    next_date = str(data_date or '').strip()
+    if current_date and next_date and current_date > next_date:
+        print(f'  ↩️  freshness維持: {store_name} {current_date} > {next_date}')
+        return False
     freshness[store_name] = {
         'scraped_at': datetime.now(JST).isoformat(timespec='seconds'),
-        'data_date': data_date,
+        'data_date': next_date,
     }
     with open(STORE_FRESHNESS_JSON, 'w', encoding='utf-8') as f:
         json.dump(freshness, f, ensure_ascii=False, indent=2)
+    return True
 
 def scrape(target_date, store_name, slug, target_models=None):
     url = f'https://ana-slo.com/{target_date}-{slug}/'
@@ -603,6 +609,8 @@ def parse_args():
     parser.add_argument('--stores', help='対象店舗名をカンマ区切りで指定')
     parser.add_argument('--models', help='対象機種名をカンマ区切りで指定')
     parser.add_argument('--backfill-smart-slots', action='store_true', help='機種別集計にあるが raw_data.csv にないスマスロ台別だけ再取得')
+    parser.add_argument('--backfill-latest-first', action='store_true', help='スマスロバックフィルを新しい日付から処理')
+    parser.add_argument('--max-backfill-tasks', type=int, default=0, help='スマスロバックフィルの最大店舗日数。0なら無制限')
     parser.add_argument('--store-interval-sec', type=float, default=1.0, help='店舗間の待機秒数')
     parser.add_argument('--date-interval-sec', type=float, default=0.0, help='日付間の待機秒数')
     return parser.parse_args()
@@ -720,7 +728,13 @@ if __name__ == '__main__':
 
     if args.backfill_smart_slots:
         backfill_tasks = build_smart_slot_backfill_tasks(stores, target_dates, target_models)
-        print(f'=== スマスロ台別バックフィル対象: {len(backfill_tasks)} 店舗日 ===')
+        if args.backfill_latest_first:
+            backfill_tasks.sort(key=lambda item: (item['date'], item['store']), reverse=True)
+        total_backfill_tasks = len(backfill_tasks)
+        if args.max_backfill_tasks and args.max_backfill_tasks > 0:
+            backfill_tasks = backfill_tasks[:args.max_backfill_tasks]
+        limit_desc = f' / 実行上限 {len(backfill_tasks)}件' if len(backfill_tasks) != total_backfill_tasks else ''
+        print(f'=== スマスロ台別バックフィル対象: {total_backfill_tasks} 店舗日{limit_desc} ===')
         scrape_plan = [
             (task['date'], task['store'], task['slug'], set(task['models']), idx, len(backfill_tasks))
             for idx, task in enumerate(backfill_tasks, start=1)
