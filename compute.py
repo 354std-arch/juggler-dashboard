@@ -1,9 +1,10 @@
-import json, csv, math, os
+import json, csv, math, os, re
 from datetime import datetime, date, timedelta, timezone
 from collections import defaultdict, deque
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_CSV  = os.path.join(REPO_DIR, "raw_data.csv")
+STORE_MODEL_SUMMARY_CSV = os.path.join(REPO_DIR, "store_model_summary.csv")
 HALL_LAYOUTS_JSON = os.path.join(REPO_DIR, "hall_layouts.json")
 STORE_FRESHNESS_JSON = os.path.join(REPO_DIR, "store_freshness.json")
 STORE_LIST_JSON = os.path.join(REPO_DIR, "store_list.json")
@@ -181,6 +182,28 @@ def parse_num(s):
     if not s: return 0
     try: return float(str(s).replace(",","").replace("+","").strip())
     except: return 0
+
+def parse_summary_number(value):
+    text = str(value or "").replace(",", "").replace("+", "").replace("枚", "").replace("%", "").strip()
+    if not text:
+        return None
+    match = re.search(r"-?\d+(?:\.\d+)?", text)
+    if not match:
+        return None
+    try:
+        return float(match.group(0))
+    except Exception:
+        return None
+
+def parse_summary_win_rate(value):
+    text = str(value or "")
+    pct = parse_summary_number(text)
+    match = re.search(r"\((\d+)\s*/\s*(\d+)\)", text)
+    if not match:
+        return pct, None, None
+    wins = int(match.group(1))
+    total = int(match.group(2))
+    return pct, wins, total
 
 def clamp(v, lo, hi):
     return max(lo, min(hi, v))
@@ -1044,6 +1067,8 @@ def compute_model_stats(rows, special):
     for model, m in by_model.items():
         tg=weighted_sum(m["all"], "g"); tb=weighted_sum(m["all"], "bb"); tr=weighted_sum(m["all"], "rb")
         total_in=tg*3; total_out=total_in+weighted_sum(m["all"], "diff")
+        all_diff_rows = metric_rows(m["all"], "diff")
+        plus_rate = len([row for row in all_diff_rows if row["diff"] > 0]) / len(all_diff_rows) * 100 if all_diff_rows else None
         # byDay: {1: avg, 2: avg, ...} (平均差枚のみ。app.jsのavg()に渡すため配列で格納)
         by_day_out = {day: [row["diff"] for row in day_rows]
                       for day, day_rows in m["by_day"].items()}
@@ -1060,6 +1085,8 @@ def compute_model_stats(rows, special):
             "analysisMode": get_model_analysis_mode(model),
             "supportsSettingAnalysis": supports_setting_analysis(model),
             "modelCategory": "smart_slot" if model in SMART_SLOT_MODELS else "normal",
+            "avgG": r1(weighted_avg_rows(m["all"], "g")),
+            "winRate": r1(plus_rate) if plus_rate is not None else None,
             "spAvg":r1(weighted_avg_rows(m["sp"], "diff")) if m["sp"] else None,"spCount":len(m["sp"]),
             "nmAvg":r1(weighted_avg_rows(m["nm"], "diff")) if m["nm"] else None,"nmCount":len(m["nm"]),
             "mechRitu":r1(total_out/total_in*100) if total_in>0 else None,
@@ -1075,6 +1102,174 @@ def compute_model_stats(rows, special):
             "zoroCount": len(m["zoro"]),
         })
     return result
+
+def _summary_metric(entries):
+    if not entries:
+        return {"avgDiff": None, "avgG": None, "winRate": None, "avgInstallCount": None, "count": 0}
+    diff_sum = 0.0
+    install_sum = 0.0
+    avg_diff_sum = 0.0
+    avg_diff_count = 0
+    avg_g_sum = 0.0
+    avg_g_weight = 0.0
+    win_sum = 0.0
+    win_total = 0.0
+    win_rate_sum = 0.0
+    win_rate_count = 0
+    install_daily_sum = 0.0
+    install_daily_count = 0
+    for entry in entries:
+        avg_diff = entry.get("avgDiff")
+        total_diff = entry.get("totalDiff")
+        avg_g = entry.get("avgG")
+        win_rate = entry.get("winRate")
+        wins = entry.get("wins")
+        install_count = entry.get("installCount")
+        if install_count:
+            install_daily_sum += install_count
+            install_daily_count += 1
+        if total_diff is not None and install_count:
+            diff_sum += total_diff
+            install_sum += install_count
+        elif avg_diff is not None and install_count:
+            diff_sum += avg_diff * install_count
+            install_sum += install_count
+        elif avg_diff is not None:
+            avg_diff_sum += avg_diff
+            avg_diff_count += 1
+        if avg_g is not None:
+            weight = install_count or 1
+            avg_g_sum += avg_g * weight
+            avg_g_weight += weight
+        if wins is not None and install_count:
+            win_sum += wins
+            win_total += install_count
+        elif win_rate is not None:
+            win_rate_sum += win_rate
+            win_rate_count += 1
+    if install_sum > 0:
+        avg_diff_out = diff_sum / install_sum
+    elif avg_diff_count > 0:
+        avg_diff_out = avg_diff_sum / avg_diff_count
+    else:
+        avg_diff_out = None
+    if win_total > 0:
+        win_rate_out = win_sum / win_total * 100
+    elif win_rate_count > 0:
+        win_rate_out = win_rate_sum / win_rate_count
+    else:
+        win_rate_out = None
+    return {
+        "avgDiff": r1(avg_diff_out) if avg_diff_out is not None else None,
+        "avgG": r1(avg_g_sum / avg_g_weight) if avg_g_weight > 0 else None,
+        "winRate": r1(win_rate_out) if win_rate_out is not None else None,
+        "avgInstallCount": r1(install_daily_sum / install_daily_count) if install_daily_count > 0 else None,
+        "count": len(entries),
+    }
+
+def compute_summary_model_stats(store, special, latest_data_date):
+    if not os.path.exists(STORE_MODEL_SUMMARY_CSV):
+        return []
+    by_model = defaultdict(lambda: {
+        "all": [], "sp": [], "nm": [], "this_month": [], "last_month": [],
+        "by_day": defaultdict(list), "digit": defaultdict(list), "zoro": [],
+    })
+    latest = latest_data_date if isinstance(latest_data_date, date) else jst_today()
+    this_m = date(latest.year, latest.month, 1)
+    last_m = date(latest.year, latest.month - 1, 1) if latest.month > 1 else date(latest.year - 1, 12, 1)
+    last_m_end = date(latest.year, latest.month, 1) - timedelta(days=1)
+    with open(STORE_MODEL_SUMMARY_CSV, encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f):
+            row_store = normalize_store_name(row.get("store", ""))
+            if row_store != store:
+                continue
+            model = normalize_model_name(row.get("model", ""))
+            if not supports_diff_analysis(model):
+                continue
+            dt = parse_ymd_date(row.get("date"))
+            if not dt:
+                continue
+            avg_diff = parse_summary_number(row.get("avg_diff"))
+            total_diff = parse_summary_number(row.get("total_diff"))
+            avg_g = parse_summary_number(row.get("avg_g"))
+            win_rate, wins, install_count = parse_summary_win_rate(row.get("win_rate"))
+            if avg_diff is None and total_diff is None:
+                continue
+            if avg_diff is None and total_diff is not None and install_count:
+                avg_diff = total_diff / install_count
+            entry = {
+                "date": dt,
+                "day": dt.day,
+                "avgDiff": avg_diff,
+                "totalDiff": total_diff,
+                "avgG": avg_g,
+                "winRate": win_rate,
+                "wins": wins,
+                "installCount": install_count,
+            }
+            bucket = by_model[model]
+            bucket["all"].append(entry)
+            if dt.day in special: bucket["sp"].append(entry)
+            else: bucket["nm"].append(entry)
+            if dt >= this_m: bucket["this_month"].append(entry)
+            elif last_m <= dt <= last_m_end: bucket["last_month"].append(entry)
+            bucket["by_day"][dt.day].append(entry)
+            bucket["digit"][dt.day % 10].append(entry)
+            if dt.day >= 11 and len(str(dt.day)) == 2 and str(dt.day)[0] == str(dt.day)[1]:
+                bucket["zoro"].append(entry)
+
+    result = []
+    for model, bucket in by_model.items():
+        all_metric = _summary_metric(bucket["all"])
+        if not all_metric["count"] or all_metric["avgDiff"] is None:
+            continue
+        sp_metric = _summary_metric(bucket["sp"])
+        nm_metric = _summary_metric(bucket["nm"])
+        this_metric = _summary_metric(bucket["this_month"])
+        last_metric = _summary_metric(bucket["last_month"])
+        zoro_metric = _summary_metric(bucket["zoro"])
+        by_day_out = {
+            day: [entry["avgDiff"] for entry in entries if entry.get("avgDiff") is not None]
+            for day, entries in bucket["by_day"].items()
+        }
+        digit_avg = {}
+        for digit, entries in bucket["digit"].items():
+            metric = _summary_metric(entries)
+            digit_avg[str(digit)] = {"avg": metric["avgDiff"], "count": metric["count"]}
+        avg_g = all_metric["avgG"]
+        avg_diff = all_metric["avgDiff"]
+        total_in = avg_g * 3 if avg_g else 0
+        result.append({
+            "model": model,
+            "allAvg": avg_diff,
+            "count": all_metric["count"],
+            "summaryDays": all_metric["count"],
+            "summarySource": "store_model_summary",
+            "analysisMode": get_model_analysis_mode(model),
+            "supportsSettingAnalysis": supports_setting_analysis(model),
+            "modelCategory": "smart_slot" if model in SMART_SLOT_MODELS else "normal",
+            "avgG": avg_g,
+            "winRate": all_metric["winRate"],
+            "avgInstallCount": all_metric["avgInstallCount"],
+            "spAvg": sp_metric["avgDiff"], "spCount": sp_metric["count"],
+            "nmAvg": nm_metric["avgDiff"], "nmCount": nm_metric["count"],
+            "mechRitu": r1((total_in + avg_diff) / total_in * 100) if total_in > 0 else None,
+            "rbRate": None,
+            "synRate": None,
+            "thisMonthAvg": this_metric["avgDiff"], "thisMonthCount": this_metric["count"],
+            "lastMonthAvg": last_metric["avgDiff"], "lastMonthCount": last_metric["count"],
+            "byDay": by_day_out,
+            "digitAvg": digit_avg,
+            "zoroAvg": zoro_metric["avgDiff"],
+            "zoroCount": zoro_metric["count"],
+        })
+    return result
+
+def merge_model_stats_with_summary(raw_stats, summary_stats):
+    existing = {row.get("model") for row in raw_stats}
+    merged = list(raw_stats)
+    merged.extend(row for row in summary_stats if row.get("model") not in existing)
+    return merged
 
 def compute_next_day(rows, special):
     by_tai = defaultdict(list)
@@ -2296,12 +2491,17 @@ if __name__ == "__main__":
             evidence_backtest=evidence_backtest,
         )
         print(f"集計中: {store} ({len(store_rows)}行) 特定日:{special}")
+        model_stats = compute_model_stats(diff_store_rows, special)
+        model_stats = merge_model_stats_with_summary(
+            model_stats,
+            compute_summary_model_stats(store, special, latest_data_date),
+        )
         output["byStore"][store] = {
             "special": special,
             "dataQuality": DIFF_QUALITY_BY_STORE.get(store, {}),
             "store_coefficients": STORE_COEFFICIENTS.get(store, {}),
             "dayStats": compute_day_stats(diff_store_rows, special),
-            "modelStats": compute_model_stats(diff_store_rows, special),
+            "modelStats": model_stats,
             "nextStats": compute_next_day(diff_store_rows, special),
             "heatmap": compute_heatmap(diff_store_rows),
             "weekMatrix": compute_week_matrix(diff_store_rows),

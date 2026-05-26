@@ -2557,6 +2557,29 @@ function formatMorningRankCondition(row) {
   return parts.join(' / ');
 }
 
+function formatModelTableNumber(value, suffix = '') {
+  const n = Number(value);
+  if(!Number.isFinite(n)) return '—';
+  return `${Math.round(n).toLocaleString()}${suffix}`;
+}
+
+function formatModelTableRate(value) {
+  const n = Number(value);
+  if(!Number.isFinite(n)) return '—';
+  return `${Math.round(n)}%`;
+}
+
+function formatModelTableCount(row) {
+  const count = Number(row?.count);
+  const days = Number(row?.summaryDays);
+  const installs = Number(row?.avgInstallCount);
+  if(Number.isFinite(days) && days > 0 && Number.isFinite(installs) && installs > 0) {
+    return `${Math.round(days)}日 / ${Math.round(installs)}台`;
+  }
+  if(Number.isFinite(count)) return `${Math.round(count).toLocaleString()}件`;
+  return '—';
+}
+
 function getSeatLayoutStorageKey(store) {
   return String(store || '');
 }
@@ -5615,8 +5638,28 @@ function mergeAllTaiDetail(stores, json) {
 
 function mergeAllModelStats(stores, json) {
   const merged = {};
+  const metricSeed = (row) => {
+    const count = Number(row?.count);
+    const summaryDays = Number(row?.summaryDays);
+    const avgG = Number(row?.avgG);
+    const winRate = Number(row?.winRate);
+    const avgInstallCount = Number(row?.avgInstallCount);
+    const countWeight = Number.isFinite(count) && count > 0 ? count : 0;
+    const dayWeight = Number.isFinite(summaryDays) && summaryDays > 0 ? summaryDays : countWeight;
+    return {
+      countWeight,
+      avgGSum: Number.isFinite(avgG) ? avgG * countWeight : 0,
+      avgGWeight: Number.isFinite(avgG) ? countWeight : 0,
+      winRateSum: Number.isFinite(winRate) ? winRate * countWeight : 0,
+      winRateWeight: Number.isFinite(winRate) ? countWeight : 0,
+      installSum: Number.isFinite(avgInstallCount) ? avgInstallCount * dayWeight : 0,
+      installWeight: Number.isFinite(avgInstallCount) ? dayWeight : 0,
+      summaryDays: Number.isFinite(summaryDays) && summaryDays > 0 ? summaryDays : 0,
+    };
+  };
   stores.forEach(s => {
     (json.byStore[s]?.modelStats || []).forEach(m => {
+      const seed = metricSeed(m);
       if (!merged[m.model]) {
         merged[m.model] = {
           ...m,
@@ -5627,6 +5670,13 @@ function mergeAllModelStats(stores, json) {
           _allSum: 0,
           _spSum: 0,
           _nmSum: 0,
+          _avgGSum: 0,
+          _avgGWeight: 0,
+          _winRateSum: 0,
+          _winRateWeight: 0,
+          _installSum: 0,
+          _installWeight: 0,
+          _summaryDays: 0,
         };
         // byDay: copy arrays
         Object.entries(m.byDay || {}).forEach(([d, arr]) => {
@@ -5654,6 +5704,13 @@ function mergeAllModelStats(stores, json) {
         merged[m.model]._allSum = (m.allAvg ?? 0) * (m.count ?? 0);
         merged[m.model]._spSum = (m.spAvg ?? 0) * (m.spCount ?? 0);
         merged[m.model]._nmSum = (m.nmAvg ?? 0) * (m.nmCount ?? 0);
+        merged[m.model]._avgGSum = seed.avgGSum;
+        merged[m.model]._avgGWeight = seed.avgGWeight;
+        merged[m.model]._winRateSum = seed.winRateSum;
+        merged[m.model]._winRateWeight = seed.winRateWeight;
+        merged[m.model]._installSum = seed.installSum;
+        merged[m.model]._installWeight = seed.installWeight;
+        merged[m.model]._summaryDays = seed.summaryDays;
       } else {
         const mg = merged[m.model];
         mg.count += m.count ?? 0;
@@ -5662,6 +5719,13 @@ function mergeAllModelStats(stores, json) {
         mg._allSum += (m.allAvg ?? 0) * (m.count ?? 0);
         mg._spSum  += (m.spAvg  ?? 0) * (m.spCount ?? 0);
         mg._nmSum  += (m.nmAvg  ?? 0) * (m.nmCount ?? 0);
+        mg._avgGSum += seed.avgGSum;
+        mg._avgGWeight += seed.avgGWeight;
+        mg._winRateSum += seed.winRateSum;
+        mg._winRateWeight += seed.winRateWeight;
+        mg._installSum += seed.installSum;
+        mg._installWeight += seed.installWeight;
+        mg._summaryDays += seed.summaryDays;
         // merge byDay (array/object混在対応)
         Object.entries(m.byDay || {}).forEach(([d, arr]) => {
           const currentStat = toDayDiffStat(mg.byDay[d]);
@@ -5695,6 +5759,10 @@ function mergeAllModelStats(stores, json) {
     if (mg.count > 0) mg.allAvg = Math.round(mg._allSum / mg.count * 10) / 10;
     if (mg.spCount > 0) mg.spAvg = Math.round(mg._spSum / mg.spCount * 10) / 10;
     if (mg.nmCount > 0) mg.nmAvg = Math.round(mg._nmSum / mg.nmCount * 10) / 10;
+    if (mg._avgGWeight > 0) mg.avgG = Math.round(mg._avgGSum / mg._avgGWeight * 10) / 10;
+    if (mg._winRateWeight > 0) mg.winRate = Math.round(mg._winRateSum / mg._winRateWeight * 10) / 10;
+    if (mg._installWeight > 0) mg.avgInstallCount = Math.round(mg._installSum / mg._installWeight * 10) / 10;
+    if (mg._summaryDays > 0) mg.summaryDays = mg._summaryDays;
     mg.zoroAvg = mg.zoroCount > 0 ? Math.round(mg._zoroSum / mg.zoroCount * 10) / 10 : null;
     Object.values(mg.digitAvg || {}).forEach(v => { if(v && typeof v === 'object') delete v._sum; });
     return mg;
@@ -8937,7 +9005,10 @@ function renderModelComp() {
       } else { a = m.allAvg; count = m.count; }
       if(a === null || a === undefined || !Number.isFinite(Number(a))) return null;
       const lift = round1(a - allAvgDiff);
-      return {model:m.model, avg:a, count, mechRitu:m.mechRitu, lift};
+      return {
+        model:m.model, avg:a, count, mechRitu:m.mechRitu, lift,
+        avgG:m.avgG, winRate:m.winRate, avgInstallCount:m.avgInstallCount, summaryDays:m.summaryDays,
+      };
     }).filter(Boolean).sort((a,b)=>b.avg-a.avg);
     if(!data.length) {
       data = G.modelStats.map(m => {
@@ -8949,6 +9020,10 @@ function renderModelComp() {
           avg: fallbackAvg,
           count: fallbackCount,
           mechRitu: m.mechRitu,
+          avgG: m.avgG,
+          winRate: m.winRate,
+          avgInstallCount: m.avgInstallCount,
+          summaryDays: m.summaryDays,
           lift: round1(fallbackAvg - allAvgDiff),
         };
       }).filter(Boolean).sort((a,b)=>b.avg-a.avg);
@@ -8964,15 +9039,19 @@ function renderModelComp() {
         <thead><tr>
           <th style="text-align:left">機種名</th>
           <th>平均差枚</th>
+          <th>平均G</th>
+          <th>勝率</th>
           <th>推定出率</th>
-          <th>件数</th>
+          <th>件数/設置</th>
           <th>ベース比</th>
         </tr></thead>
         <tbody>${data.map(m=>`<tr>
           <td style="font-size:11px;font-weight:700">${m.model}</td>
           <td style="color:${col(m.avg)};font-family:'Share Tech Mono',monospace">${fmt(m.avg)}</td>
+          <td style="color:var(--muted);font-family:'Share Tech Mono',monospace">${formatModelTableNumber(m.avgG)}</td>
+          <td style="color:${Number(m.winRate)>=50?'var(--plus)':'var(--muted)'};font-family:'Share Tech Mono',monospace">${formatModelTableRate(m.winRate)}</td>
           <td style="color:${m.mechRitu===null?'var(--muted)':m.mechRitu>=100?'var(--plus)':'var(--minus)'};font-family:'Share Tech Mono',monospace">${fmtR(m.mechRitu)}</td>
-          <td style="color:var(--muted);font-size:11px">${m.count}</td>
+          <td style="color:var(--muted);font-size:11px">${formatModelTableCount(m)}</td>
           <td style="color:${col(m.lift)};font-size:11px">${fmt(m.lift)}</td>
         </tr>`).join('')}
         </tbody>
@@ -9009,8 +9088,10 @@ function renderModelComp() {
     const totalOut = totalIn + totalDiff;
     const mechRitu = totalIn > 0 ? round1(totalOut/totalIn*100) : null;
     const a = round1(avg(v.diffs));
+    const avgG = round1(avg(v.g));
+    const winRate = v.diffs.length ? round1(v.diffs.filter(diff => diff > 0).length / v.diffs.length * 100) : null;
     const lift = round1(a - allAvgDiff);
-    return {model, avg:a, count:v.diffs.length, mechRitu, lift};
+    return {model, avg:a, count:v.diffs.length, mechRitu, lift, avgG, winRate};
   }).sort((a,b)=>b.avg-a.avg);
 
   const col = v => v>=0 ? 'var(--plus)' : 'var(--minus)';
@@ -9023,15 +9104,19 @@ function renderModelComp() {
       <thead><tr>
         <th style="text-align:left">機種名</th>
         <th>平均差枚</th>
+        <th>平均G</th>
+        <th>勝率</th>
         <th>推定出率</th>
-        <th>件数</th>
+        <th>件数/設置</th>
         <th>ベース比</th>
       </tr></thead>
       <tbody>${data.map(m=>`<tr>
         <td style="font-size:11px;font-weight:700">${m.model}</td>
         <td style="color:${col(m.avg)};font-family:'Share Tech Mono',monospace">${fmt(m.avg)}</td>
+        <td style="color:var(--muted);font-family:'Share Tech Mono',monospace">${formatModelTableNumber(m.avgG)}</td>
+        <td style="color:${Number(m.winRate)>=50?'var(--plus)':'var(--muted)'};font-family:'Share Tech Mono',monospace">${formatModelTableRate(m.winRate)}</td>
         <td style="color:${m.mechRitu===null?'var(--muted)':m.mechRitu>=100?'var(--plus)':'var(--minus)'};font-family:'Share Tech Mono',monospace">${fmtR(m.mechRitu)}</td>
-        <td style="color:var(--muted);font-size:11px">${m.count}</td>
+        <td style="color:var(--muted);font-size:11px">${formatModelTableCount(m)}</td>
         <td style="color:${col(m.lift)};font-size:11px">${fmt(m.lift)}</td>
       </tr>`).join('')}
       </tbody>
