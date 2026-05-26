@@ -252,7 +252,11 @@ def _dedup_key(row):
 
 
 def _model_summary_key(row):
-    return (row.get('date', ''), row.get('store', ''), row.get('model', ''))
+    return (
+        row.get('date', ''),
+        row.get('store', ''),
+        normalize_machine_name(row.get('model', '')),
+    )
 
 
 def find_fallback_detail_table(soup):
@@ -466,7 +470,7 @@ def save_to_csv(rows):
 
     if not os.path.exists(RAW_CSV):
         with open(RAW_CSV, 'w', encoding='utf-8-sig', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_HEADER)
+            writer = csv.DictWriter(f, fieldnames=CSV_HEADER, lineterminator='\n')
             writer.writeheader()
             writer.writerows(updates.values())
         print(f'  📝 新規作成: {len(updates)}行')
@@ -479,7 +483,7 @@ def save_to_csv(rows):
              open(tmp_csv, 'w', encoding='utf-8-sig', newline='') as dst:
             reader = csv.DictReader(src)
             fieldnames = reader.fieldnames or CSV_HEADER
-            writer = csv.DictWriter(dst, fieldnames=fieldnames)
+            writer = csv.DictWriter(dst, fieldnames=fieldnames, lineterminator='\n')
             writer.writeheader()
 
             for row in reader:
@@ -512,7 +516,7 @@ def save_model_summary_to_csv(rows):
 
     if not os.path.exists(STORE_MODEL_SUMMARY_CSV):
         with open(STORE_MODEL_SUMMARY_CSV, 'w', encoding='utf-8-sig', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=STORE_MODEL_SUMMARY_HEADER)
+            writer = csv.DictWriter(f, fieldnames=STORE_MODEL_SUMMARY_HEADER, lineterminator='\n')
             writer.writeheader()
             writer.writerows(updates.values())
         print(f'  📝 機種別集計 新規作成: {len(updates)}行')
@@ -525,7 +529,7 @@ def save_model_summary_to_csv(rows):
              open(tmp_csv, 'w', encoding='utf-8-sig', newline='') as dst:
             reader = csv.DictReader(src)
             fieldnames = reader.fieldnames or STORE_MODEL_SUMMARY_HEADER
-            writer = csv.DictWriter(dst, fieldnames=fieldnames)
+            writer = csv.DictWriter(dst, fieldnames=fieldnames, lineterminator='\n')
             writer.writeheader()
 
             for row in reader:
@@ -547,12 +551,58 @@ def save_model_summary_to_csv(rows):
     print(f'  📝 機種別集計 {replaced}行を上書き / {appended}行を追加')
     return replaced + appended
 
+
+def compact_model_summary_csv():
+    if not os.path.exists(STORE_MODEL_SUMMARY_CSV):
+        return 0
+
+    tmp_csv = _make_tmp_path(STORE_MODEL_SUMMARY_CSV)
+    by_key = {}
+    order = []
+    total = 0
+    changed = False
+    try:
+        with open(STORE_MODEL_SUMMARY_CSV, encoding='utf-8-sig', newline='') as src:
+            reader = csv.DictReader(src)
+            fieldnames = reader.fieldnames or STORE_MODEL_SUMMARY_HEADER
+            for row in reader:
+                total += 1
+                key = _model_summary_key(row)
+                normalized_row = dict(row)
+                normalized_model = normalize_machine_name(row.get('model', ''))
+                if normalized_row.get('model') != normalized_model:
+                    normalized_row['model'] = normalized_model
+                    changed = True
+                if key not in by_key:
+                    order.append(key)
+                else:
+                    changed = True
+                by_key[key] = normalized_row
+
+        if not changed:
+            os.remove(tmp_csv)
+            return 0
+
+        with open(tmp_csv, 'w', encoding='utf-8-sig', newline='') as dst:
+            writer = csv.DictWriter(dst, fieldnames=fieldnames, lineterminator='\n')
+            writer.writeheader()
+            for key in order:
+                row = by_key.get(key)
+                if row:
+                    writer.writerow({field: row.get(field, '') for field in fieldnames})
+        os.replace(tmp_csv, STORE_MODEL_SUMMARY_CSV)
+    finally:
+        if os.path.exists(tmp_csv):
+            os.remove(tmp_csv)
+    return max(0, total - len(by_key))
+
 def parse_args():
     parser = argparse.ArgumentParser(description='ana-slo のデータを取得して raw_data.csv を更新します。')
     parser.add_argument('--start-date', help='取得開始日 (YYYY-MM-DD)')
     parser.add_argument('--end-date', help='取得終了日 (YYYY-MM-DD)')
     parser.add_argument('--stores', help='対象店舗名をカンマ区切りで指定')
     parser.add_argument('--models', help='対象機種名をカンマ区切りで指定')
+    parser.add_argument('--backfill-smart-slots', action='store_true', help='機種別集計にあるが raw_data.csv にないスマスロ台別だけ再取得')
     parser.add_argument('--store-interval-sec', type=float, default=1.0, help='店舗間の待機秒数')
     parser.add_argument('--date-interval-sec', type=float, default=0.0, help='日付間の待機秒数')
     return parser.parse_args()
@@ -589,6 +639,59 @@ def resolve_target_stores(selected_names):
         seen.add(name)
     return resolved
 
+def build_smart_slot_backfill_tasks(stores, target_dates, target_models):
+    """
+    store_model_summary.csv にはスマスロ機種があるのに raw_data.csv に台別が無い
+    (date, store, model) だけを再取得対象にする。
+    """
+    if not os.path.exists(STORE_MODEL_SUMMARY_CSV):
+        print('⚠️  store_model_summary.csv がないため、スマスロバックフィル対象なし')
+        return []
+
+    target_store_names = {name for name, _slug in stores}
+    target_date_set = set(target_dates)
+    target_model_set = set(target_models or SMART_SLOT_MODELS)
+    summary_models_by_pair = {}
+    existing_models_by_pair = {}
+
+    with open(STORE_MODEL_SUMMARY_CSV, encoding='utf-8-sig', newline='') as f:
+        for row in csv.DictReader(f):
+            target_date = str(row.get('date', '')).strip()
+            store_name = str(row.get('store', '')).strip()
+            if target_date not in target_date_set or store_name not in target_store_names:
+                continue
+            model_name = normalize_machine_name(row.get('model', ''))
+            if model_name not in SMART_SLOT_MODELS or model_name not in target_model_set:
+                continue
+            summary_models_by_pair.setdefault((target_date, store_name), set()).add(model_name)
+
+    if os.path.exists(RAW_CSV):
+        with open(RAW_CSV, encoding='utf-8-sig', newline='') as f:
+            for row in csv.DictReader(f):
+                target_date = str(row.get('日付', '')).strip()
+                store_name = str(row.get('店名', '')).strip()
+                if target_date not in target_date_set or store_name not in target_store_names:
+                    continue
+                model_name = normalize_machine_name(row.get('機種名', ''))
+                if model_name not in SMART_SLOT_MODELS or model_name not in target_model_set:
+                    continue
+                existing_models_by_pair.setdefault((target_date, store_name), set()).add(model_name)
+
+    slug_by_store = {name: slug for name, slug in stores}
+    tasks = []
+    for (target_date, store_name), summary_models in summary_models_by_pair.items():
+        missing_models = summary_models - existing_models_by_pair.get((target_date, store_name), set())
+        if not missing_models:
+            continue
+        tasks.append({
+            'date': target_date,
+            'store': store_name,
+            'slug': slug_by_store.get(store_name, slug_from_store_name(store_name)),
+            'models': sorted(missing_models),
+        })
+    tasks.sort(key=lambda item: (item['date'], item['store']))
+    return tasks
+
 if __name__ == '__main__':
     args = parse_args()
     if args.start_date or args.end_date:
@@ -604,6 +707,8 @@ if __name__ == '__main__':
     target_dates = build_target_dates(start, end)
     stores = resolve_target_stores(parse_csv_list(args.stores))
     target_models = {normalize_machine_name(m) for m in parse_csv_list(args.models)}
+    if args.backfill_smart_slots and not target_models:
+        target_models = set(SMART_SLOT_MODELS)
     model_desc = ', '.join(sorted(target_models)) if target_models else '通常対象すべて'
 
     print(f'=== 取得期間: {target_dates[0]} 〜 {target_dates[-1]} ({len(target_dates)}日) ===')
@@ -613,22 +718,44 @@ if __name__ == '__main__':
     latest_by_store = {}
     scraped_store_count = set()
 
-    for day_idx, target_date in enumerate(target_dates, start=1):
-        print(f'\n--- {target_date} ({day_idx}/{len(target_dates)}) ---')
-        for store_idx, (store_name, slug) in enumerate(stores, start=1):
-            rows, model_summary_rows, ok = scrape(target_date, store_name, slug, target_models=target_models)
-            all_rows.extend(rows)
-            all_model_summary_rows.extend(model_summary_rows)
-            if ok:
-                latest_data_date = get_latest_data_date(rows) or target_date
-                prev_latest = latest_by_store.get(store_name)
-                if not prev_latest or latest_data_date > prev_latest:
-                    latest_by_store[store_name] = latest_data_date
-                scraped_store_count.add(store_name)
-            if store_idx < len(stores) and args.store_interval_sec > 0:
+    if args.backfill_smart_slots:
+        backfill_tasks = build_smart_slot_backfill_tasks(stores, target_dates, target_models)
+        print(f'=== スマスロ台別バックフィル対象: {len(backfill_tasks)} 店舗日 ===')
+        scrape_plan = [
+            (task['date'], task['store'], task['slug'], set(task['models']), idx, len(backfill_tasks))
+            for idx, task in enumerate(backfill_tasks, start=1)
+        ]
+    else:
+        scrape_plan = [
+            (target_date, store_name, slug, target_models, None, None)
+            for target_date in target_dates
+            for store_name, slug in stores
+        ]
+
+    previous_date = None
+    for plan_idx, (target_date, store_name, slug, plan_models, task_idx, task_total) in enumerate(scrape_plan, start=1):
+        if args.backfill_smart_slots:
+            print(f'\n--- {target_date} {store_name} ({task_idx}/{task_total}) / {", ".join(sorted(plan_models))} ---')
+        elif target_date != previous_date:
+            day_idx = target_dates.index(target_date) + 1
+            print(f'\n--- {target_date} ({day_idx}/{len(target_dates)}) ---')
+        rows, model_summary_rows, ok = scrape(target_date, store_name, slug, target_models=plan_models)
+        all_rows.extend(rows)
+        all_model_summary_rows.extend(model_summary_rows)
+        if ok:
+            latest_data_date = get_latest_data_date(rows) or target_date
+            prev_latest = latest_by_store.get(store_name)
+            if not prev_latest or latest_data_date > prev_latest:
+                latest_by_store[store_name] = latest_data_date
+            scraped_store_count.add(store_name)
+
+        if plan_idx < len(scrape_plan):
+            next_date = scrape_plan[plan_idx][0]
+            if next_date != target_date and args.date_interval_sec > 0:
+                time.sleep(args.date_interval_sec)
+            elif args.store_interval_sec > 0:
                 time.sleep(args.store_interval_sec)
-        if day_idx < len(target_dates) and args.date_interval_sec > 0:
-            time.sleep(args.date_interval_sec)
+        previous_date = target_date
 
     for store_name, latest_data_date in latest_by_store.items():
         update_store_freshness(store_name, latest_data_date)
@@ -636,4 +763,7 @@ if __name__ == '__main__':
     print(f'\n合計 {len(all_rows)} 行取得')
     saved = save_to_csv(all_rows)
     model_saved = save_model_summary_to_csv(all_model_summary_rows)
+    model_compacted = compact_model_summary_csv()
+    if model_compacted:
+        print(f'  🧹 機種別集計の重複 {model_compacted}行を整理')
     print(f'✅ 完了（台別更新/追加: {saved}行, 機種別更新/追加: {model_saved}行, freshness更新: {len(scraped_store_count)}店舗）')
