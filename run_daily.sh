@@ -4,6 +4,11 @@ set -e
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="$REPO_DIR/run_daily.log"
+SMART_SLOT_BACKFILL_DAYS="${SMART_SLOT_BACKFILL_DAYS:-30}"
+SMART_SLOT_BACKFILL_TASKS="${SMART_SLOT_BACKFILL_TASKS:-4}"
+SMART_SLOT_BACKFILL_INTERVAL_SEC="${SMART_SLOT_BACKFILL_INTERVAL_SEC:-0.5}"
+case "$SMART_SLOT_BACKFILL_DAYS" in ''|*[!0-9]*) SMART_SLOT_BACKFILL_DAYS=30 ;; esac
+case "$SMART_SLOT_BACKFILL_TASKS" in ''|*[!0-9]*) SMART_SLOT_BACKFILL_TASKS=4 ;; esac
 
 cd "$REPO_DIR"
 
@@ -39,6 +44,18 @@ abort_if_conflicts
 
 # Run pipeline
 python3 scrape_juggler.py >> "$LOG_FILE" 2>&1
+if [ "$SMART_SLOT_BACKFILL_TASKS" -gt 0 ]; then
+  BACKFILL_START="$(date -v-"$SMART_SLOT_BACKFILL_DAYS"d '+%Y-%m-%d')"
+  BACKFILL_END="$(date -v-1d '+%Y-%m-%d')"
+  echo "smart slot backfill: $BACKFILL_START to $BACKFILL_END / max $SMART_SLOT_BACKFILL_TASKS tasks" >> "$LOG_FILE"
+  python3 scrape_juggler.py \
+    --start-date "$BACKFILL_START" \
+    --end-date "$BACKFILL_END" \
+    --backfill-smart-slots \
+    --backfill-latest-first \
+    --max-backfill-tasks "$SMART_SLOT_BACKFILL_TASKS" \
+    --store-interval-sec "$SMART_SLOT_BACKFILL_INTERVAL_SEC" >> "$LOG_FILE" 2>&1
+fi
 python3 compute.py >> "$LOG_FILE" 2>&1
 python3 morning_compute.py >> "$LOG_FILE" 2>&1
 python3 candidate_compute.py >> "$LOG_FILE" 2>&1
