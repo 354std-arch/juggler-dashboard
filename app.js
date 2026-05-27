@@ -9908,6 +9908,49 @@ function formatMorningCoverageText(coverage) {
   ].filter(Boolean).join(' / ');
 }
 
+function renderMorningBacktestDigest(storeData) {
+  const backtest = storeData?.evidenceBacktest;
+  if(!backtest || typeof backtest !== 'object') return '';
+  const summary = backtest.summary || {};
+  const decision = summary.decision || {};
+  const robustness = backtest.robustness || {};
+  const periods = Array.isArray(robustness.periods) ? robustness.periods : [];
+  const metric = (label, value, tone = '') => `
+    <div class="morning-backtest-metric ${tone}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+    </div>`;
+  const pickAvg = Number(summary.pickAvg);
+  const lift = Number(summary.lift);
+  const topHit = Number(summary.topHitRate);
+  const pickCount = Number(summary.pickCount);
+  const periodText = periods.length
+    ? periods.map((period) => {
+        const s = period.summary || {};
+        const d = period.decision || {};
+        const avg = Number(s.pickAvg);
+        const avgText = Number.isFinite(avg) ? formatTargetSigned枚(avg) : '-';
+        return `${period.label || '-'}:${d.label || '-'} ${avgText}`;
+      }).join(' / ')
+    : (robustness.message || '');
+  const decisionClass = decision.actionable === false
+    ? 'is-weak'
+    : (decision.level === 'main' ? 'is-strong' : 'is-normal');
+  return `<div class="morning-backtest-digest ${decisionClass}">
+    <div class="morning-backtest-head">
+      <span>過去検証</span>
+      <strong>${escapeHtml(decision.label || robustness.label || '検証確認')}</strong>
+    </div>
+    <div class="morning-backtest-grid">
+      ${metric('候補平均', Number.isFinite(pickAvg) ? formatTargetSigned枚(pickAvg) : '-', pickAvg >= 0 ? 'is-plus' : 'is-minus')}
+      ${metric('平均との差', Number.isFinite(lift) ? formatTargetSigned枚(lift) : '-', lift >= 0 ? 'is-plus' : 'is-minus')}
+      ${metric('上位20%', Number.isFinite(topHit) ? `${round1(topHit)}%` : '-', Number.isFinite(topHit) && topHit >= 23 ? 'is-plus' : 'is-muted')}
+      ${metric('候補数', Number.isFinite(pickCount) ? `${Math.round(pickCount)}件` : '-', 'is-muted')}
+    </div>
+    ${periodText ? `<div class="morning-backtest-periods">${escapeHtml(periodText)}</div>` : ''}
+  </div>`;
+}
+
 function renderMorningSummaryForCalendar() {
   const wrap = document.getElementById('calMorningSummaryWrap');
   if(!wrap) return;
@@ -10086,6 +10129,7 @@ function renderMorningSummaryForCalendar() {
         <span>検証</span>
         <strong>${escapeHtml(trustMeta.detail)}</strong>
       </div>
+      ${renderMorningBacktestDigest(storePrecomputed)}
       ${qualityWarning ? `<div class="seat-data-quality-alert">${escapeHtml(qualityWarning)}</div>` : ''}
       ${verifiedTargetHtml}
       <div class="morning-block">
