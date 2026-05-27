@@ -10055,6 +10055,7 @@ function renderMorningSummaryForCalendar() {
 
           const isVerifiedTarget = verifiedTargetTais.has(Number(c?.tai)) || c?.verified_target === true;
           const verifiedEvidence = Array.isArray(c?.verified_evidence) ? c.verified_evidence.filter(Boolean).slice(0, 3) : [];
+          const verifiedHallEvidence = Array.isArray(c?.verified_hall_evidence) ? c.verified_hall_evidence.filter(Boolean).slice(0, 2) : [];
           const verifiedRank = String(c?.verified_rank || '検証候補');
           const verifiedScore = Number(c?.verified_score);
           const verifiedScoreText = Number.isFinite(verifiedScore) ? ` / ${round1(verifiedScore)}pt` : '';
@@ -10068,6 +10069,19 @@ function renderMorningSummaryForCalendar() {
                 const topHitText = Number.isFinite(Number(e?.topHitRate)) ? ` / 上位${formatTargetPercent(e.topHitRate)}` : '';
                 const countText = Number.isFinite(count) ? ` / ${Math.round(count)}件` : '';
                 return `<li><strong>${escapeHtml(e?.label || '検証根拠')}</strong><span>${escapeHtml(liftText + topHitText + countText)}</span></li>`;
+              }).join('')}</ul>
+            </div>`
+            : '';
+          const verifiedHallEvidenceHtml = verifiedHallEvidence.length
+            ? `<div class="morning-candidate-layer morning-candidate-hall-evidence">
+              <div class="morning-layer-label">ホール図根拠</div>
+              <ul class="morning-inline-list morning-verified-evidence-list">${verifiedHallEvidence.map((e) => {
+                const lift = Number(e?.lift);
+                const count = Number(e?.count);
+                const liftText = Number.isFinite(lift) ? `予測${formatTargetSigned枚(lift)}` : '予測実績あり';
+                const topHitText = Number.isFinite(Number(e?.topHitRate)) ? ` / 上位${formatTargetPercent(e.topHitRate)}` : '';
+                const countText = Number.isFinite(count) ? ` / ${Math.round(count)}件` : '';
+                return `<li><strong>${escapeHtml(e?.label || 'ホール図根拠')}</strong><span>${escapeHtml(liftText + topHitText + countText)}</span></li>`;
               }).join('')}</ul>
             </div>`
             : '';
@@ -10095,6 +10109,7 @@ function renderMorningSummaryForCalendar() {
               <div class="morning-candidate-score"><span class="morning-action-chip ${actionClass}">${escapeHtml(actionLabel)}</span>${verifiedHtml}${formatMorningScorePercent(c?.score)}</div>
             </div>
             ${verifiedEvidenceHtml}
+            ${verifiedHallEvidenceHtml}
             <div class="morning-candidate-layer">
               <div class="morning-layer-label">店条件</div>
               <div class="morning-layer-text">${escapeHtml(dayType)} / 判定 ${escapeHtml(todayLabel)} / スコア ${todayScoreText} / ${escapeHtml(todayReasonText)}</div>

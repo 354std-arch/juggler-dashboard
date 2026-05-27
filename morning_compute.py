@@ -391,7 +391,7 @@ def load_evidence_guards(target_ymd):
 
 def summarize_verified_target(target):
     if not isinstance(target, dict):
-        return [], []
+        return [], [], []
     evidence_rows = []
     for item in (target.get("evidence") or [])[:3]:
         if not isinstance(item, dict):
@@ -407,6 +407,21 @@ def summarize_verified_target(target):
             "topHitRate": validation.get("topHitRate"),
             "verdict": verdict.get("label") or "予測実績あり",
         })
+    hall_evidence_rows = []
+    for item in (target.get("hallEvidence") or [])[:2]:
+        if not isinstance(item, dict):
+            continue
+        validation = item.get("validation") if isinstance(item.get("validation"), dict) else {}
+        verdict = item.get("validationVerdict") if isinstance(item.get("validationVerdict"), dict) else {}
+        hall_evidence_rows.append({
+            "label": item.get("label") or item.get("key") or "ホール図根拠",
+            "lift": validation.get("lift", item.get("lift")),
+            "avg": validation.get("avg", item.get("avg")),
+            "count": validation.get("count", item.get("count")),
+            "plusRate": validation.get("plusRate"),
+            "topHitRate": validation.get("topHitRate"),
+            "verdict": verdict.get("label") or "予測実績あり",
+        })
     caution_rows = []
     for item in (target.get("cautions") or [])[:2]:
         if isinstance(item, dict):
@@ -415,7 +430,7 @@ def summarize_verified_target(target):
             caution_rows.append(f"{label}: {message}" if message else str(label))
         else:
             caution_rows.append(str(item))
-    return evidence_rows, caution_rows
+    return evidence_rows, caution_rows, hall_evidence_rows
 
 
 def apply_evidence_guards(stores_payload, target_ymd):
@@ -450,10 +465,12 @@ def apply_evidence_guards(stores_payload, target_ymd):
             candidate["verified_target"] = bool(is_verified_target)
             if is_verified_target:
                 target = target_lookup.get(tai) or {}
-                evidence_rows, caution_rows = summarize_verified_target(target)
+                evidence_rows, caution_rows, hall_evidence_rows = summarize_verified_target(target)
                 candidate["verified_rank"] = target.get("rank") or "検証候補"
                 candidate["verified_score"] = target.get("totalScore")
                 candidate["verified_evidence"] = evidence_rows
+                if hall_evidence_rows:
+                    candidate["verified_hall_evidence"] = hall_evidence_rows
                 if caution_rows:
                     candidate["verified_cautions"] = caution_rows
                 if target.get("rank") == "本命":

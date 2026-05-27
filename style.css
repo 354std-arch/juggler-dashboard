@@ -232,6 +232,8 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .morning-verified-chip{display:inline-flex;align-items:center;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:900;color:var(--plus);background:rgba(57,255,20,.1);border:1px solid rgba(57,255,20,.28);}
 .morning-candidate-layer,.morning-candidate-note{display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:flex-start;margin-top:5px;}
 .morning-candidate-verified-evidence{border:1px solid rgba(57,255,20,.16);border-radius:7px;background:rgba(57,255,20,.045);padding:6px;margin-top:6px;}
+.morning-candidate-hall-evidence{border:1px solid rgba(0,229,255,.18);border-radius:7px;background:rgba(0,229,255,.045);padding:6px;margin-top:6px;}
+.morning-candidate-hall-evidence .morning-verified-evidence-list strong{color:var(--accent);}
 .morning-layer-label{font-size:10px;color:var(--muted);font-weight:700;}
 .morning-layer-text{font-size:11px;color:var(--text);line-height:1.5;}
 .morning-inline-list{margin:0;padding-left:16px;font-size:11px;color:var(--text);line-height:1.5;}

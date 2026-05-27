@@ -906,6 +906,7 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
     by_tai = defaultdict(lambda: {
         "tai":None,"taiNum":0,"model":None,"store":None,
         "installSegment":None,"installStartedAt":None,"installLastSeenAt":None,
+        "hallFeatures": [],
         "all":[], "sp":[], "nm":[],
     })
     for r in current_rows:
@@ -916,6 +917,8 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
         t["installSegment"] = r.get("installSegment")
         t["installStartedAt"] = r.get("installSegmentStartedAt")
         t["installLastSeenAt"] = r["dateStr"]
+        if r.get("hallFeatures"):
+            t["hallFeatures"] = r.get("hallFeatures") or []
         t["all"].append(r)
         if r["day"] in special:
             t["sp"].append(r)
@@ -994,6 +997,7 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
             "installSegment": t.get("installSegment"),
             "installStartedAt": t.get("installStartedAt"),
             "installLastSeenAt": t.get("installLastSeenAt"),
+            "hallFeatures": t.get("hallFeatures") or [],
             "historyScope": "current_install_segment",
             "analysisMode": get_model_analysis_mode(t["model"]),
             "supportsSettingAnalysis": supports_setting_analysis(t["model"]),
@@ -2063,6 +2067,7 @@ def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top
             "tai": t.get("tai") or str(tai_num),
             "taiNum": tai_num,
             "installSegment": t.get("installSegment"),
+            "hallFeatures": t.get("hallFeatures") or [],
         }
         matched = []
         for f_type, f_key, label in build_evidence_feature_keys(pseudo_row, prev_row):
@@ -2112,6 +2117,10 @@ def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top
                 "pts": pts,
             })
         rank = "本命" if score >= 260 else "対抗" if score >= 180 else "保留"
+        hall_evidence = [
+            item for item in matched
+            if str(item.get("type", "")).startswith("hall_")
+        ][:2]
         targets.append({
             **t,
             "prevRow": prev_row,
@@ -2119,6 +2128,7 @@ def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top
             "rank": rank,
             "reasons": reasons,
             "evidence": matched[:3],
+            "hallEvidence": hall_evidence,
             "cautions": target_cautions,
             "scoreSource": "validated_evidence",
         })
