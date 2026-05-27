@@ -596,6 +596,89 @@ def rate_table(df, group_keys):
     return grouped[group_keys + ["strong_rate", "upper_rate", "sample"]]
 
 
+def classify_coverage_level(day_count, row_count):
+    if day_count >= 120 and row_count >= 300:
+        return {"label": "長期", "strength": "high"}
+    if day_count >= 45 and row_count >= 100:
+        return {"label": "中期", "strength": "medium"}
+    if day_count >= 15 and row_count >= 30:
+        return {"label": "短期", "strength": "low"}
+    return {"label": "薄い", "strength": "thin"}
+
+
+def build_model_coverage_from_rows(rows):
+    buckets = {}
+    for r in rows:
+        store = str(r.get("store") or "").strip()
+        model = str(r.get("model") or "").strip()
+        dt = r.get("date")
+        tai = r.get("tai")
+        if not store or not model or dt is None:
+            continue
+        bucket = buckets.setdefault(
+            (store, model),
+            {"first": None, "last": None, "rows": 0, "days": set(), "tais": set()},
+        )
+        bucket["rows"] += 1
+        bucket["days"].add(dt.date())
+        try:
+            bucket["tais"].add(int(tai))
+        except Exception:
+            pass
+        if bucket["first"] is None or dt < bucket["first"]:
+            bucket["first"] = dt
+        if bucket["last"] is None or dt > bucket["last"]:
+            bucket["last"] = dt
+
+    coverage = defaultdict(dict)
+    for (store, model), bucket in buckets.items():
+        day_count = len(bucket["days"])
+        row_count = int(bucket["rows"])
+        level = classify_coverage_level(day_count, row_count)
+        coverage[store][model] = {
+            "first_date": bucket["first"].strftime("%Y-%m-%d") if bucket["first"] else None,
+            "last_date": bucket["last"].strftime("%Y-%m-%d") if bucket["last"] else None,
+            "row_count": row_count,
+            "day_count": day_count,
+            "tai_count": len(bucket["tais"]),
+            "coverage_label": level["label"],
+            "coverage_strength": level["strength"],
+        }
+    return {store: dict(models) for store, models in coverage.items()}
+
+
+def build_model_coverage_from_df(df):
+    if df.empty:
+        return {}
+
+    coverage = defaultdict(dict)
+    grouped = (
+        df.groupby(["store", "model"], sort=False)
+        .agg(
+            first_date=("date", "min"),
+            last_date=("date", "max"),
+            row_count=("date", "size"),
+            day_count=("date", lambda s: s.dt.date.nunique()),
+            tai_count=("tai", "nunique"),
+        )
+        .reset_index()
+    )
+    for r in grouped.itertuples(index=False):
+        day_count = int(r.day_count)
+        row_count = int(r.row_count)
+        level = classify_coverage_level(day_count, row_count)
+        coverage[str(r.store)][str(r.model)] = {
+            "first_date": r.first_date.strftime("%Y-%m-%d") if pd.notna(r.first_date) else None,
+            "last_date": r.last_date.strftime("%Y-%m-%d") if pd.notna(r.last_date) else None,
+            "row_count": row_count,
+            "day_count": day_count,
+            "tai_count": int(r.tai_count),
+            "coverage_label": level["label"],
+            "coverage_strength": level["strength"],
+        }
+    return {store: dict(models) for store, models in coverage.items()}
+
+
 def read_labeled_rows_fallback():
     special_by_store = load_store_special_map()
     with open(RAW_CSV, "r", encoding="utf-8-sig", newline="") as f:
@@ -803,6 +886,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
     today_weekday = now_jst.weekday()
     special_by_store = load_store_special_map()
     payload_meta = build_payload_meta(now_jst, max((r["date"] for r in rows), default=None))
+    model_coverage = build_model_coverage_from_rows(rows)
 
     if not rows:
         return {
@@ -869,6 +953,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
                 "score": round(upper_rate, 6),
                 "reason": f"上候補以上率{upper_rate:.0%}({total}件)",
                 "sample": total,
+                "coverage": model_coverage.get(store, {}).get(model, {}),
             }
         )
     for store in list(model_rankings.keys()):
@@ -972,6 +1057,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
                 "tai": int(tai),
                 "model": recent_model,
                 "analysis_mode": "setting" if supports_setting_analysis(recent_model) else "diff",
+                "model_coverage": model_coverage.get(store, {}).get(recent_model, {}),
                 "score": round(total_score, 6),
                 "action": decision["action"],
                 "action_label": decision["action_label"],
@@ -1016,6 +1102,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
             "model_ranking": model_rankings.get(store, []),
             "tail_ranking": tail_rankings.get(store, []),
             "candidates": candidate_by_store.get(store, []),
+            "model_coverage": model_coverage.get(store, {}),
         }
 
     apply_evidence_guards(stores_payload, payload_meta["target_date"])
@@ -1035,6 +1122,7 @@ def build_payload(df, normalized_models, unsupported_models):
     today_weekday = now_jst.weekday()
     special_by_store = load_store_special_map()
     payload_meta = build_payload_meta(now_jst, None if df.empty else df["date"].max())
+    model_coverage = build_model_coverage_from_df(df)
 
     if df.empty:
         return {
@@ -1164,6 +1252,7 @@ def build_payload(df, normalized_models, unsupported_models):
                     "score": round(float(r.upper_rate), 6),
                     "reason": f"上候補以上率{float(r.upper_rate):.0%}({int(r.sample)}件)",
                     "sample": int(r.sample),
+                    "coverage": model_coverage.get(store, {}).get(r.model, {}),
                 }
             )
         model_rankings[store] = ranking
@@ -1235,6 +1324,7 @@ def build_payload(df, normalized_models, unsupported_models):
                     "tai": int(r.tai),
                     "model": model,
                     "analysis_mode": "setting" if supports_setting_analysis(model) else "diff",
+                    "model_coverage": model_coverage.get(store, {}).get(model, {}),
                     "score": round(total_score, 6),
                     "action": decision["action"],
                     "action_label": decision["action_label"],
@@ -1278,6 +1368,7 @@ def build_payload(df, normalized_models, unsupported_models):
             "model_ranking": model_rankings.get(store, []),
             "tail_ranking": tail_rankings.get(store, []),
             "candidates": candidate_by_store.get(store, []),
+            "model_coverage": model_coverage.get(store, {}),
         }
 
     apply_evidence_guards(stores_payload, payload_meta["target_date"])

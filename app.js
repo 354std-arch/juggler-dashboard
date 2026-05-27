@@ -2568,7 +2568,10 @@ function formatMorningRankCondition(row) {
     const diff = Math.round(winRate - storeWinRate);
     parts.push(`店比 ${diff > 0 ? '+' : ''}${diff}pt`);
   }
-  if(Number.isFinite(sample) && sample > 0) parts.push(`N=${Math.round(sample)}${sample < 3 ? ' 参考' : ''}`);
+  if(Number.isFinite(sample) && sample > 0) {
+    const sampleNote = sample < 5 ? ' 薄い' : (sample < 10 ? ' 参考' : '');
+    parts.push(`N=${Math.round(sample)}${sampleNote}`);
+  }
   return parts.join(' / ');
 }
 
@@ -9877,6 +9880,34 @@ function renderMorningVerifiedTargets(targets) {
   </div>`;
 }
 
+function getMorningModelCoverage(storeData, modelName) {
+  if(!storeData || !modelName) return null;
+  const fromRanking = (Array.isArray(storeData.model_ranking) ? storeData.model_ranking : [])
+    .find((m) => String(m?.model || '') === String(modelName));
+  if(fromRanking?.coverage && typeof fromRanking.coverage === 'object') return fromRanking.coverage;
+  const coverageMap = storeData.model_coverage;
+  if(coverageMap && typeof coverageMap === 'object') return coverageMap[modelName] || null;
+  return null;
+}
+
+function formatMorningCoverageText(coverage) {
+  if(!coverage || typeof coverage !== 'object') return '';
+  const first = coverage.first_date ? String(coverage.first_date).slice(0, 10) : '';
+  const last = coverage.last_date ? String(coverage.last_date).slice(0, 10) : '';
+  const days = Number(coverage.day_count);
+  const rows = Number(coverage.row_count);
+  const tais = Number(coverage.tai_count);
+  const label = String(coverage.coverage_label || '');
+  const range = first && last ? `${first}〜${last}` : '';
+  return [
+    range,
+    Number.isFinite(days) ? `${Math.round(days)}日` : '',
+    Number.isFinite(tais) ? `${Math.round(tais)}台` : '',
+    Number.isFinite(rows) ? `${Math.round(rows)}件` : '',
+    label ? `厚み:${label}` : '',
+  ].filter(Boolean).join(' / ');
+}
+
 function renderMorningSummaryForCalendar() {
   const wrap = document.getElementById('calMorningSummaryWrap');
   if(!wrap) return;
@@ -9926,10 +9957,12 @@ function renderMorningSummaryForCalendar() {
           const sample = Number(m?.sample);
           const sampleText = Number.isFinite(sample) ? `${Math.round(sample)}件` : '0件';
           const conditionText = formatMorningRankCondition(m);
+          const coverageText = formatMorningCoverageText(m?.coverage || getMorningModelCoverage(data, m?.model));
           return `<div class="morning-rank-row">
             <div class="morning-rank-main">${idx + 1}. ${escapeHtml(m?.model || '不明')}</div>
             <div class="morning-rank-sub">${escapeHtml(m?.reason || '理由データなし')}</div>
             ${conditionText ? `<div class="morning-rank-cond">${escapeHtml(conditionText)}</div>` : ''}
+            ${coverageText ? `<div class="morning-rank-coverage">${escapeHtml(coverageText)}</div>` : ''}
             <div class="morning-rank-meta">${formatMorningScorePercent(m?.score)} / ${sampleText}</div>
           </div>`;
         }).join('')
@@ -9970,6 +10003,7 @@ function renderMorningSummaryForCalendar() {
                 formatMorningRankCondition(matchModel),
                 `スコア${formatMorningScorePercent(matchModel.score)}`,
                 `サンプル${modelSampleText}`,
+                formatMorningCoverageText(c?.model_coverage || matchModel.coverage || getMorningModelCoverage(data, modelName)),
               ].filter(Boolean).join(' / ')
             : '機種ランキング情報なし';
 
