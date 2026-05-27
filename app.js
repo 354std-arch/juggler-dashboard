@@ -201,6 +201,15 @@ const SMART_SLOT_MODELS = new Set([
   'L 革命機ヴァルヴレイヴ2',
 ]);
 
+const MODEL_FILTER_LABELS = {
+  'スマスロ北斗の拳 転生の章2': '北斗転生',
+  'スマスロ北斗の拳': '北斗(無印)',
+  'L 東京喰種': '東京喰種',
+  'L モンキーターンV': 'モンキーV',
+  'L 革命機ヴァルヴレイヴ2': 'VVV2',
+  'スマスロハナビ': 'スマハナ',
+};
+
 function normalizeModelName(name) {
   const raw = String(name || '').replace(/　/g, ' ').trim();
   const mapped = MODEL_NAME_MAP_CANONICAL[raw] || raw;
@@ -222,6 +231,12 @@ function isSmartSlotModel(model) {
 function isAnalysisTargetModel(model) {
   const normalized = normalizeModelName(model);
   return !!MODEL_SETTINGS[normalized] || SMART_SLOT_MODELS.has(normalized);
+}
+
+function formatModelFilterLabel(model, maxLength = 7) {
+  const normalized = normalizeModelName(model);
+  const label = MODEL_FILTER_LABELS[normalized] || String(model || '');
+  return label.length > maxLength ? label.slice(0, maxLength) : label;
 }
 
 // ====== 機種別設定値（合成・BB・RB確率の分母） ======
@@ -9176,7 +9191,7 @@ function renderModelFilter() {
   if(!G.modelStats.length) return;
   const models=G.modelStats.map(m=>m.model);
   document.getElementById('modelFilterBtns').innerHTML=models.map((m,i)=>`
-    <button class="filter-btn ${i===0?'active':''}" onclick="selectModelFilter('${m}',this)">${m.slice(0,7)}</button>`).join('');
+    <button class="filter-btn ${i===0?'active':''}" title="${escapeHtml(m)}" onclick="selectModelFilter('${m}',this)">${escapeHtml(formatModelFilterLabel(m, 8))}</button>`).join('');
   if(models.length){currentModelFilter=models[0];renderModelDayBar();}
 }
 
@@ -9409,7 +9424,7 @@ function renderTaiFilter() {
   const models=[...new Set(G.taiDetail.map(t=>t.model))];
   document.getElementById('taiFilterBtns').innerHTML=
     `<button class="filter-btn ${currentTaiFilter==='all'?'active':''}" onclick="filterTai('all',this)">すべて</button>`+
-    models.map(m=>`<button id="taiFilterBtn_${m.replace(/[^\w]/g,'_')}" class="filter-btn ${currentTaiFilter===m?'active':''}" onclick="filterTai('${m}',this)">${m.slice(0,6)}</button>`).join('');
+    models.map(m=>`<button id="taiFilterBtn_${m.replace(/[^\w]/g,'_')}" class="filter-btn ${currentTaiFilter===m?'active':''}" title="${escapeHtml(m)}" onclick="filterTai('${m}',this)">${escapeHtml(formatModelFilterLabel(m, 8))}</button>`).join('');
 }
 
 function filterTai(model,btn) {
