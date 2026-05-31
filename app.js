@@ -1925,6 +1925,70 @@ function getTargetDecisionTone(decision) {
   return 'neutral';
 }
 
+function getTargetEvidenceGroup(item) {
+  const type = String(item?.type || '').toLowerCase();
+  if(type.startsWith('hall_')) return { key: 'hall', label: 'ホール図', hint: '角・島・並び' };
+  if(type.includes('model')) return { key: 'model', label: '機種', hint: '機種×日付条件' };
+  if(type.includes('tail')) return { key: 'tail', label: '末尾', hint: '末尾×日付条件' };
+  if(type.includes('prev')) return { key: 'prev', label: '前日', hint: '凹み/据え置き寄り' };
+  if(type.includes('day') || type.includes('week') || type.includes('monthly')) return { key: 'day', label: '日付', hint: '日付/曜日' };
+  if(type.includes('tai')) return { key: 'tai', label: '台番号', hint: '現設置期間' };
+  return { key: 'other', label: 'その他', hint: '補助根拠' };
+}
+
+function renderTargetEvidenceGroupSummary(items) {
+  const list = Array.isArray(items) ? items.filter(Boolean) : [];
+  if(!list.length) return '<div class="target-empty-note">カテゴリ別に見られる検証根拠はまだありません。</div>';
+  const groups = new Map();
+  list.forEach((item) => {
+    const group = getTargetEvidenceGroup(item);
+    const validation = item?.validation || item || {};
+    const lift = Number(validation.lift ?? item?.validationLift ?? item?.lift);
+    const count = Number(validation.count ?? item?.validationCount ?? item?.count);
+    const topHit = Number(validation.topHitRate ?? item?.topHitRate);
+    const current = groups.get(group.key) || {
+      ...group,
+      count: 0,
+      sample: 0,
+      liftSum: 0,
+      liftCount: 0,
+      topHitSum: 0,
+      topHitCount: 0,
+      labels: [],
+    };
+    current.count += 1;
+    if(Number.isFinite(count)) current.sample += count;
+    if(Number.isFinite(lift)) {
+      current.liftSum += lift;
+      current.liftCount += 1;
+    }
+    if(Number.isFinite(topHit)) {
+      current.topHitSum += topHit;
+      current.topHitCount += 1;
+    }
+    if(item?.label && current.labels.length < 2) current.labels.push(String(item.label));
+    groups.set(group.key, current);
+  });
+  const rows = Array.from(groups.values()).map((g) => ({
+    ...g,
+    avgLift: g.liftCount ? g.liftSum / g.liftCount : null,
+    avgTopHit: g.topHitCount ? g.topHitSum / g.topHitCount : null,
+  })).sort((a, b) => {
+    const liftDiff = (b.avgLift ?? -999999) - (a.avgLift ?? -999999);
+    if(liftDiff) return liftDiff;
+    return b.sample - a.sample;
+  }).slice(0, 6);
+  return `<div class="target-evidence-group-grid">${rows.map((g) => {
+    const liftClass = (g.avgLift ?? 0) >= 150 ? 'is-strong' : (g.avgLift ?? 0) >= 50 ? 'is-normal' : 'is-weak';
+    return `<div class="target-evidence-group ${liftClass}">
+      <span>${escapeHtml(g.label)}</span>
+      <strong>${g.avgLift !== null ? escapeHtml(formatTargetSigned枚(g.avgLift)) : '—'}</strong>
+      <small>${escapeHtml(g.hint)} / ${g.sample ? `${Math.round(g.sample)}件` : `${g.count}根拠`}${g.avgTopHit !== null ? ` / 上位${formatTargetPercent(g.avgTopHit)}` : ''}</small>
+      ${g.labels.length ? `<em>${escapeHtml(g.labels.join(' / '))}</em>` : ''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
 function renderTargetEvidenceChip(item, index = 0) {
   const validation = item?.validation || item || {};
   const lift = validation.lift ?? item?.validationLift ?? item?.lift;
@@ -2071,6 +2135,7 @@ function renderTargetJudgmentBoard({ val, isSpecial, dayInfo, wday, wdayAvg, wda
             <span>検証済み根拠</span>
             <b>予測で効いたものだけ</b>
           </div>
+          ${renderTargetEvidenceGroupSummary(validated)}
           ${validated.length
             ? `<div class="target-evidence-list">${validated.map(renderTargetEvidenceChip).join('')}</div>`
             : '<div class="target-empty-note">この店舗では検証を通った根拠がまだ少ないです。</div>'}
