@@ -9916,6 +9916,31 @@ function renderMorningVerifiedTargets(targets) {
   </div>`;
 }
 
+function getMorningEvidenceVerdictMeta(evidence) {
+  const raw = String(evidence?.verdict || evidence?.validationVerdict?.label || '').trim();
+  if(!raw) return { label: '検証済み', className: 'is-usable' };
+  if(raw.includes('弱') || raw.includes('待ち') || raw.includes('不足')) {
+    return { label: raw, className: 'is-caution' };
+  }
+  return { label: raw, className: 'is-usable' };
+}
+
+function renderMorningEvidenceLine(evidence, fallbackLabel = '検証根拠') {
+  const lift = Number(evidence?.lift);
+  const avg = Number(evidence?.avg);
+  const count = Number(evidence?.count);
+  const topHit = Number(evidence?.topHitRate);
+  const verdict = getMorningEvidenceVerdictMeta(evidence);
+  const liftText = Number.isFinite(lift) ? `予測${formatTargetSigned枚(lift)}` : '予測実績あり';
+  const avgText = Number.isFinite(avg) ? ` / 平均${formatTargetSigned枚(avg)}` : '';
+  const topHitText = Number.isFinite(topHit) ? ` / 上位${formatTargetPercent(topHit)}` : '';
+  const countText = Number.isFinite(count) ? ` / ${Math.round(count)}件` : '';
+  return `<li>
+    <strong>${escapeHtml(evidence?.label || fallbackLabel)} <em class="${verdict.className}">${escapeHtml(verdict.label)}</em></strong>
+    <span>${escapeHtml(liftText + avgText + topHitText + countText)}</span>
+  </li>`;
+}
+
 function getMorningModelCoverage(storeData, modelName) {
   if(!storeData || !modelName) return null;
   const fromRanking = (Array.isArray(storeData.model_ranking) ? storeData.model_ranking : [])
@@ -10099,27 +10124,13 @@ function renderMorningSummaryForCalendar() {
           const verifiedEvidenceHtml = verifiedEvidence.length
             ? `<div class="morning-candidate-layer morning-candidate-verified-evidence">
               <div class="morning-layer-label">検証根拠</div>
-              <ul class="morning-inline-list morning-verified-evidence-list">${verifiedEvidence.map((e) => {
-                const lift = Number(e?.lift);
-                const count = Number(e?.count);
-                const liftText = Number.isFinite(lift) ? `予測${formatTargetSigned枚(lift)}` : '予測実績あり';
-                const topHitText = Number.isFinite(Number(e?.topHitRate)) ? ` / 上位${formatTargetPercent(e.topHitRate)}` : '';
-                const countText = Number.isFinite(count) ? ` / ${Math.round(count)}件` : '';
-                return `<li><strong>${escapeHtml(e?.label || '検証根拠')}</strong><span>${escapeHtml(liftText + topHitText + countText)}</span></li>`;
-              }).join('')}</ul>
+              <ul class="morning-inline-list morning-verified-evidence-list">${verifiedEvidence.map((e) => renderMorningEvidenceLine(e, '検証根拠')).join('')}</ul>
             </div>`
             : '';
           const verifiedHallEvidenceHtml = verifiedHallEvidence.length
             ? `<div class="morning-candidate-layer morning-candidate-hall-evidence">
               <div class="morning-layer-label">ホール図根拠</div>
-              <ul class="morning-inline-list morning-verified-evidence-list">${verifiedHallEvidence.map((e) => {
-                const lift = Number(e?.lift);
-                const count = Number(e?.count);
-                const liftText = Number.isFinite(lift) ? `予測${formatTargetSigned枚(lift)}` : '予測実績あり';
-                const topHitText = Number.isFinite(Number(e?.topHitRate)) ? ` / 上位${formatTargetPercent(e.topHitRate)}` : '';
-                const countText = Number.isFinite(count) ? ` / ${Math.round(count)}件` : '';
-                return `<li><strong>${escapeHtml(e?.label || 'ホール図根拠')}</strong><span>${escapeHtml(liftText + topHitText + countText)}</span></li>`;
-              }).join('')}</ul>
+              <ul class="morning-inline-list morning-verified-evidence-list">${verifiedHallEvidence.map((e) => renderMorningEvidenceLine(e, 'ホール図根拠')).join('')}</ul>
             </div>`
             : '';
           const storeEvidenceBlocked = trustMeta.actionable === false && !isVerifiedTarget;
