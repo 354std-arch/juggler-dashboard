@@ -10499,6 +10499,13 @@ function wdSafeNum(v) {
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
+function wdSafeSignedNum(v) {
+  const text = String(v ?? '').trim();
+  if(!text) return null;
+  const n = Number(text.replace(/,/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+
 function wdLogBinomialLike(trials, success, p) {
   const n = Math.max(0, Math.floor(trials));
   const k = Math.max(0, Math.min(n, Math.floor(success)));
@@ -10581,7 +10588,7 @@ function formatWithdrawDiff(value) {
 }
 
 function buildSmartSlotWithdrawDecision(counts) {
-  const { games, investment, model } = counts;
+  const { games, investment, currentDiff, model } = counts;
   const context = G.currentTargetContext || {};
   const taiProfile = findWithdrawTaiProfile(model, context);
   const modelProfile = findWithdrawModelProfile(model, context);
@@ -10628,6 +10635,11 @@ function buildSmartSlotWithdrawDecision(counts) {
   }
   if(coverage) reasons.push(`データ厚み:${coverage}`);
   if(context.hallEvidence?.length) reasons.push('ホール位置根拠あり');
+  if(Number.isFinite(currentDiff)) {
+    reasons.push(`現在${formatWithdrawDiff(currentDiff)}`);
+    if(currentDiff >= 1000) pts += 1;
+    if(currentDiff <= -1500) pts -= 1;
+  }
 
   const suffix = `（${model} / ${reasons.slice(0, 4).join(' / ') || '過去根拠なし'}）`;
   if(games < 200) {
@@ -10635,6 +10647,9 @@ function buildSmartSlotWithdrawDecision(counts) {
   }
   if(investment >= 30000 && pts < 3) {
     return { tone: 'warn', message: `撤退寄り：投資が重く、過去根拠の重なりが弱いです ${suffix}` };
+  }
+  if(Number.isFinite(currentDiff) && currentDiff <= -2000 && pts < 4) {
+    return { tone: 'warn', message: `撤退寄り：現在差枚が深く、続行根拠が足りません ${suffix}` };
   }
   if(games >= 800 && pts <= 1) {
     return { tone: 'warn', message: `撤退寄り：続行を支える過去根拠が薄いです ${suffix}` };
@@ -10735,6 +10750,7 @@ function renderWithdrawJudgeContext() {
 
 function runWithdrawJudge() {
   const games = wdSafeNum(document.getElementById('withdrawGames')?.value);
+  const currentDiff = wdSafeSignedNum(document.getElementById('withdrawCurrentDiff')?.value);
   const big = wdSafeNum(document.getElementById('withdrawBig')?.value);
   const reg = wdSafeNum(document.getElementById('withdrawReg')?.value);
   const investment = wdSafeNum(document.getElementById('withdrawInvestment')?.value);
@@ -10743,7 +10759,7 @@ function runWithdrawJudge() {
   const model = getWithdrawModelName();
 
   const stats = calcWithdrawPosterior(games, big, reg, grape, cherry, model);
-  const decision = buildWithdrawDecision(stats, { games, big, reg, investment, grape, cherry, model });
+  const decision = buildWithdrawDecision(stats, { games, currentDiff, big, reg, investment, grape, cherry, model });
   setWithdrawBanner(decision.tone, decision.message);
 
   closeWithdrawPopup();

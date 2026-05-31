@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ジャグラー分析</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=morning-judge-1">
+<link rel="stylesheet" href="style.css?v=withdraw-diff-1">
 </head>
 <body>
 
@@ -800,6 +800,10 @@
         <input id="withdrawGames" type="number" min="0" step="1" inputmode="numeric" placeholder="例: 1800">
       </label>
       <label class="withdraw-judge-field">
+        <span>現在差枚</span>
+        <input id="withdrawCurrentDiff" type="number" step="100" inputmode="numeric" placeholder="例: -1200">
+      </label>
+      <label class="withdraw-judge-field">
         <span>BIG回数</span>
         <input id="withdrawBig" type="number" min="0" step="1" inputmode="numeric" placeholder="例: 6">
       </label>
@@ -829,6 +833,6 @@
   <button id="withdrawJudgeBannerClose" class="withdraw-judge-banner-close" type="button" aria-label="閉じる">✕</button>
 </div>
 
-<script src="app.js?v=morning-judge-1"></script>
+<script src="app.js?v=withdraw-diff-1"></script>
 </body>
 </html>
