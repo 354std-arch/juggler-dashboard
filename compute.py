@@ -897,6 +897,45 @@ def compute_day_stats(rows, special):
         })
     return result
 
+def classify_model_coverage_level(day_count, row_count):
+    if day_count >= 120 and row_count >= 300:
+        return {"label": "長期", "strength": "high"}
+    if day_count >= 45 and row_count >= 100:
+        return {"label": "中期", "strength": "medium"}
+    if day_count >= 15 and row_count >= 30:
+        return {"label": "短期", "strength": "low"}
+    return {"label": "薄い", "strength": "thin"}
+
+def build_model_coverage_meta(rows):
+    if not rows:
+        return {
+            "firstDate": None,
+            "lastDate": None,
+            "dayCount": 0,
+            "taiCount": 0,
+            "rowCount": 0,
+            "coverageLabel": "薄い",
+            "coverageStrength": "thin",
+        }
+    dates = sorted({r["date"].date() for r in rows if r.get("date")})
+    tais = {
+        int(r["taiNum"])
+        for r in rows
+        if isinstance(r.get("taiNum"), int) and r.get("taiNum") > 0
+    }
+    day_count = len(dates)
+    row_count = len(rows)
+    level = classify_model_coverage_level(day_count, row_count)
+    return {
+        "firstDate": dates[0].strftime("%Y-%m-%d") if dates else None,
+        "lastDate": dates[-1].strftime("%Y-%m-%d") if dates else None,
+        "dayCount": day_count,
+        "taiCount": len(tais),
+        "rowCount": row_count,
+        "coverageLabel": level["label"],
+        "coverageStrength": level["strength"],
+    }
+
 def compute_tai_detail(rows, special, context_weekday, context_is_special):
     current_segment_ids = get_current_install_segment_ids(rows)
     current_rows = [
@@ -1069,6 +1108,7 @@ def compute_model_stats(rows, special):
             m["zoro"].append(r)
     result = []
     for model, m in by_model.items():
+        coverage_meta = build_model_coverage_meta(m["all"])
         tg=weighted_sum(m["all"], "g"); tb=weighted_sum(m["all"], "bb"); tr=weighted_sum(m["all"], "rb")
         total_in=tg*3; total_out=total_in+weighted_sum(m["all"], "diff")
         all_diff_rows = metric_rows(m["all"], "diff")
@@ -1086,6 +1126,7 @@ def compute_model_stats(rows, special):
         zoro_avg = r1(weighted_avg_rows(m["zoro"], "diff")) if m["zoro"] else None
         result.append({
             "model":model,"allAvg":r1(weighted_avg_rows(m["all"], "diff")),"count":len(m["all"]),
+            **coverage_meta,
             "analysisMode": get_model_analysis_mode(model),
             "supportsSettingAnalysis": supports_setting_analysis(model),
             "modelCategory": "smart_slot" if model in SMART_SLOT_MODELS else "normal",
@@ -1227,6 +1268,9 @@ def compute_summary_model_stats(store, special, latest_data_date):
         all_metric = _summary_metric(bucket["all"])
         if not all_metric["count"] or all_metric["avgDiff"] is None:
             continue
+        dates = sorted({entry["date"] for entry in bucket["all"] if entry.get("date")})
+        row_proxy = int(round((all_metric["avgInstallCount"] or 1) * all_metric["count"]))
+        coverage_level = classify_model_coverage_level(all_metric["count"], row_proxy)
         sp_metric = _summary_metric(bucket["sp"])
         nm_metric = _summary_metric(bucket["nm"])
         this_metric = _summary_metric(bucket["this_month"])
@@ -1248,6 +1292,13 @@ def compute_summary_model_stats(store, special, latest_data_date):
             "allAvg": avg_diff,
             "count": all_metric["count"],
             "summaryDays": all_metric["count"],
+            "firstDate": dates[0].strftime("%Y-%m-%d") if dates else None,
+            "lastDate": dates[-1].strftime("%Y-%m-%d") if dates else None,
+            "dayCount": all_metric["count"],
+            "taiCount": int(round(all_metric["avgInstallCount"] or 0)),
+            "rowCount": row_proxy,
+            "coverageLabel": coverage_level["label"],
+            "coverageStrength": coverage_level["strength"],
             "summarySource": "store_model_summary",
             "analysisMode": get_model_analysis_mode(model),
             "supportsSettingAnalysis": supports_setting_analysis(model),

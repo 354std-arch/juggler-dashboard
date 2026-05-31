@@ -2598,6 +2598,30 @@ function formatModelTableCount(row) {
   return '—';
 }
 
+function formatModelCoverageMeta(row) {
+  const first = row?.firstDate || row?.first_date;
+  const last = row?.lastDate || row?.last_date;
+  const label = row?.coverageLabel || row?.coverage_label || '';
+  const strength = row?.coverageStrength || row?.coverage_strength || '';
+  const dayCount = Number(row?.dayCount ?? row?.day_count ?? row?.summaryDays);
+  const taiCount = Number(row?.taiCount ?? row?.tai_count);
+  const rowCount = Number(row?.rowCount ?? row?.row_count ?? row?.count);
+  const dateText = first && last ? `${String(first).slice(5)}〜${String(last).slice(5)}` : '';
+  const parts = [];
+  if(label) parts.push(label);
+  if(dateText) parts.push(dateText);
+  if(Number.isFinite(dayCount) && dayCount > 0) parts.push(`${Math.round(dayCount)}日`);
+  if(Number.isFinite(taiCount) && taiCount > 0) parts.push(`${Math.round(taiCount)}台`);
+  if(Number.isFinite(rowCount) && rowCount > 0) parts.push(`${Math.round(rowCount).toLocaleString()}件`);
+  const text = parts.length ? parts.join(' / ') : '—';
+  const className = strength === 'high' ? 'is-high'
+    : strength === 'medium' ? 'is-medium'
+    : strength === 'low' ? 'is-low'
+    : strength === 'thin' ? 'is-thin'
+    : '';
+  return `<span class="model-coverage-chip ${className}">${escapeHtml(text)}</span>`;
+}
+
 function getSeatLayoutStorageKey(store) {
   return String(store || '');
 }
@@ -9026,6 +9050,8 @@ function renderModelComp() {
       return {
         model:m.model, avg:a, count, mechRitu:m.mechRitu, lift,
         avgG:m.avgG, winRate:m.winRate, avgInstallCount:m.avgInstallCount, summaryDays:m.summaryDays,
+        firstDate:m.firstDate, lastDate:m.lastDate, dayCount:m.dayCount, taiCount:m.taiCount,
+        rowCount:m.rowCount, coverageLabel:m.coverageLabel, coverageStrength:m.coverageStrength,
       };
     }).filter(Boolean).sort((a,b)=>b.avg-a.avg);
     if(!data.length) {
@@ -9042,6 +9068,13 @@ function renderModelComp() {
           winRate: m.winRate,
           avgInstallCount: m.avgInstallCount,
           summaryDays: m.summaryDays,
+          firstDate: m.firstDate,
+          lastDate: m.lastDate,
+          dayCount: m.dayCount,
+          taiCount: m.taiCount,
+          rowCount: m.rowCount,
+          coverageLabel: m.coverageLabel,
+          coverageStrength: m.coverageStrength,
           lift: round1(fallbackAvg - allAvgDiff),
         };
       }).filter(Boolean).sort((a,b)=>b.avg-a.avg);
@@ -9061,6 +9094,7 @@ function renderModelComp() {
           <th>勝率</th>
           <th>推定出率</th>
           <th>件数/設置</th>
+          <th>データ期間</th>
           <th>ベース比</th>
         </tr></thead>
         <tbody>${data.map(m=>`<tr>
@@ -9070,6 +9104,7 @@ function renderModelComp() {
           <td style="color:${Number(m.winRate)>=50?'var(--plus)':'var(--muted)'};font-family:'Share Tech Mono',monospace">${formatModelTableRate(m.winRate)}</td>
           <td style="color:${m.mechRitu===null?'var(--muted)':m.mechRitu>=100?'var(--plus)':'var(--minus)'};font-family:'Share Tech Mono',monospace">${fmtR(m.mechRitu)}</td>
           <td style="color:var(--muted);font-size:11px">${formatModelTableCount(m)}</td>
+          <td style="font-size:10px">${formatModelCoverageMeta(m)}</td>
           <td style="color:${col(m.lift)};font-size:11px">${fmt(m.lift)}</td>
         </tr>`).join('')}
         </tbody>
@@ -9126,6 +9161,7 @@ function renderModelComp() {
         <th>勝率</th>
         <th>推定出率</th>
         <th>件数/設置</th>
+        <th>データ期間</th>
         <th>ベース比</th>
       </tr></thead>
       <tbody>${data.map(m=>`<tr>
@@ -9135,6 +9171,7 @@ function renderModelComp() {
         <td style="color:${Number(m.winRate)>=50?'var(--plus)':'var(--muted)'};font-family:'Share Tech Mono',monospace">${formatModelTableRate(m.winRate)}</td>
         <td style="color:${m.mechRitu===null?'var(--muted)':m.mechRitu>=100?'var(--plus)':'var(--minus)'};font-family:'Share Tech Mono',monospace">${fmtR(m.mechRitu)}</td>
         <td style="color:var(--muted);font-size:11px">${formatModelTableCount(m)}</td>
+        <td style="font-size:10px">${formatModelCoverageMeta(m)}</td>
         <td style="color:${col(m.lift)};font-size:11px">${fmt(m.lift)}</td>
       </tr>`).join('')}
       </tbody>
