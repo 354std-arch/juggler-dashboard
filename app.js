@@ -8057,7 +8057,7 @@ function renderLayer3(model) {
           <div style="text-align:right">
             <div style="font-size:14px;font-weight:900;color:${rc}">${ri} ${t.rank}</div>
             <div style="font-size:10px;color:var(--muted)">スコア ${t.totalScore}pt</div>
-            ${supportsSelectedModelSetting ? `<button class="btn" onclick="selectLayer3CandidatePrecomputed(${idx},'${model}')" style="margin-top:6px;padding:4px 8px;font-size:10px">この台で設定推測</button>` : '<div style="font-size:10px;color:var(--muted);margin-top:6px">差枚/G数で確認</div>'}
+            <button class="btn" onclick="selectLayer3CandidatePrecomputed(${idx},'${model}')" style="margin-top:6px;padding:4px 8px;font-size:10px">${supportsSelectedModelSetting ? 'この台で設定推測' : 'この台で実戦判定'}</button>
           </div>
         </div>
         ${renderTargetCandidateEvidenceDetails(t)}
@@ -8176,7 +8176,7 @@ function renderLayer3(model) {
         <div style="text-align:right">
           <div style="font-size:14px;font-weight:900;color:${rc}">${ri} ${t.rank}</div>
           <div style="font-size:10px;color:var(--muted)">数値${t.valueScore}pt + 配分${t.configScore}pt = 計${t.totalScore}pt</div>
-          ${isSettingAnalysisModel(t.model) ? `<button class="btn" onclick="selectLayer3Candidate(${idx})" style="margin-top:6px;padding:4px 8px;font-size:10px">この台で設定推測</button>` : '<div style="font-size:10px;color:var(--muted);margin-top:6px">差枚/G数で確認</div>'}
+          <button class="btn" onclick="selectLayer3Candidate(${idx})" style="margin-top:6px;padding:4px 8px;font-size:10px">${isSettingAnalysisModel(t.model) ? 'この台で設定推測' : 'この台で実戦判定'}</button>
         </div>
       </div>
 
@@ -8248,11 +8248,6 @@ function renderLayer3(model) {
 }
 
 function selectLayer3CandidatePrecomputed(idx, model) {
-  if(!isSettingAnalysisModel(model)) {
-    if(typeof showToast === 'function') showToast('この機種は差枚/G数評価のみです');
-    else alert('この機種は差枚/G数評価のみです');
-    return;
-  }
   const analysis = getCurrentStoreTodayAnalysis();
   if(!analysis) return;
   const targets = (analysis.topTargets || []).filter(t => t.model === model);
@@ -8269,19 +8264,20 @@ function selectLayer3CandidatePrecomputed(idx, model) {
     totalScore: t.totalScore,
     configScore: 0,
     valueScore: t.totalScore,
+    hallEvidence: t.hallEvidence || [],
   };
-  document.getElementById('stModel').value = t.model;
-  showTab('tab-setsuteii', document.querySelector('[onclick*="tab-setsuteii"]'));
+  if(isSettingAnalysisModel(t.model)) {
+    document.getElementById('stModel').value = t.model;
+    showTab('tab-setsuteii', document.querySelector('[onclick*="tab-setsuteii"]'));
+  } else {
+    renderWithdrawJudgeContext();
+    document.getElementById('withdrawJudgeOverlay')?.classList.add('open');
+  }
 }
 
 function selectLayer3Candidate(idx) {
   const t = G.layer3Scored && G.layer3Scored[idx];
   if(!t) return;
-  if(!isSettingAnalysisModel(t.model)) {
-    if(typeof showToast === 'function') showToast('この機種は差枚/G数評価のみです');
-    else alert('この機種は差枚/G数評価のみです');
-    return;
-  }
   const meta = G.layer3SelectionMeta || {};
   const rbSource = t.valueDetail?.rbMeta?.source || null;
   const synSource = t.valueDetail?.synMeta?.source || null;
@@ -8321,14 +8317,17 @@ function selectLayer3Candidate(idx) {
   };
 
   const stModelEl = document.getElementById('stModel');
-  if(stModelEl && G.currentTargetContext.model) {
+  if(isSettingAnalysisModel(t.model) && stModelEl && G.currentTargetContext.model) {
     stModelEl.value = G.currentTargetContext.model;
     stSave();
     renderModelHint(stModelEl.value);
+    renderCurrentTargetContextComparison();
+    showTab('tab-setsuteii');
+    document.getElementById('detailMenuBtn')?.classList.add('active');
+  } else {
+    renderWithdrawJudgeContext();
+    document.getElementById('withdrawJudgeOverlay')?.classList.add('open');
   }
-  renderCurrentTargetContextComparison();
-  showTab('tab-setsuteii');
-  document.getElementById('detailMenuBtn')?.classList.add('active');
 }
 
 
@@ -10460,14 +10459,19 @@ const WITHDRAW_SETTINGS = [
 
 function getWithdrawModelName() {
   const contextModel = normalizeModelName(G.currentTargetContext?.model || '');
-  if(MODEL_SETTINGS[contextModel]) return contextModel;
+  if(contextModel) return contextModel;
   const selectedModel = normalizeModelName(document.getElementById('stModel')?.value || '');
-  if(MODEL_SETTINGS[selectedModel]) return selectedModel;
+  if(selectedModel) return selectedModel;
   return 'マイジャグラーV';
+}
+
+function isWithdrawSettingModel(model) {
+  return isSettingAnalysisModel(model) && !!MODEL_SETTINGS[normalizeModelName(model || '')];
 }
 
 function getWithdrawSettingsForModel(model) {
   const normalized = normalizeModelName(model || '');
+  if(!isWithdrawSettingModel(normalized)) return null;
   const ms = MODEL_SETTINGS[normalized] || MODEL_SETTINGS['マイジャグラーV'];
   const yak = MODEL_YAKUS[normalized] || MODEL_YAKUS['マイジャグラーV'] || {};
   return [1, 2, 3, 4, 5, 6].map((setting, idx) => ({
@@ -10494,6 +10498,7 @@ function calcWithdrawPosterior(games, big, reg, grape, cherry, model) {
   if(games <= 0) return null;
 
   const settings = getWithdrawSettingsForModel(model);
+  if(!settings) return null;
   let logs = settings.map((s, i) => {
     let logL = Math.log(WITHDRAW_PRIOR[i]);
     logL += wdLogBinomialLike(games, big, s.bb);
@@ -10514,6 +10519,99 @@ function calcWithdrawPosterior(games, big, reg, grape, cherry, model) {
   return { probs, p4OrMore, p5OrMore, expSet };
 }
 
+function findWithdrawTaiProfile(model, context = G.currentTargetContext) {
+  const normalizedModel = normalizeModelName(model || context?.model || '');
+  const tai = String(context?.tai || '');
+  const store = context?.store || currentStore;
+  const rows = Array.isArray(G.taiDetail) ? G.taiDetail : [];
+  return rows.find(row => (
+    normalizeModelName(row?.model || '') === normalizedModel
+    && String(row?.tai || row?.taiNum || '') === tai
+    && (!store || store === 'all' || !row?.store || row.store === store)
+  )) || null;
+}
+
+function findWithdrawModelProfile(model, context = G.currentTargetContext) {
+  const normalizedModel = normalizeModelName(model || context?.model || '');
+  const storeData = getCurrentStorePrecomputedData();
+  const stats = Array.isArray(storeData?.modelStats) ? storeData.modelStats : G.modelStats;
+  return (stats || []).find(row => normalizeModelName(row?.model || '') === normalizedModel) || null;
+}
+
+function formatWithdrawDiff(value) {
+  const n = Number(value);
+  if(!Number.isFinite(n)) return '—';
+  return `${n >= 0 ? '+' : ''}${Math.round(n).toLocaleString()}枚`;
+}
+
+function buildSmartSlotWithdrawDecision(counts) {
+  const { games, investment, model } = counts;
+  const context = G.currentTargetContext || {};
+  const taiProfile = findWithdrawTaiProfile(model, context);
+  const modelProfile = findWithdrawModelProfile(model, context);
+  const totalScore = Number(context.totalScore);
+  const avg = Number(taiProfile?.avg);
+  const spAvg = Number(taiProfile?.spAvg);
+  const nmAvg = Number(taiProfile?.nmAvg);
+  const modelAvg = Number(modelProfile?.allAvg);
+  const modelAvgG = Number(modelProfile?.avgG);
+  const winRate = Number(modelProfile?.winRate);
+  const coverage = modelProfile?.coverageLabel || modelProfile?.coverage_label || '';
+  const reasons = [];
+  let pts = 0;
+
+  if(Number.isFinite(totalScore) && totalScore >= 260) {
+    pts += 2;
+    reasons.push(`検証候補スコア${Math.round(totalScore)}pt`);
+  } else if(Number.isFinite(totalScore) && totalScore >= 180) {
+    pts += 1;
+    reasons.push(`検証候補スコア${Math.round(totalScore)}pt`);
+  }
+  if(Number.isFinite(avg) && avg >= 300) {
+    pts += 1;
+    reasons.push(`台の現行期間平均${formatWithdrawDiff(avg)}`);
+  }
+  if(Number.isFinite(spAvg) && spAvg >= 300) {
+    pts += 1;
+    reasons.push(`特定日平均${formatWithdrawDiff(spAvg)}`);
+  } else if(Number.isFinite(nmAvg) && nmAvg >= 300) {
+    pts += 1;
+    reasons.push(`通常日平均${formatWithdrawDiff(nmAvg)}`);
+  }
+  if(Number.isFinite(modelAvg) && modelAvg >= 150) {
+    pts += 1;
+    reasons.push(`機種平均${formatWithdrawDiff(modelAvg)}`);
+  }
+  if(Number.isFinite(modelAvgG) && modelAvgG >= 3000) {
+    pts += 1;
+    reasons.push(`平均G ${Math.round(modelAvgG).toLocaleString()}G`);
+  }
+  if(Number.isFinite(winRate) && winRate >= 45) {
+    pts += 1;
+    reasons.push(`機種勝率${round1(winRate)}%`);
+  }
+  if(coverage) reasons.push(`データ厚み:${coverage}`);
+  if(context.hallEvidence?.length) reasons.push('ホール位置根拠あり');
+
+  const suffix = `（${model} / ${reasons.slice(0, 4).join(' / ') || '過去根拠なし'}）`;
+  if(games < 200) {
+    return { tone: 'neutral', message: `判定保留：スマスロは序盤だけで決めません ${suffix}` };
+  }
+  if(investment >= 30000 && pts < 3) {
+    return { tone: 'warn', message: `撤退寄り：投資が重く、過去根拠の重なりが弱いです ${suffix}` };
+  }
+  if(games >= 800 && pts <= 1) {
+    return { tone: 'warn', message: `撤退寄り：続行を支える過去根拠が薄いです ${suffix}` };
+  }
+  if(pts >= 5) {
+    return { tone: 'ok', message: `続行の補強材料あり：過去根拠が複数重なっています ${suffix}` };
+  }
+  if(pts >= 3) {
+    return { tone: 'neutral', message: `様子見：根拠はあります。現場挙動と投資で再確認 ${suffix}` };
+  }
+  return { tone: 'neutral', message: `弱め：スマスロは設定推測せず、根拠追加待ち ${suffix}` };
+}
+
 function getWithdrawReliability(games, big, reg, grape, cherry) {
   const bonus = big + reg;
   const notes = [];
@@ -10526,6 +10624,9 @@ function getWithdrawReliability(games, big, reg, grape, cherry) {
 }
 
 function buildWithdrawDecision(stats, counts) {
+  if(!isWithdrawSettingModel(counts.model)) {
+    return buildSmartSlotWithdrawDecision(counts);
+  }
   if(!stats) {
     return { tone: 'neutral', message: 'G数を入れると判定できます' };
   }
@@ -10582,11 +10683,18 @@ function renderWithdrawJudgeContext() {
   const el = document.getElementById('withdrawJudgeContext');
   if(!el) return;
   const model = getWithdrawModelName();
+  const settingMode = isWithdrawSettingModel(model);
   const context = G.currentTargetContext;
   const contextText = context?.tai
     ? `${context.store || '店舗不明'} / ${context.tai}番台`
     : '設定推測タブの選択機種を使用';
-  el.textContent = `判定機種: ${model} / ${contextText}`;
+  el.textContent = settingMode
+    ? `判定機種: ${model} / ${contextText} / Aタイプは設定推測で判定`
+    : `判定機種: ${model} / ${contextText} / スマスロは差枚・G数・過去根拠で判定`;
+  ['withdrawBig', 'withdrawReg', 'withdrawGrape', 'withdrawCherry'].forEach((id) => {
+    const field = document.getElementById(id)?.closest('.withdraw-judge-field');
+    if(field) field.style.display = settingMode ? '' : 'none';
+  });
 }
 
 function runWithdrawJudge() {
