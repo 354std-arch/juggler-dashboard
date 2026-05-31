@@ -942,6 +942,12 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
         r for r in rows
         if not current_segment_ids or r.get("installSegment") in current_segment_ids
     ]
+    model_coverage_by_name = {}
+    rows_by_model_for_coverage = defaultdict(list)
+    for r in current_rows:
+        rows_by_model_for_coverage[r["model"]].append(r)
+    for model, model_rows in rows_by_model_for_coverage.items():
+        model_coverage_by_name[model] = build_model_coverage_meta(model_rows)
     by_tai = defaultdict(lambda: {
         "tai":None,"taiNum":0,"model":None,"store":None,
         "installSegment":None,"installStartedAt":None,"installLastSeenAt":None,
@@ -1041,6 +1047,7 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
             "analysisMode": get_model_analysis_mode(t["model"]),
             "supportsSettingAnalysis": supports_setting_analysis(t["model"]),
             "modelCategory": "smart_slot" if t["model"] in SMART_SLOT_MODELS else "normal",
+            "modelCoverage": model_coverage_by_name.get(t["model"], build_model_coverage_meta([])),
             "avg":r1(weighted_avg_rows(t["all"], "diff")),"count":n,
             "weightedCount": r1(wn),
             "plus":len([v for v in t["all"] if has_trustworthy_diff(v) and v["diff"]>0]),
@@ -2100,6 +2107,26 @@ def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top
         raw_prev_date = parse_ymd_date(raw_prev_row.get("dateStr")) if raw_prev_row else None
         prev_row = raw_prev_row if expected_prev_date and raw_prev_date == expected_prev_date else None
         target_cautions = []
+        model_coverage = t.get("modelCoverage") if isinstance(t.get("modelCoverage"), dict) else {}
+        coverage_strength = model_coverage.get("coverageStrength") or model_coverage.get("coverage_strength") or ""
+        coverage_label = model_coverage.get("coverageLabel") or model_coverage.get("coverage_label") or ""
+        coverage_days = model_coverage.get("dayCount") or model_coverage.get("day_count") or 0
+        coverage_rows = model_coverage.get("rowCount") or model_coverage.get("row_count") or 0
+        if coverage_strength == "thin":
+            target_cautions.append({
+                "label": "機種データ薄い",
+                "message": f"{coverage_label or '薄い'}: {coverage_days}日/{coverage_rows}件のため候補から除外します。",
+            })
+            continue
+        coverage_score_factor = 1.0
+        rank_cap = None
+        if coverage_strength == "low":
+            coverage_score_factor = 0.85
+            rank_cap = "対抗"
+            target_cautions.append({
+                "label": "機種データ短期",
+                "message": f"{coverage_label or '短期'}: {coverage_days}日/{coverage_rows}件。短期傾向としてスコアを抑制しています。",
+            })
         if expected_prev_date and raw_prev_row and raw_prev_date != expected_prev_date:
             target_cautions.append({
                 "label": "前日条件なし",
@@ -2150,7 +2177,7 @@ def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top
             continue
         if cfg.get("require_non_tai_evidence") and not any(item.get("type") != "tai_install" for item in matched):
             continue
-        score = sum(score_evidence_item(item, cfg) for item in matched)
+        score = sum(score_evidence_item(item, cfg) for item in matched) * coverage_score_factor
         if score < cfg.get("min_candidate_score", 0):
             continue
         matched.sort(key=lambda item: (
@@ -2168,6 +2195,8 @@ def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top
                 "pts": pts,
             })
         rank = "本命" if score >= 260 else "対抗" if score >= 180 else "保留"
+        if rank_cap == "対抗" and rank == "本命":
+            rank = "対抗"
         hall_evidence = [
             item for item in matched
             if str(item.get("type", "")).startswith("hall_")
@@ -2181,6 +2210,7 @@ def build_validated_today_targets(tai_detail, target_day, evidence_backtest, top
             "evidence": matched[:3],
             "hallEvidence": hall_evidence,
             "cautions": target_cautions,
+            "modelCoverage": model_coverage,
             "scoreSource": "validated_evidence",
         })
     targets.sort(key=lambda item: (-item["totalScore"], item.get("taiNum") or 0))
