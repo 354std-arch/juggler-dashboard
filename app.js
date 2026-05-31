@@ -9990,6 +9990,7 @@ function renderMorningBacktestDigest(storeData) {
 function renderMorningSummaryForCalendar() {
   const wrap = document.getElementById('calMorningSummaryWrap');
   if(!wrap) return;
+  G.morningCandidateActions = [];
 
   const stores = getMorningStoreNames();
   if(!G.morningData || !G.morningData.stores || !stores.length) {
@@ -10138,11 +10139,22 @@ function renderMorningSummaryForCalendar() {
           const uniqueWarnings = Array.from(new Set(warnings)).slice(0, 3);
           if(!uniqueWarnings.length) uniqueWarnings.push('特記事項なし');
           const verifiedHtml = isVerifiedTarget ? `<span class="morning-verified-chip">${escapeHtml(verifiedRank)}${escapeHtml(verifiedScoreText)}</span>` : '';
+          const actionId = G.morningCandidateActions.push({
+            store,
+            candidate: c,
+            targetDate: freshness.targetYmd,
+            dayType,
+            todayLabel,
+            verifiedHallEvidence,
+          }) - 1;
 
           return `<div class="morning-candidate-card ${actionClass}">
             <div class="morning-candidate-head">
               <div class="morning-candidate-name">${idx + 1}. ${escapeHtml(String(c?.tai ?? '-'))}番台 / ${escapeHtml(modelName)}</div>
               <div class="morning-candidate-score"><span class="morning-action-chip ${actionClass}">${escapeHtml(actionLabel)}</span>${verifiedHtml}${formatMorningScorePercent(c?.score)}</div>
+            </div>
+            <div class="morning-candidate-actions">
+              <button class="btn" type="button" onclick="selectMorningCandidateForJudgment(${actionId})">この台で実戦判定</button>
             </div>
             ${verifiedEvidenceHtml}
             ${verifiedHallEvidenceHtml}
@@ -10523,7 +10535,8 @@ function findWithdrawTaiProfile(model, context = G.currentTargetContext) {
   const normalizedModel = normalizeModelName(model || context?.model || '');
   const tai = String(context?.tai || '');
   const store = context?.store || currentStore;
-  const rows = Array.isArray(G.taiDetail) ? G.taiDetail : [];
+  const storeRows = G._precomputed?.byStore?.[store]?.taiDetail;
+  const rows = Array.isArray(storeRows) ? storeRows : (Array.isArray(G.taiDetail) ? G.taiDetail : []);
   return rows.find(row => (
     normalizeModelName(row?.model || '') === normalizedModel
     && String(row?.tai || row?.taiNum || '') === tai
@@ -10533,9 +10546,32 @@ function findWithdrawTaiProfile(model, context = G.currentTargetContext) {
 
 function findWithdrawModelProfile(model, context = G.currentTargetContext) {
   const normalizedModel = normalizeModelName(model || context?.model || '');
-  const storeData = getCurrentStorePrecomputedData();
+  const store = context?.store || currentStore;
+  const storeData = G._precomputed?.byStore?.[store] || getCurrentStorePrecomputedData();
   const stats = Array.isArray(storeData?.modelStats) ? storeData.modelStats : G.modelStats;
   return (stats || []).find(row => normalizeModelName(row?.model || '') === normalizedModel) || null;
+}
+
+function selectMorningCandidateForJudgment(actionId) {
+  const action = Array.isArray(G.morningCandidateActions) ? G.morningCandidateActions[actionId] : null;
+  const c = action?.candidate;
+  if(!c) return;
+  const model = normalizeModelName(c.model || '');
+  G.currentTargetContext = {
+    store: action.store || c.store || currentStore,
+    model,
+    tai: c.tai || c.taiNum,
+    targetDate: action.targetDate || '',
+    isSpecial: String(action.dayType || '').includes('特定日'),
+    rank: c.action_label || c.action || '',
+    totalScore: c.verified_score ?? c.score ?? null,
+    configScore: 0,
+    valueScore: c.score ?? null,
+    hallEvidence: action.verifiedHallEvidence || c.verified_hall_evidence || [],
+    morningCandidate: true,
+  };
+  renderWithdrawJudgeContext();
+  document.getElementById('withdrawJudgeOverlay')?.classList.add('open');
 }
 
 function formatWithdrawDiff(value) {
