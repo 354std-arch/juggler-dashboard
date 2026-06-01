@@ -31,13 +31,26 @@ abort_if_conflicts() {
   fi
 }
 
+git_pull_latest() {
+  local label="$1"
+  local attempt
+  for attempt in 1 2 3; do
+    if git pull --rebase --autostash >> "$LOG_FILE" 2>&1; then
+      return 0
+    fi
+    echo "$label git pull --rebase --autostash failed (attempt $attempt/3)." >> "$LOG_FILE"
+    abort_if_conflicts
+    sleep $((attempt * 10))
+  done
+  return 1
+}
+
 abort_if_conflicts
 
 # Pull latest changes first
-if ! git pull --rebase >> "$LOG_FILE" 2>&1; then
-  echo "git pull --rebase failed; aborting daily run." >> "$LOG_FILE"
+if ! git_pull_latest "startup"; then
+  echo "startup git pull failed after retries; continuing data refresh with current worktree." >> "$LOG_FILE"
   abort_if_conflicts
-  exit 1
 fi
 
 abort_if_conflicts
@@ -71,6 +84,14 @@ git add data.json morning_data.json candidate_data.json raw_data.csv store_list.
 git add seat_data_*.json 2>/dev/null || true
 
 git diff --cached --quiet || git commit -m "auto: update data.json $(date +'%Y-%m-%d')"
-git push >> "$LOG_FILE" 2>&1
+if ! git push >> "$LOG_FILE" 2>&1; then
+  echo "git push failed; pulling latest and retrying once." >> "$LOG_FILE"
+  if git_pull_latest "pre-push"; then
+    git push >> "$LOG_FILE" 2>&1
+  else
+    echo "pre-push pull failed; leaving local data commit for manual push." >> "$LOG_FILE"
+    exit 1
+  fi
+fi
 
 echo "=== $(date '+%Y-%m-%d %H:%M:%S JST') DONE ===" >> "$LOG_FILE"
