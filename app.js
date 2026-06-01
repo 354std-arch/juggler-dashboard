@@ -10139,6 +10139,69 @@ function renderMorningBacktestDigest(storeData) {
   </div>`;
 }
 
+function classifyMorningStorePriority({ trustMeta, todayLabel, candidates, backtest }) {
+  const actionable = trustMeta?.actionable !== false;
+  const summary = backtest?.summary || {};
+  const decision = summary.decision || {};
+  const verifiedCount = candidates.filter((c) => c?.verified_target === true).length;
+  const mainCount = candidates.filter((c) => String(c?.action || '') === 'main').length;
+  const candidateCount = candidates.filter((c) => ['main', 'candidate'].includes(String(c?.action || ''))).length;
+  const pickAvg = Number(summary.pickAvg);
+  const lift = Number(summary.lift);
+  const topHit = Number(summary.topHitRate);
+  let score = 0;
+  if(actionable) score += 2;
+  if(decision.actionable) score += 2;
+  if(todayLabel.includes('強')) score += 1;
+  if(verifiedCount) score += Math.min(2, verifiedCount / 4);
+  if(mainCount) score += 1;
+  if(candidateCount >= 5) score += 0.5;
+  if(Number.isFinite(pickAvg) && pickAvg >= 100) score += 1;
+  if(Number.isFinite(lift) && lift >= 80) score += 1;
+  if(Number.isFinite(topHit) && topHit >= 23) score += 0.5;
+  if(!actionable) score -= 2;
+
+  if(score >= 5) return { label: '優先', className: 'is-main', score };
+  if(score >= 3) return { label: '候補', className: 'is-candidate', score };
+  if(score >= 1) return { label: '観察', className: 'is-watch', score };
+  return { label: '見送り寄り', className: 'is-skip', score };
+}
+
+function buildMorningStorePriorityBoard(storeSummaries) {
+  const list = storeSummaries
+    .slice()
+    .sort((a, b) => {
+      const diff = b.priority.score - a.priority.score;
+      if(diff) return diff;
+      return String(a.store).localeCompare(String(b.store), 'ja');
+    });
+  if(!list.length) return '';
+  const rows = list.map((item, idx) => {
+    const top = item.topCandidate || {};
+    const topText = top.tai ? `${top.tai}番 ${top.model || '機種不明'}` : '候補台なし';
+    const backtestText = item.backtestText || '検証データなし';
+    return `<div class="morning-priority-card ${item.priority.className}">
+      <div class="morning-priority-rank">${idx + 1}</div>
+      <div class="morning-priority-main">
+        <div class="morning-priority-head">
+          <strong>${escapeHtml(item.store)}</strong>
+          <span>${escapeHtml(item.priority.label)}</span>
+        </div>
+        <div class="morning-priority-sub">${escapeHtml(item.trustLabel)} / ${escapeHtml(item.dayType)} / ${escapeHtml(item.todayLabel)}</div>
+        <div class="morning-priority-top">${escapeHtml(topText)}</div>
+        <div class="morning-priority-meta">${escapeHtml(backtestText)} / 検証候補${item.verifiedCount}台</div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="morning-priority-board">
+    <div class="morning-priority-title">
+      <strong>今日見る店</strong>
+      <span>過去検証・店条件・候補台の重なりで並べ替え</span>
+    </div>
+    <div class="morning-priority-grid">${rows}</div>
+  </div>`;
+}
+
 function renderMorningSummaryForCalendar() {
   const wrap = document.getElementById('calMorningSummaryWrap');
   if(!wrap) return;
@@ -10155,6 +10218,7 @@ function renderMorningSummaryForCalendar() {
   const freshnessAlertHtml = freshness.alertText
     ? `<div class="recommendation-alert">${escapeHtml(freshness.alertText)}</div>`
     : '';
+  const storeSummaries = [];
   const cards = stores.map((store) => {
     const data = getMorningStoreData(store) || {};
     const storePrecomputed = G._precomputed?.byStore?.[store] || null;
@@ -10222,6 +10286,32 @@ function renderMorningSummaryForCalendar() {
         if(actionDiff) return actionDiff;
         return toMorningScoreUnit(b?.score) - toMorningScoreUnit(a?.score);
       });
+    const verifiedCount = candidates.filter((c) => verifiedTargetTais.has(Number(c?.tai)) || c?.verified_target === true).length;
+    const backtestSummary = storePrecomputed?.evidenceBacktest?.summary || {};
+    const backtestDecision = backtestSummary.decision || {};
+    const lift = Number(backtestSummary.lift);
+    const topHit = Number(backtestSummary.topHitRate);
+    const backtestText = [
+      backtestDecision.label || trustMeta.label,
+      Number.isFinite(lift) ? `平均との差${formatTargetSigned枚(lift)}` : '',
+      Number.isFinite(topHit) ? `上位${round1(topHit)}%` : '',
+    ].filter(Boolean).join(' / ');
+    const priority = classifyMorningStorePriority({
+      trustMeta,
+      todayLabel,
+      candidates,
+      backtest: storePrecomputed?.evidenceBacktest || {},
+    });
+    storeSummaries.push({
+      store,
+      dayType,
+      todayLabel,
+      trustLabel: trustMeta.label,
+      priority,
+      verifiedCount,
+      topCandidate: candidates[0] || null,
+      backtestText,
+    });
 
     const candidateHtml = candidates.length
       ? candidates.slice(0, 8).map((c, idx) => {
@@ -10362,6 +10452,7 @@ function renderMorningSummaryForCalendar() {
       <span>更新: ${generatedAt} / ${escapeHtml(freshness.subText)} / 表示店舗: ${stores.length}件</span>
     </div>
     ${freshnessAlertHtml}
+    ${buildMorningStorePriorityBoard(storeSummaries)}
     ${cards}`;
 }
 
