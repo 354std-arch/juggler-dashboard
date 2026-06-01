@@ -10084,6 +10084,18 @@ function formatMorningCoverageText(coverage) {
   ].filter(Boolean).join(' / ');
 }
 
+function formatSmartTreatmentText(treatment, label) {
+  if(!treatment || typeof treatment !== 'object') return '';
+  const avg = Number(treatment.avg);
+  if(!Number.isFinite(avg)) return '';
+  const count = Number(treatment.count);
+  const sampleLabel = treatment.label || treatment.sampleLabel || '';
+  const sampleNote = sampleLabel && (sampleLabel === '薄い' || sampleLabel === '参考')
+    ? ` / ${sampleLabel}`
+    : (sampleLabel ? ` / 厚み:${sampleLabel}` : '');
+  return `${label} 平均${formatTargetSigned枚(avg)} / 勝率${formatTargetPercent(treatment.plusRate)} / ${Number.isFinite(count) ? Math.round(count) : 0}件${sampleNote}`;
+}
+
 function renderMorningBacktestDigest(storeData) {
   const backtest = storeData?.evidenceBacktest;
   if(!backtest || typeof backtest !== 'object') return '';
@@ -10220,8 +10232,8 @@ function renderMorningSummaryForCalendar() {
           const smartTreatment = c?.smart_treatment || c?.smartTreatment || null;
           const smartTreatmentText = smartTreatment
             ? [
-                smartTreatment.model && Number.isFinite(Number(smartTreatment.model.avg)) ? `直近機種扱い 平均${formatTargetSigned枚(smartTreatment.model.avg)} / 勝率${formatTargetPercent(smartTreatment.model.plusRate)} / ${smartTreatment.model.count || 0}件` : '',
-                smartTreatment.band && Number.isFinite(Number(smartTreatment.band.avg)) ? `番号帯扱い 平均${formatTargetSigned枚(smartTreatment.band.avg)} / 勝率${formatTargetPercent(smartTreatment.band.plusRate)} / ${smartTreatment.band.count || 0}件` : '',
+                formatSmartTreatmentText(smartTreatment.model, '直近機種扱い'),
+                formatSmartTreatmentText(smartTreatment.band, '番号帯扱い'),
               ].filter(Boolean).join(' / ')
             : '';
           const modelCondition = matchModel
@@ -10771,13 +10783,13 @@ function buildSmartSlotWithdrawDecision(counts) {
   }
   const modelTreatment = smartTreatment?.model;
   const bandTreatment = smartTreatment?.band;
-  if(modelTreatment && Number(modelTreatment.avg) >= 200 && Number(modelTreatment.count) >= 3) {
+  if(modelTreatment && modelTreatment.usable !== false && Number(modelTreatment.avg) >= 200 && Number(modelTreatment.count) >= 20) {
     pts += 1;
-    reasons.push(`直近機種扱い${formatWithdrawDiff(modelTreatment.avg)}`);
+    reasons.push(`直近機種扱い${formatWithdrawDiff(modelTreatment.avg)}・${Math.round(Number(modelTreatment.count))}件`);
   }
-  if(bandTreatment && Number(bandTreatment.avg) >= 200 && Number(bandTreatment.count) >= 3) {
+  if(bandTreatment && bandTreatment.usable !== false && Number(bandTreatment.avg) >= 200 && Number(bandTreatment.count) >= 10) {
     pts += 1;
-    reasons.push(`番号帯扱い${formatWithdrawDiff(bandTreatment.avg)}`);
+    reasons.push(`番号帯扱い${formatWithdrawDiff(bandTreatment.avg)}・${Math.round(Number(bandTreatment.count))}件`);
   }
   if(coverage) reasons.push(`データ厚み:${coverage}`);
   if(context.hallEvidence?.length) reasons.push('ホール位置根拠あり');

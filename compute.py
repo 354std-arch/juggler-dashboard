@@ -943,6 +943,21 @@ def get_tai_band_label(tai_num):
         return "番号帯不明"
     return f"{(tai // 10) * 10}番台"
 
+def classify_smart_treatment_sample(count, scope):
+    if scope == "model":
+        if count >= 40:
+            return {"label": "厚い", "strength": "high", "usable": True}
+        if count >= 20:
+            return {"label": "中", "strength": "medium", "usable": True}
+    else:
+        if count >= 20:
+            return {"label": "厚い", "strength": "high", "usable": True}
+        if count >= 10:
+            return {"label": "中", "strength": "medium", "usable": True}
+    if count >= 5:
+        return {"label": "参考", "strength": "low", "usable": False}
+    return {"label": "薄い", "strength": "thin", "usable": False}
+
 def summarize_diff_treatment(rows, label):
     valid = diff_valid_rows(rows)
     if not valid:
@@ -1007,11 +1022,17 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
         smart_recent_by_model[r["model"]].append(r)
         smart_recent_by_band[get_tai_band_label(r.get("taiNum"))].append(r)
     smart_treatment_by_model = {
-        model: summarize_diff_treatment(model_rows, model)
+        model: {
+            **summarize_diff_treatment(model_rows, model),
+            **classify_smart_treatment_sample(len(diff_valid_rows(model_rows)), "model"),
+        }
         for model, model_rows in smart_recent_by_model.items()
     }
     smart_treatment_by_band = {
-        band: summarize_diff_treatment(band_rows, band)
+        band: {
+            **summarize_diff_treatment(band_rows, band),
+            **classify_smart_treatment_sample(len(diff_valid_rows(band_rows)), "band"),
+        }
         for band, band_rows in smart_recent_by_band.items()
     }
     prev_lookup = {}
@@ -1080,8 +1101,14 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
         if t["model"] in SMART_SLOT_MODELS:
             band_label = get_tai_band_label(t["taiNum"])
             smart_treatment = {
-                "model": smart_treatment_by_model.get(t["model"], summarize_diff_treatment([], t["model"])),
-                "band": smart_treatment_by_band.get(band_label, summarize_diff_treatment([], band_label)),
+                "model": smart_treatment_by_model.get(t["model"], {
+                    **summarize_diff_treatment([], t["model"]),
+                    **classify_smart_treatment_sample(0, "model"),
+                }),
+                "band": smart_treatment_by_band.get(band_label, {
+                    **summarize_diff_treatment([], band_label),
+                    **classify_smart_treatment_sample(0, "band"),
+                }),
                 "windowDays": 30,
                 "mode": "diff_treatment",
             }

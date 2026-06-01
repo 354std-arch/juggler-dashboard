@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-01 23:33 JST",
+  "generated_at": "2026-06-01 23:53 JST",
   "data_date": "2026-06-01",
   "target_date": "2026-06-01",
   "source_data_date": "2026-05-26",
@@ -29029,16 +29029,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1260番台",
+              "label": "厚い",
               "count": 184,
               "avg": 331.0,
-              "plusRate": 38.0
+              "plusRate": 38.0,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -29105,16 +29109,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1250番台",
+              "label": "厚い",
               "count": 184,
               "avg": 824.8,
-              "plusRate": 42.9
+              "plusRate": 42.9,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -29181,16 +29189,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1260番台",
+              "label": "厚い",
               "count": 184,
               "avg": 331.0,
-              "plusRate": 38.0
+              "plusRate": 38.0,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -29257,16 +29269,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1260番台",
+              "label": "厚い",
               "count": 184,
               "avg": 331.0,
-              "plusRate": 38.0
+              "plusRate": 38.0,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -29333,16 +29349,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1260番台",
+              "label": "厚い",
               "count": 184,
               "avg": 331.0,
-              "plusRate": 38.0
+              "plusRate": 38.0,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -29409,16 +29429,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1250番台",
+              "label": "厚い",
               "count": 184,
               "avg": 824.8,
-              "plusRate": 42.9
+              "plusRate": 42.9,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -29494,16 +29518,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1250番台",
+              "label": "厚い",
               "count": 184,
               "avg": 824.8,
-              "plusRate": 42.9
+              "plusRate": 42.9,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -29579,16 +29607,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1270番台",
+              "label": "厚い",
               "count": 184,
               "avg": 513.7,
-              "plusRate": 37.0
+              "plusRate": 37.0,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -29655,16 +29687,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1260番台",
+              "label": "厚い",
               "count": 184,
               "avg": 331.0,
-              "plusRate": 38.0
+              "plusRate": 38.0,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -29731,16 +29767,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1250番台",
+              "label": "厚い",
               "count": 184,
               "avg": 824.8,
-              "plusRate": 42.9
+              "plusRate": 42.9,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -29807,16 +29847,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1250番台",
+              "label": "厚い",
               "count": 184,
               "avg": 824.8,
-              "plusRate": 42.9
+              "plusRate": 42.9,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -29883,16 +29927,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1250番台",
+              "label": "厚い",
               "count": 184,
               "avg": 824.8,
-              "plusRate": 42.9
+              "plusRate": 42.9,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -29959,16 +30007,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1260番台",
+              "label": "厚い",
               "count": 184,
               "avg": 331.0,
-              "plusRate": 38.0
+              "plusRate": 38.0,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -30035,16 +30087,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1270番台",
+              "label": "厚い",
               "count": 184,
               "avg": 513.7,
-              "plusRate": 37.0
+              "plusRate": 37.0,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -30111,16 +30167,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1270番台",
+              "label": "厚い",
               "count": 184,
               "avg": 513.7,
-              "plusRate": 37.0
+              "plusRate": 37.0,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -30196,16 +30256,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1260番台",
+              "label": "厚い",
               "count": 184,
               "avg": 331.0,
-              "plusRate": 38.0
+              "plusRate": 38.0,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -30272,16 +30336,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1270番台",
+              "label": "厚い",
               "count": 184,
               "avg": 513.7,
-              "plusRate": 37.0
+              "plusRate": 37.0,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -30348,16 +30416,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1260番台",
+              "label": "厚い",
               "count": 184,
               "avg": 331.0,
-              "plusRate": 38.0
+              "plusRate": 38.0,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -30424,16 +30496,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1250番台",
+              "label": "厚い",
               "count": 184,
               "avg": 824.8,
-              "plusRate": 42.9
+              "plusRate": 42.9,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -30500,16 +30576,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "スマスロ北斗の拳 転生の章2",
+              "label": "厚い",
               "count": 552,
               "avg": 556.5,
-              "plusRate": 39.3
+              "plusRate": 39.3,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "1250番台",
+              "label": "厚い",
               "count": 184,
               "avg": 824.8,
-              "plusRate": 42.9
+              "plusRate": 42.9,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -36464,16 +36544,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 革命機ヴァルヴレイヴ2",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "260番台",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -36538,16 +36622,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 革命機ヴァルヴレイヴ2",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "260番台",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -36621,16 +36709,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 革命機ヴァルヴレイヴ2",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "260番台",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -36704,16 +36796,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 革命機ヴァルヴレイヴ2",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "260番台",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -36787,16 +36883,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 革命機ヴァルヴレイヴ2",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "260番台",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -36861,16 +36961,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 革命機ヴァルヴレイヴ2",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "260番台",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -36935,16 +37039,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 革命機ヴァルヴレイヴ2",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "260番台",
+              "label": "厚い",
               "count": 133,
               "avg": 286.9,
-              "plusRate": 36.1
+              "plusRate": 36.1,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -37019,16 +37127,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 東京喰種",
+              "label": "厚い",
               "count": 108,
               "avg": 627.0,
-              "plusRate": 45.4
+              "plusRate": 45.4,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "220番台",
+              "label": "厚い",
               "count": 138,
               "avg": 764.8,
-              "plusRate": 44.2
+              "plusRate": 44.2,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -37103,16 +37215,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 東京喰種",
+              "label": "厚い",
               "count": 108,
               "avg": 627.0,
-              "plusRate": 45.4
+              "plusRate": 45.4,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "220番台",
+              "label": "厚い",
               "count": 138,
               "avg": 764.8,
-              "plusRate": 44.2
+              "plusRate": 44.2,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -37187,16 +37303,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 東京喰種",
+              "label": "厚い",
               "count": 108,
               "avg": 627.0,
-              "plusRate": 45.4
+              "plusRate": 45.4,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "220番台",
+              "label": "厚い",
               "count": 138,
               "avg": 764.8,
-              "plusRate": 44.2
+              "plusRate": 44.2,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -37271,16 +37391,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 東京喰種",
+              "label": "厚い",
               "count": 108,
               "avg": 627.0,
-              "plusRate": 45.4
+              "plusRate": 45.4,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "220番台",
+              "label": "厚い",
               "count": 138,
               "avg": 764.8,
-              "plusRate": 44.2
+              "plusRate": 44.2,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -37355,16 +37479,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 東京喰種",
+              "label": "厚い",
               "count": 108,
               "avg": 627.0,
-              "plusRate": 45.4
+              "plusRate": 45.4,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "220番台",
+              "label": "厚い",
               "count": 138,
               "avg": 764.8,
-              "plusRate": 44.2
+              "plusRate": 44.2,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -37439,16 +37567,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L 東京喰種",
+              "label": "厚い",
               "count": 108,
               "avg": 627.0,
-              "plusRate": 45.4
+              "plusRate": 45.4,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "220番台",
+              "label": "厚い",
               "count": 138,
               "avg": 764.8,
-              "plusRate": 44.2
+              "plusRate": 44.2,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -37523,16 +37655,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L モンキーターンV",
+              "label": "厚い",
               "count": 190,
               "avg": 397.8,
-              "plusRate": 33.7
+              "plusRate": 33.7,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "60番台",
+              "label": "中",
               "count": 19,
               "avg": 1157.9,
-              "plusRate": 57.9
+              "plusRate": 57.9,
+              "strength": "medium",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -37607,16 +37743,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L モンキーターンV",
+              "label": "厚い",
               "count": 190,
               "avg": 397.8,
-              "plusRate": 33.7
+              "plusRate": 33.7,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "50番台",
+              "label": "厚い",
               "count": 152,
               "avg": 299.3,
-              "plusRate": 30.3
+              "plusRate": 30.3,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -37691,16 +37831,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L モンキーターンV",
+              "label": "厚い",
               "count": 190,
               "avg": 397.8,
-              "plusRate": 33.7
+              "plusRate": 33.7,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "50番台",
+              "label": "厚い",
               "count": 152,
               "avg": 299.3,
-              "plusRate": 30.3
+              "plusRate": 30.3,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -37775,16 +37919,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L モンキーターンV",
+              "label": "厚い",
               "count": 190,
               "avg": 397.8,
-              "plusRate": 33.7
+              "plusRate": 33.7,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "50番台",
+              "label": "厚い",
               "count": 152,
               "avg": 299.3,
-              "plusRate": 30.3
+              "plusRate": 30.3,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -37859,16 +38007,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L モンキーターンV",
+              "label": "厚い",
               "count": 190,
               "avg": 397.8,
-              "plusRate": 33.7
+              "plusRate": 33.7,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "50番台",
+              "label": "厚い",
               "count": 152,
               "avg": 299.3,
-              "plusRate": 30.3
+              "plusRate": 30.3,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -37943,16 +38095,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L モンキーターンV",
+              "label": "厚い",
               "count": 190,
               "avg": 397.8,
-              "plusRate": 33.7
+              "plusRate": 33.7,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "50番台",
+              "label": "厚い",
               "count": 152,
               "avg": 299.3,
-              "plusRate": 30.3
+              "plusRate": 30.3,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
@@ -38027,16 +38183,20 @@
           ],
           "smart_treatment": {
             "model": {
-              "label": "L モンキーターンV",
+              "label": "厚い",
               "count": 190,
               "avg": 397.8,
-              "plusRate": 33.7
+              "plusRate": 33.7,
+              "strength": "high",
+              "usable": true
             },
             "band": {
-              "label": "50番台",
+              "label": "厚い",
               "count": 152,
               "avg": 299.3,
-              "plusRate": 30.3
+              "plusRate": 30.3,
+              "strength": "high",
+              "usable": true
             },
             "windowDays": 30,
             "mode": "diff_treatment"
