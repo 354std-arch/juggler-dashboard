@@ -10143,6 +10143,7 @@ function classifyMorningStorePriority({ trustMeta, todayLabel, candidates, backt
   const actionable = trustMeta?.actionable !== false;
   const summary = backtest?.summary || {};
   const decision = summary.decision || {};
+  const robustness = backtest?.robustness || {};
   const verifiedCount = candidates.filter((c) => c?.verified_target === true).length;
   const mainCount = candidates.filter((c) => String(c?.action || '') === 'main').length;
   const candidateCount = candidates.filter((c) => ['main', 'candidate'].includes(String(c?.action || ''))).length;
@@ -10151,7 +10152,7 @@ function classifyMorningStorePriority({ trustMeta, todayLabel, candidates, backt
   const topHit = Number(summary.topHitRate);
   let score = 0;
   if(actionable) score += 2;
-  if(decision.actionable) score += 2;
+  if(actionable && decision.actionable) score += 2;
   if(todayLabel.includes('強')) score += 1;
   if(verifiedCount) score += Math.min(2, verifiedCount / 4);
   if(mainCount) score += 1;
@@ -10160,6 +10161,7 @@ function classifyMorningStorePriority({ trustMeta, todayLabel, candidates, backt
   if(Number.isFinite(lift) && lift >= 80) score += 1;
   if(Number.isFinite(topHit) && topHit >= 23) score += 0.5;
   if(!actionable) score -= 2;
+  if(robustness.level && robustness.level !== 'stable') score -= robustness.level === 'mixed' ? 1 : 1.5;
 
   if(score >= 5) return { label: '優先', className: 'is-main', score };
   if(score >= 3) return { label: '候補', className: 'is-candidate', score };
@@ -10190,6 +10192,7 @@ function buildMorningStorePriorityBoard(storeSummaries) {
         <div class="morning-priority-sub">${escapeHtml(item.trustLabel)} / ${escapeHtml(item.dayType)} / ${escapeHtml(item.todayLabel)}</div>
         <div class="morning-priority-top">${escapeHtml(topText)}</div>
         <div class="morning-priority-meta">${escapeHtml(backtestText)} / 検証候補${item.verifiedCount}台</div>
+        ${item.riskText ? `<div class="morning-priority-risk">${escapeHtml(item.riskText)}</div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -10289,6 +10292,7 @@ function renderMorningSummaryForCalendar() {
     const verifiedCount = candidates.filter((c) => verifiedTargetTais.has(Number(c?.tai)) || c?.verified_target === true).length;
     const backtestSummary = storePrecomputed?.evidenceBacktest?.summary || {};
     const backtestDecision = backtestSummary.decision || {};
+    const robustness = storePrecomputed?.evidenceBacktest?.robustness || {};
     const lift = Number(backtestSummary.lift);
     const topHit = Number(backtestSummary.topHitRate);
     const backtestText = [
@@ -10302,6 +10306,9 @@ function renderMorningSummaryForCalendar() {
       candidates,
       backtest: storePrecomputed?.evidenceBacktest || {},
     });
+    const riskText = trustMeta.actionable === false
+      ? (robustness.message || trustMeta.detail || '過去検証では強く出せません')
+      : (robustness.level && robustness.level !== 'stable' ? (robustness.message || robustness.label || '') : '');
     storeSummaries.push({
       store,
       dayType,
@@ -10311,6 +10318,7 @@ function renderMorningSummaryForCalendar() {
       verifiedCount,
       topCandidate: candidates[0] || null,
       backtestText,
+      riskText,
     });
 
     const candidateHtml = candidates.length
