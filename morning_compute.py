@@ -572,6 +572,18 @@ def morning_candidate_sort_key(row):
     return (verified_priority, action_priority.get(row.get("action"), 0), float(row.get("score") or 0))
 
 
+def classify_morning_model_sample(sample):
+    try:
+        n = int(sample)
+    except (TypeError, ValueError):
+        n = 0
+    if n >= 50:
+        return {"sample_label": "通常評価", "sample_strength": "high", "sample_usable": True}
+    if n >= 20:
+        return {"sample_label": "参考", "sample_strength": "medium", "sample_usable": True}
+    return {"sample_label": "薄い", "sample_strength": "thin", "sample_usable": False}
+
+
 def classify_label(total_g, bb, rb, diff, syn_threshold, rb_threshold):
     syn_ratio = (total_g / (bb + rb)) if (bb + rb) > 0 else None
     rb_ratio = (total_g / rb) if rb > 0 else None
@@ -965,13 +977,16 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
             continue
         total = stat["total"]
         upper_rate = (stat["upper"] / total) if total else 0.0
+        sample_meta = classify_morning_model_sample(total)
         model_rankings[store].append(
             {
                 "model": model,
                 "analysis_mode": "setting" if supports_setting_analysis(model) else "diff",
-                "score": round(upper_rate, 6),
+                "score": round(upper_rate if sample_meta["sample_usable"] else upper_rate * 0.25, 6),
+                "raw_score": round(upper_rate, 6),
                 "reason": f"上候補以上率{upper_rate:.0%}({total}件)",
                 "sample": total,
+                **sample_meta,
                 "coverage": model_coverage.get(store, {}).get(model, {}),
             }
         )
@@ -1261,16 +1276,25 @@ def build_payload(df, normalized_models, unsupported_models):
     model_today = store_model_day_stats.loc[model_today_mask].copy()
     model_rankings = {}
     for store, rows in model_today.groupby("store", sort=False):
-        sorted_rows = rows.sort_values("upper_rate", ascending=False).head(5)
+        rows = rows.copy()
+        rows["sample_meta"] = rows["sample"].map(classify_morning_model_sample)
+        rows["ranking_score"] = rows.apply(
+            lambda r: float(r.upper_rate) if r["sample_meta"]["sample_usable"] else float(r.upper_rate) * 0.25,
+            axis=1,
+        )
+        sorted_rows = rows.sort_values("ranking_score", ascending=False).head(5)
         ranking = []
         for r in sorted_rows.itertuples(index=False):
+            sample_meta = r.sample_meta
             ranking.append(
                 {
                     "model": r.model,
                     "analysis_mode": "setting" if supports_setting_analysis(r.model) else "diff",
-                    "score": round(float(r.upper_rate), 6),
+                    "score": round(float(r.ranking_score), 6),
+                    "raw_score": round(float(r.upper_rate), 6),
                     "reason": f"上候補以上率{float(r.upper_rate):.0%}({int(r.sample)}件)",
                     "sample": int(r.sample),
+                    **sample_meta,
                     "coverage": model_coverage.get(store, {}).get(r.model, {}),
                 }
             )

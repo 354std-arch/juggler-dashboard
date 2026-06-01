@@ -10096,6 +10096,18 @@ function formatSmartTreatmentText(treatment, label) {
   return `${label} 平均${formatTargetSigned枚(avg)} / 勝率${formatTargetPercent(treatment.plusRate)} / ${Number.isFinite(count) ? Math.round(count) : 0}件${sampleNote}`;
 }
 
+function getMorningModelFocusText(modelRanking) {
+  const usable = (Array.isArray(modelRanking) ? modelRanking : [])
+    .filter((m) => m && m.sample_usable !== false && Number(m.sample) >= 20)
+    .slice(0, 3);
+  if(!usable.length) return '扱い機種: サンプル不足';
+  const settingModels = usable.filter((m) => m.analysis_mode === 'setting');
+  const diffModels = usable.filter((m) => m.analysis_mode === 'diff');
+  const lead = diffModels.length > settingModels.length ? 'スマスロ/差枚寄り' : 'Aタイプ寄り';
+  const names = usable.map((m) => `${m.model || '不明'} ${formatMorningScorePercent(m.raw_score ?? m.score)}`).join(' / ');
+  return `${lead}: ${names}`;
+}
+
 function renderMorningBacktestDigest(storeData) {
   const backtest = storeData?.evidenceBacktest;
   if(!backtest || typeof backtest !== 'object') return '';
@@ -10191,6 +10203,7 @@ function buildMorningStorePriorityBoard(storeSummaries) {
         </div>
         <div class="morning-priority-sub">${escapeHtml(item.trustLabel)} / ${escapeHtml(item.dayType)} / ${escapeHtml(item.todayLabel)}</div>
         <div class="morning-priority-top">${escapeHtml(topText)}</div>
+        <div class="morning-priority-focus">${escapeHtml(item.focusText || '')}</div>
         <div class="morning-priority-meta">${escapeHtml(backtestText)} / 検証候補${item.verifiedCount}台</div>
         ${item.riskText ? `<div class="morning-priority-risk">${escapeHtml(item.riskText)}</div>` : ''}
       </div>
@@ -10257,12 +10270,13 @@ function renderMorningSummaryForCalendar() {
           const sampleText = Number.isFinite(sample) ? `${Math.round(sample)}件` : '0件';
           const conditionText = formatMorningRankCondition(m);
           const coverageText = formatMorningCoverageText(m?.coverage || getMorningModelCoverage(data, m?.model));
+          const sampleLabel = m?.sample_label && m.sample_label !== '通常評価' ? ` / ${m.sample_label}` : '';
           return `<div class="morning-rank-row">
             <div class="morning-rank-main">${idx + 1}. ${escapeHtml(m?.model || '不明')}</div>
             <div class="morning-rank-sub">${escapeHtml(m?.reason || '理由データなし')}</div>
             ${conditionText ? `<div class="morning-rank-cond">${escapeHtml(conditionText)}</div>` : ''}
             ${coverageText ? `<div class="morning-rank-coverage">${escapeHtml(coverageText)}</div>` : ''}
-            <div class="morning-rank-meta">${formatMorningScorePercent(m?.score)} / ${sampleText}</div>
+            <div class="morning-rank-meta">${formatMorningScorePercent(m?.raw_score ?? m?.score)} / ${sampleText}${escapeHtml(sampleLabel)}</div>
           </div>`;
         }).join('')
       : '<div class="morning-empty">機種データなし</div>';
@@ -10318,6 +10332,7 @@ function renderMorningSummaryForCalendar() {
       verifiedCount,
       topCandidate: candidates[0] || null,
       backtestText,
+      focusText: getMorningModelFocusText(modelRanking),
       riskText,
     });
 
@@ -10338,8 +10353,8 @@ function renderMorningSummaryForCalendar() {
             ? [
                 matchModel.reason || '機種傾向あり',
                 formatMorningRankCondition(matchModel),
-                `スコア${formatMorningScorePercent(matchModel.score)}`,
-                `サンプル${modelSampleText}`,
+                `上候補率${formatMorningScorePercent(matchModel.raw_score ?? matchModel.score)}`,
+                `サンプル${modelSampleText}${matchModel.sample_label && matchModel.sample_label !== '通常評価' ? ` / ${matchModel.sample_label}` : ''}`,
                 formatMorningCoverageText(c?.model_coverage || matchModel.coverage || getMorningModelCoverage(data, modelName)),
                 smartTreatmentText,
               ].filter(Boolean).join(' / ')
