@@ -469,6 +469,8 @@ def apply_evidence_guards(stores_payload, target_ymd):
                 candidate["verified_rank"] = target.get("rank") or "検証候補"
                 candidate["verified_score"] = target.get("totalScore")
                 candidate["verified_evidence"] = evidence_rows
+                if target.get("smartTreatment"):
+                    candidate["smart_treatment"] = target.get("smartTreatment")
                 if hall_evidence_rows:
                     candidate["verified_hall_evidence"] = hall_evidence_rows
                 if caution_rows:

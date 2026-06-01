@@ -936,6 +936,25 @@ def build_model_coverage_meta(rows):
         "coverageStrength": level["strength"],
     }
 
+def get_tai_band_label(tai_num):
+    try:
+        tai = int(tai_num)
+    except (TypeError, ValueError):
+        return "番号帯不明"
+    return f"{(tai // 10) * 10}番台"
+
+def summarize_diff_treatment(rows, label):
+    valid = diff_valid_rows(rows)
+    if not valid:
+        return {"label": label, "count": 0, "avg": None, "plusRate": None}
+    plus = sum(1 for r in valid if r["diff"] > 0)
+    return {
+        "label": label,
+        "count": len(valid),
+        "avg": r1(weighted_avg_rows(valid, "diff")),
+        "plusRate": r1(plus / len(valid) * 100),
+    }
+
 def compute_tai_detail(rows, special, context_weekday, context_is_special):
     current_segment_ids = get_current_install_segment_ids(rows)
     current_rows = [
@@ -975,6 +994,26 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
     if not current_rows:
         return []
     latest_date = max(r["date"] for r in current_rows)
+    recent_cutoff = latest_date.date() - timedelta(days=30)
+    smart_recent_rows = [
+        r for r in current_rows
+        if r.get("model") in SMART_SLOT_MODELS
+        and has_trustworthy_diff(r)
+        and r["date"].date() >= recent_cutoff
+    ]
+    smart_recent_by_model = defaultdict(list)
+    smart_recent_by_band = defaultdict(list)
+    for r in smart_recent_rows:
+        smart_recent_by_model[r["model"]].append(r)
+        smart_recent_by_band[get_tai_band_label(r.get("taiNum"))].append(r)
+    smart_treatment_by_model = {
+        model: summarize_diff_treatment(model_rows, model)
+        for model, model_rows in smart_recent_by_model.items()
+    }
+    smart_treatment_by_band = {
+        band: summarize_diff_treatment(band_rows, band)
+        for band, band_rows in smart_recent_by_band.items()
+    }
     prev_lookup = {}
     for k, tai_rows in by_tai_date.items():
         sorted_rows = sorted(tai_rows, key=lambda r: r["date"])
@@ -1037,6 +1076,15 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
             t["model"], bayes_tg_nm, bayes_tb_nm, bayes_tr_nm, prior_high_prob=prior_nm,
             total_diff=nd, diff_weighted_count=diff_n_nm
         )
+        smart_treatment = None
+        if t["model"] in SMART_SLOT_MODELS:
+            band_label = get_tai_band_label(t["taiNum"])
+            smart_treatment = {
+                "model": smart_treatment_by_model.get(t["model"], summarize_diff_treatment([], t["model"])),
+                "band": smart_treatment_by_band.get(band_label, summarize_diff_treatment([], band_label)),
+                "windowDays": 30,
+                "mode": "diff_treatment",
+            }
         result.append({
             "tai":t["tai"],"taiNum":t["taiNum"],"model":t["model"],"store":t["store"],
             "installSegment": t.get("installSegment"),
@@ -1047,6 +1095,7 @@ def compute_tai_detail(rows, special, context_weekday, context_is_special):
             "analysisMode": get_model_analysis_mode(t["model"]),
             "supportsSettingAnalysis": supports_setting_analysis(t["model"]),
             "modelCategory": "smart_slot" if t["model"] in SMART_SLOT_MODELS else "normal",
+            "smartTreatment": smart_treatment,
             "modelCoverage": model_coverage_by_name.get(t["model"], build_model_coverage_meta([])),
             "avg":r1(weighted_avg_rows(t["all"], "diff")),"count":n,
             "weightedCount": r1(wn),

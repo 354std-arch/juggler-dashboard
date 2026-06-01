@@ -10217,6 +10217,13 @@ function renderMorningSummaryForCalendar() {
           const matchModel = modelMap.get(modelName) || null;
           const modelSample = Number(matchModel?.sample);
           const modelSampleText = Number.isFinite(modelSample) ? `${Math.round(modelSample)}件` : '0件';
+          const smartTreatment = c?.smart_treatment || c?.smartTreatment || null;
+          const smartTreatmentText = smartTreatment
+            ? [
+                smartTreatment.model && Number.isFinite(Number(smartTreatment.model.avg)) ? `直近機種扱い 平均${formatTargetSigned枚(smartTreatment.model.avg)} / 勝率${formatTargetPercent(smartTreatment.model.plusRate)} / ${smartTreatment.model.count || 0}件` : '',
+                smartTreatment.band && Number.isFinite(Number(smartTreatment.band.avg)) ? `番号帯扱い 平均${formatTargetSigned枚(smartTreatment.band.avg)} / 勝率${formatTargetPercent(smartTreatment.band.plusRate)} / ${smartTreatment.band.count || 0}件` : '',
+              ].filter(Boolean).join(' / ')
+            : '';
           const modelCondition = matchModel
             ? [
                 matchModel.reason || '機種傾向あり',
@@ -10224,6 +10231,7 @@ function renderMorningSummaryForCalendar() {
                 `スコア${formatMorningScorePercent(matchModel.score)}`,
                 `サンプル${modelSampleText}`,
                 formatMorningCoverageText(c?.model_coverage || matchModel.coverage || getMorningModelCoverage(data, modelName)),
+                smartTreatmentText,
               ].filter(Boolean).join(' / ')
             : '機種ランキング情報なし';
 
@@ -10700,6 +10708,7 @@ function selectMorningCandidateForJudgment(actionId) {
     totalScore: c.verified_score ?? c.score ?? null,
     configScore: 0,
     valueScore: c.score ?? null,
+    smartTreatment: c.smart_treatment || c.smartTreatment || null,
     hallEvidence: action.verifiedHallEvidence || c.verified_hall_evidence || [],
     morningCandidate: true,
   };
@@ -10726,6 +10735,7 @@ function buildSmartSlotWithdrawDecision(counts) {
   const modelAvgG = Number(modelProfile?.avgG);
   const winRate = Number(modelProfile?.winRate);
   const coverage = modelProfile?.coverageLabel || modelProfile?.coverage_label || '';
+  const smartTreatment = context.smartTreatment || taiProfile?.smartTreatment || null;
   const reasons = [];
   let pts = 0;
 
@@ -10758,6 +10768,16 @@ function buildSmartSlotWithdrawDecision(counts) {
   if(Number.isFinite(winRate) && winRate >= 45) {
     pts += 1;
     reasons.push(`機種勝率${round1(winRate)}%`);
+  }
+  const modelTreatment = smartTreatment?.model;
+  const bandTreatment = smartTreatment?.band;
+  if(modelTreatment && Number(modelTreatment.avg) >= 200 && Number(modelTreatment.count) >= 3) {
+    pts += 1;
+    reasons.push(`直近機種扱い${formatWithdrawDiff(modelTreatment.avg)}`);
+  }
+  if(bandTreatment && Number(bandTreatment.avg) >= 200 && Number(bandTreatment.count) >= 3) {
+    pts += 1;
+    reasons.push(`番号帯扱い${formatWithdrawDiff(bandTreatment.avg)}`);
   }
   if(coverage) reasons.push(`データ厚み:${coverage}`);
   if(context.hallEvidence?.length) reasons.push('ホール位置根拠あり');
