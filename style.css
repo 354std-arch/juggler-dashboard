@@ -1930,6 +1930,11 @@ body.is-seat-layout-active main{
   padding:8px;
 }
 
+.seat-pattern-card.is-smart-treatment{
+  border-color:rgba(0,229,255,.18);
+  background:rgba(0,229,255,.045);
+}
+
 .seat-pattern-card span{
   display:block;
   color:var(--muted);
@@ -1944,6 +1949,8 @@ body.is-seat-layout-active main{
   font-size:12px;
   line-height:1.35;
 }
+
+.seat-pattern-card.is-smart-treatment strong{color:var(--accent);}
 
 .seat-insight-headline{
   font-size:14px;

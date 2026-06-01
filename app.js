@@ -3693,7 +3693,12 @@ function loadSeatLayoutBundle() {
 }
 
 function getSeatLayoutRowsForStore(store) {
-  const seatRows = seatLayoutState.seatData?.[store];
+  return getSeatLayoutRowsForStoreAtDate(store, seatLayoutState.dateYmd);
+}
+
+function getSeatLayoutRowsForStoreAtDate(store, ymd) {
+  const byDate = ymd ? getSeatLayoutDataByDate(ymd) : seatLayoutState.seatData;
+  const seatRows = byDate?.[store];
   if(Array.isArray(seatRows)) {
     return seatRows.map((row) => {
       const tai = Number(row?.machine_no);
@@ -3703,6 +3708,7 @@ function getSeatLayoutRowsForStore(store) {
         tai,
         model: String(row?.model || '').trim() || '不明',
         diff: Number.isFinite(diff) ? diff : null,
+        date: ymd || '',
       };
     }).filter(Boolean);
   }
@@ -3711,8 +3717,15 @@ function getSeatLayoutRowsForStore(store) {
     if(!Number.isFinite(tai)) return null;
     const diff = Number(diffRaw);
     const fallbackModel = seatLayoutState.cards.find((card) => Number(card.tai) === tai)?.model || '不明';
-    return { tai, model: fallbackModel, diff: Number.isFinite(diff) ? diff : null };
+    return { tai, model: fallbackModel, diff: Number.isFinite(diff) ? diff : null, date: ymd || '' };
   }).filter(Boolean);
+}
+
+function getSeatLayoutRecentRowsForStore(store, limit = 30) {
+  const dates = getSeatLayoutDatesFromBundle()
+    .filter((ymd) => ymd && (!seatLayoutState.dateYmd || ymd <= seatLayoutState.dateYmd))
+    .slice(0, limit);
+  return dates.flatMap((ymd) => getSeatLayoutRowsForStoreAtDate(store, ymd));
 }
 
 function getSeatLayoutDiffMap(store) {
@@ -3910,6 +3923,35 @@ function renderSeatHeatmapPatternInsight(rows) {
   const clusterText = strongCells.length
     ? `+1000以上 ${strongCells.length}台 / 近接 ${adjacentStrong}組`
     : '+1000以上の台はなし';
+  const recentRows = getSeatLayoutRecentRowsForStore(seatLayoutState.store, 30)
+    .filter((row) => Number.isFinite(row.diff));
+  const smartRecentRows = recentRows.filter((row) => isSmartSlotModel(row.model));
+  const smartModelMap = new Map();
+  const smartBandMap = new Map();
+  smartRecentRows.forEach((row) => {
+    const model = String(row.model || '機種未取得');
+    const modelStat = smartModelMap.get(model) || { label: model, total: 0, count: 0, plus: 0 };
+    modelStat.total += row.diff;
+    modelStat.count += 1;
+    if(row.diff > 0) modelStat.plus += 1;
+    smartModelMap.set(model, modelStat);
+
+    const tai = Number(row.tai);
+    const band = Number.isFinite(tai) ? `${Math.floor(tai / 10) * 10}番台` : '番号帯不明';
+    const bandStat = smartBandMap.get(band) || { label: band, total: 0, count: 0, plus: 0 };
+    bandStat.total += row.diff;
+    bandStat.count += 1;
+    if(row.diff > 0) bandStat.plus += 1;
+    smartBandMap.set(band, bandStat);
+  });
+  const rankTreatment = (map) => Array.from(map.values())
+    .filter((item) => item.count >= 3)
+    .sort((a, b) => (b.total / b.count) - (a.total / a.count))[0];
+  const smartTopModel = rankTreatment(smartModelMap);
+  const smartTopBand = rankTreatment(smartBandMap);
+  const formatTreatment = (item) => item
+    ? `${item.label} / 平均${formatSeatHeatmapDiff(item.total / item.count)} / 勝率${Math.round(item.plus / item.count * 100)}% / ${item.count}件`
+    : '直近データ不足';
   el.innerHTML = `
     <div class="seat-pattern-card">
       <span>強い塊</span>
@@ -3922,6 +3964,14 @@ function renderSeatHeatmapPatternInsight(rows) {
     <div class="seat-pattern-card">
       <span>機種偏り 下位</span>
       <strong>${escapeHtml(formatModel(weakModel))}</strong>
+    </div>
+    <div class="seat-pattern-card is-smart-treatment">
+      <span>スマスロ直近扱い</span>
+      <strong>${escapeHtml(formatTreatment(smartTopModel))}</strong>
+    </div>
+    <div class="seat-pattern-card is-smart-treatment">
+      <span>スマスロ番号帯</span>
+      <strong>${escapeHtml(formatTreatment(smartTopBand))}</strong>
     </div>`;
 }
 
