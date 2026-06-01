@@ -3,6 +3,9 @@ __pycache__/
 *.pyo
 .DS_Store
 
+# ローカル定時実行ログ
+run_daily.log
+
 # Claude Code 個人設定（コミット不要）
 .claude/settings.local.json
 

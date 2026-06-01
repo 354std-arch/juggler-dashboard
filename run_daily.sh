@@ -7,8 +7,10 @@ LOG_FILE="$REPO_DIR/run_daily.log"
 SMART_SLOT_BACKFILL_DAYS="${SMART_SLOT_BACKFILL_DAYS:-30}"
 SMART_SLOT_BACKFILL_TASKS="${SMART_SLOT_BACKFILL_TASKS:-4}"
 SMART_SLOT_BACKFILL_INTERVAL_SEC="${SMART_SLOT_BACKFILL_INTERVAL_SEC:-0.5}"
+DATA_SIZE_WARN_MB="${DATA_SIZE_WARN_MB:-50}"
 case "$SMART_SLOT_BACKFILL_DAYS" in ''|*[!0-9]*) SMART_SLOT_BACKFILL_DAYS=30 ;; esac
 case "$SMART_SLOT_BACKFILL_TASKS" in ''|*[!0-9]*) SMART_SLOT_BACKFILL_TASKS=4 ;; esac
+case "$DATA_SIZE_WARN_MB" in ''|*[!0-9]*) DATA_SIZE_WARN_MB=50 ;; esac
 
 cd "$REPO_DIR"
 
@@ -45,6 +47,18 @@ git_pull_latest() {
   return 1
 }
 
+warn_large_file() {
+  local file="$1"
+  local size_bytes
+  local size_mb
+  [ -f "$file" ] || return 0
+  size_bytes="$(wc -c < "$file" | tr -d ' ')"
+  size_mb=$(( (size_bytes + 1048575) / 1048576 ))
+  if [ "$size_mb" -ge "$DATA_SIZE_WARN_MB" ]; then
+    echo "warning: $file is ${size_mb}MB; GitHub recommends keeping regular git files below 50MB." >> "$LOG_FILE"
+  fi
+}
+
 abort_if_conflicts
 
 # Pull latest changes first
@@ -72,6 +86,10 @@ fi
 python3 compute.py >> "$LOG_FILE" 2>&1
 python3 morning_compute.py >> "$LOG_FILE" 2>&1
 python3 candidate_compute.py >> "$LOG_FILE" 2>&1
+
+warn_large_file raw_data.csv
+warn_large_file data.json
+warn_large_file seat_data.json
 
 # Commit and push
 git config user.email "action@github.com"
