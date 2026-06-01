@@ -178,6 +178,7 @@ const MODEL_NAME_MAP_CANONICAL = {
 const SMART_SLOT_MODEL_PATTERNS = [
   { tokens:['北斗','転生'], canonical:'スマスロ北斗の拳 転生の章2' },
   { tokens:['北斗の拳'], canonical:'スマスロ北斗の拳' },
+  { tokens:['北斗'], canonical:'スマスロ北斗の拳' },
   { tokens:['東京喰種'], canonical:'L 東京喰種' },
   { tokens:['グール'], canonical:'L 東京喰種' },
   { tokens:['喰種'], canonical:'L 東京喰種' },
