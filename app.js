@@ -1991,7 +1991,7 @@ function renderTargetEvidenceGroupSummary(items) {
     return `<div class="target-evidence-group ${liftClass}">
       <span>${escapeHtml(g.label)}</span>
       <strong>${g.avgLift !== null ? escapeHtml(formatTargetSigned枚(g.avgLift)) : '—'}</strong>
-      <small>${escapeHtml(g.hint)} / ${g.sample ? `${Math.round(g.sample)}件` : `${g.count}根拠`}${g.avgTopHit !== null ? ` / 上位${formatTargetPercent(g.avgTopHit)}` : ''}</small>
+      <small>${escapeHtml(g.hint)} / ${g.sample ? `${Math.round(g.sample)}件` : `${g.count}根拠`}${g.avgTopHit !== null ? ` / ${formatTargetTopHitLift(g.avgTopHit)}` : ''}</small>
       ${g.labels.length ? `<em>${escapeHtml(g.labels.join(' / '))}</em>` : ''}
     </div>`;
   }).join('')}</div>`;
