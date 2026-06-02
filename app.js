@@ -4015,6 +4015,58 @@ function formatSeatEvidenceMetric(value, suffix = '') {
   return `${sign}${Math.round(n).toLocaleString()}${suffix}`;
 }
 
+function buildSeatSmartTreatmentForRow(row) {
+  if(!row || !isSmartSlotModel(row.model)) return null;
+  const model = normalizeModelName(row.model);
+  const tai = Number(row.tai);
+  const bandStart = Number.isFinite(tai) ? Math.floor(tai / 10) * 10 : null;
+  const recentRows = getSeatLayoutRecentRowsForStore(seatLayoutState.store, 30)
+    .filter((item) => Number.isFinite(Number(item.diff)) && isSmartSlotModel(item.model));
+  const summarize = (items) => {
+    if(!items.length) return null;
+    const total = items.reduce((sum, item) => sum + Number(item.diff), 0);
+    const plus = items.filter((item) => Number(item.diff) > 0).length;
+    return {
+      count: items.length,
+      avg: total / items.length,
+      plusRate: Math.round(plus / items.length * 100),
+    };
+  };
+  return {
+    model: summarize(recentRows.filter((item) => normalizeModelName(item.model) === model)),
+    band: summarize(recentRows.filter((item) => {
+      const itemTai = Number(item.tai);
+      return Number.isFinite(itemTai) && bandStart !== null && Math.floor(itemTai / 10) * 10 === bandStart;
+    })),
+    bandLabel: bandStart !== null ? `${bandStart}番台` : '番号帯不明',
+  };
+}
+
+function renderSeatSmartTreatmentSelection(row) {
+  const treatment = buildSeatSmartTreatmentForRow(row);
+  if(!treatment) return '';
+  const line = (label, stat) => {
+    if(!stat || stat.count < 3) {
+      return `<div class="seat-selection-smart-line is-thin">
+        <span>${escapeHtml(label)}</span>
+        <strong>直近データ不足</strong>
+      </div>`;
+    }
+    const avg = Number(stat.avg);
+    const tone = avg >= 300 ? 'is-good' : avg <= -300 ? 'is-bad' : 'is-neutral';
+    return `<div class="seat-selection-smart-line ${tone}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(formatSeatHeatmapDiff(avg))} / 勝率${escapeHtml(String(stat.plusRate))}% / ${escapeHtml(String(stat.count))}件</strong>
+    </div>`;
+  };
+  return `<div class="seat-selection-smart">
+    <div class="seat-selection-smart-title">スマスロ直近扱い</div>
+    ${line('機種', treatment.model)}
+    ${line(treatment.bandLabel, treatment.band)}
+    <div class="seat-selection-smart-note">直近30日までの差枚ベース。設定断定ではなく、店の扱いを見る補助です。</div>
+  </div>`;
+}
+
 function renderSeatEvidenceBacktestPanel() {
   const el = document.getElementById('seatEvidenceBacktest');
   if(!el) return;
@@ -4142,6 +4194,7 @@ function renderSeatHeatmapSelection(row) {
     ? (diff >= 3000 ? '強いプラス' : diff >= 1000 ? 'プラス寄り' : diff <= -2000 ? '大きくマイナス' : diff <= -1000 ? 'マイナス寄り' : '中立')
     : 'データなし';
   const evidenceCandidate = getSeatLayoutEvidenceCandidateByTai(row.tai);
+  const smartTreatmentHtml = renderSeatSmartTreatmentSelection(row);
   const evidenceHtml = evidenceCandidate ? `
     <div class="seat-selection-evidence">
       <div class="seat-selection-evidence-title">検証済み根拠</div>
@@ -4181,6 +4234,7 @@ function renderSeatHeatmapSelection(row) {
         <strong>${escapeHtml(seatLayoutState.store || '-')}</strong>
       </div>
     </div>
+    ${smartTreatmentHtml}
     ${evidenceHtml}`;
 }
 
