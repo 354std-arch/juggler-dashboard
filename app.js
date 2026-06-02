@@ -1919,6 +1919,13 @@ function formatTargetPercent(value) {
   return Number.isFinite(n) ? `${round1(n)}%` : '—';
 }
 
+function formatTargetTopHitLift(value) {
+  const n = Number(value);
+  if(!Number.isFinite(n)) return '上位命中 —';
+  const lift = round1(n - 20);
+  return `上位命中 ${round1(n)}%（基準比${lift >= 0 ? '+' : ''}${lift}pt）`;
+}
+
 function getTargetDecisionTone(decision) {
   const level = String(decision?.level || '').toLowerCase();
   if(decision?.actionable === false || ['skip', 'relative', 'period_mixed', 'no_data'].includes(level)) return 'danger';
@@ -1997,6 +2004,7 @@ function renderTargetEvidenceChip(item, index = 0) {
   const count = validation.count ?? item?.validationCount ?? item?.count;
   const topHit = validation.topHitRate ?? item?.topHitRate;
   const verdict = item?.validationVerdict || item?.verdict || {};
+  const topHitText = formatTargetTopHitLift(topHit);
   return `
     <div class="target-evidence-chip">
       <div class="target-evidence-chip-head">
@@ -2007,7 +2015,7 @@ function renderTargetEvidenceChip(item, index = 0) {
         <span>平均との差 ${escapeHtml(formatTargetSigned枚(lift))}</span>
         <span>平均 ${escapeHtml(formatTargetSigned枚(avgValue))}</span>
         <span>${escapeHtml(count ?? '—')}回</span>
-        <span>上位20% ${escapeHtml(formatTargetPercent(topHit))}</span>
+        <span>${escapeHtml(topHitText)}</span>
       </div>
     </div>`;
 }
@@ -2051,7 +2059,7 @@ function renderTargetCandidateEvidenceDetails(t) {
         <div class="target-candidate-evidence-row">
           <span>${escapeHtml(item.label || '根拠')}</span>
           <strong>${escapeHtml(formatTargetSigned枚(lift))}${Number.isFinite(Number(pts)) ? ` / ${Number(pts) > 0 ? '+' : ''}${Number(pts)}pt` : ''}</strong>
-          <small>${escapeHtml(count ?? '—')}回 / 上位20% ${escapeHtml(formatTargetPercent(validation.topHitRate))}</small>
+          <small>${escapeHtml(count ?? '—')}回 / ${escapeHtml(formatTargetTopHitLift(validation.topHitRate))}</small>
         </div>`;
     }).join('')
     : reasons.map((r) => `
@@ -4102,7 +4110,7 @@ function renderSeatEvidenceBacktestPanel() {
     <div class="seat-evidence-summary">
       ${metric('候補平均', formatSeatEvidenceMetric(summary.pickAvg, '枚'), Number(summary.pickAvg) >= 0 ? 'var(--plus)' : 'var(--minus)')}
       ${metric('平均との差', formatSeatEvidenceMetric(summary.lift, '枚'), liftColor)}
-      ${metric('上位20%', Number.isFinite(Number(summary.topHitRate)) ? `${summary.topHitRate}%` : '-', 'var(--accent3)')}
+      ${metric('上位命中', Number.isFinite(Number(summary.topHitRate)) ? formatTargetTopHitLift(summary.topHitRate).replace('上位命中 ', '') : '-', 'var(--accent3)')}
     </div>`;
   const decisionLevel = String(decision.level || 'skip');
   const statusHtml = `
@@ -6199,7 +6207,7 @@ function buildPrecomputedTargetRecommendations(targetDate) {
         const metric = Number.isFinite(Number(lift)) && Number.isFinite(Number(avgDiff))
           ? `予測${formatTargetSigned枚(lift)} / 平均${formatTargetSigned枚(avgDiff)}`
           : '予測実績あり';
-        const hit = Number.isFinite(Number(topHit)) ? ` / 上位20% ${round1(topHit)}%` : '';
+        const hit = Number.isFinite(Number(topHit)) ? ` / ${formatTargetTopHitLift(topHit)}` : '';
         reasons.push(`${item.label || '根拠'}: ${metric}${hit}`);
       });
       const rank = String(t.rank || '');
@@ -10291,7 +10299,7 @@ function renderMorningBacktestDigest(storeData) {
     <div class="morning-backtest-grid">
       ${metric('候補平均', Number.isFinite(pickAvg) ? formatTargetSigned枚(pickAvg) : '-', pickAvg >= 0 ? 'is-plus' : 'is-minus')}
       ${metric('平均との差', Number.isFinite(lift) ? formatTargetSigned枚(lift) : '-', lift >= 0 ? 'is-plus' : 'is-minus')}
-      ${metric('上位20%', Number.isFinite(topHit) ? `${round1(topHit)}%` : '-', Number.isFinite(topHit) && topHit >= 23 ? 'is-plus' : 'is-muted')}
+      ${metric('上位命中', Number.isFinite(topHit) ? formatTargetTopHitLift(topHit).replace('上位命中 ', '') : '-', Number.isFinite(topHit) && topHit >= 23 ? 'is-plus' : 'is-muted')}
       ${metric('候補数', Number.isFinite(pickCount) ? `${Math.round(pickCount)}件` : '-', 'is-muted')}
     </div>
     ${periodText ? `<div class="morning-backtest-periods">${escapeHtml(periodText)}</div>` : ''}
@@ -10471,7 +10479,7 @@ function renderMorningSummaryForCalendar() {
     const backtestText = [
       backtestDecision.label || trustMeta.label,
       Number.isFinite(lift) ? `平均との差${formatTargetSigned枚(lift)}` : '',
-      Number.isFinite(topHit) ? `上位${round1(topHit)}%` : '',
+      Number.isFinite(topHit) ? formatTargetTopHitLift(topHit) : '',
     ].filter(Boolean).join(' / ');
     const smartCoverageMeta = getMorningSmartCoverageMeta(data);
     const priority = classifyMorningStorePriority({
