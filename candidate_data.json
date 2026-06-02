@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-02 15:03 JST",
+  "generated_at": "2026-06-02 17:57 JST",
   "data_date": "2026-06-02",
   "target_date": "2026-06-02",
   "source_data_date": "2026-06-01",
@@ -74769,11 +74769,11 @@
     "中山UNO": {
       "target_is_special": false,
       "target_day_type": "通常日",
-      "today_score": 0.182924,
+      "today_score": 0.178103,
       "today_label": "弱い",
       "today_reason": [
         "同条件上候補率18%",
-        "サンプル4275件",
+        "サンプル4503件",
         "最多ラベル除外寄り"
       ],
       "model_ranking": [
@@ -74799,8 +74799,8 @@
           "same_condition_avg_diff": 89.6,
           "same_condition_win_rate": 50.0,
           "same_condition_sample": 5,
-          "store_same_condition_win_rate": 54.2,
-          "store_same_condition_sample": 108,
+          "store_same_condition_win_rate": 53.6,
+          "store_same_condition_sample": 117,
           "juggler_vs_store_win_rate_diff": null,
           "juggler_stronger_than_store": null
         },
@@ -74826,9 +74826,9 @@
           "same_condition_avg_diff": 524.3,
           "same_condition_win_rate": 66.7,
           "same_condition_sample": 3,
-          "store_same_condition_win_rate": 54.2,
-          "store_same_condition_sample": 108,
-          "juggler_vs_store_win_rate_diff": 12.5,
+          "store_same_condition_win_rate": 53.6,
+          "store_same_condition_sample": 117,
+          "juggler_vs_store_win_rate_diff": 13.1,
           "juggler_stronger_than_store": true
         },
         {
@@ -74853,9 +74853,9 @@
           "same_condition_avg_diff": 228.0,
           "same_condition_win_rate": 55.0,
           "same_condition_sample": 1,
-          "store_same_condition_win_rate": 54.2,
-          "store_same_condition_sample": 108,
-          "juggler_vs_store_win_rate_diff": 0.8,
+          "store_same_condition_win_rate": 53.6,
+          "store_same_condition_sample": 117,
+          "juggler_vs_store_win_rate_diff": 1.4,
           "juggler_stronger_than_store": true
         },
         {
@@ -74880,9 +74880,9 @@
           "same_condition_avg_diff": 1615.5,
           "same_condition_win_rate": 80.0,
           "same_condition_sample": 2,
-          "store_same_condition_win_rate": 54.2,
-          "store_same_condition_sample": 108,
-          "juggler_vs_store_win_rate_diff": 25.8,
+          "store_same_condition_win_rate": 53.6,
+          "store_same_condition_sample": 117,
+          "juggler_vs_store_win_rate_diff": 26.4,
           "juggler_stronger_than_store": true
         },
         {
@@ -74907,8 +74907,8 @@
           "same_condition_avg_diff": 326.2,
           "same_condition_win_rate": 62.5,
           "same_condition_sample": 4,
-          "store_same_condition_win_rate": 54.2,
-          "store_same_condition_sample": 108,
+          "store_same_condition_win_rate": 53.6,
+          "store_same_condition_sample": 117,
           "juggler_vs_store_win_rate_diff": null,
           "juggler_stronger_than_store": null
         }
@@ -74916,53 +74916,53 @@
       "tail_ranking": [
         {
           "tail": 4,
-          "score": 0.216772,
-          "sample": 3017
+          "score": 0.212255,
+          "sample": 3166
         },
         {
           "tail": 0,
-          "score": 0.214928,
-          "sample": 3336
+          "score": 0.208541,
+          "sample": 3606
         },
         {
           "tail": 9,
-          "score": 0.211352,
-          "sample": 3506
-        },
-        {
-          "tail": 3,
-          "score": 0.210995,
-          "sample": 3256
+          "score": 0.207892,
+          "sample": 3776
         },
         {
           "tail": 6,
-          "score": 0.208626,
-          "sample": 3988
+          "score": 0.206527,
+          "sample": 4198
+        },
+        {
+          "tail": 3,
+          "score": 0.205048,
+          "sample": 3526
         },
         {
           "tail": 8,
-          "score": 0.201565,
-          "sample": 3835
-        },
-        {
-          "tail": 2,
-          "score": 0.200245,
-          "sample": 3261
+          "score": 0.199258,
+          "sample": 4045
         },
         {
           "tail": 7,
-          "score": 0.196247,
-          "sample": 3944
+          "score": 0.195521,
+          "sample": 4153
+        },
+        {
+          "tail": 2,
+          "score": 0.194507,
+          "sample": 3532
         },
         {
           "tail": 1,
-          "score": 0.193811,
-          "sample": 3199
+          "score": 0.19049,
+          "sample": 3470
         },
         {
           "tail": 5,
-          "score": 0.190445,
-          "sample": 3014
+          "score": 0.18748,
+          "sample": 3163
         }
       ],
       "candidates": [
@@ -74979,7 +74979,7 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.230039,
+          "score": 0.228352,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -74989,7 +74989,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75010,7 +75010,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.229917,
+          "score": 0.22823,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75020,7 +75020,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75041,7 +75041,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.227659,
+          "score": 0.225972,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75051,7 +75051,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75072,7 +75072,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.227636,
+          "score": 0.225949,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75082,7 +75082,7 @@
             "推移上昇"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75103,7 +75103,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.225689,
+          "score": 0.224002,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75113,7 +75113,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75134,7 +75134,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.225501,
+          "score": 0.223814,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75144,7 +75144,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75165,7 +75165,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.22339,
+          "score": 0.221703,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75175,7 +75175,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75196,7 +75196,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.222891,
+          "score": 0.221204,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75206,10 +75206,42 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 370,
+          "model": "L 東京喰種",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 984,
+            "day_count": 123,
+            "tai_count": 16,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.220147,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率32%",
+            "サンプル62件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
             "店舗検証が弱い"
           ],
           "verified_target": false
@@ -75227,7 +75259,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.221286,
+          "score": 0.219599,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75237,7 +75269,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75258,7 +75290,7 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.22041,
+          "score": 0.218722,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75268,10 +75300,42 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 368,
+          "model": "L 東京喰種",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 984,
+            "day_count": 123,
+            "tai_count": 16,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.218293,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率32%",
+            "サンプル62件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
             "店舗検証が弱い"
           ],
           "verified_target": false
@@ -75289,7 +75353,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.218669,
+          "score": 0.216982,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75299,10 +75363,42 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 339,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-11-04",
+            "last_date": "2026-06-01",
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.216412,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率41%",
+            "サンプル27件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
             "店舗検証が弱い"
           ],
           "verified_target": false
@@ -75320,7 +75416,7 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.217174,
+          "score": 0.215486,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75330,7 +75426,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75351,7 +75447,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.216381,
+          "score": 0.214694,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75361,7 +75457,7 @@
             "推移下降"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75370,29 +75466,29 @@
           "verified_target": false
         },
         {
-          "tai": 370,
+          "tai": 375,
           "model": "L 東京喰種",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 496,
-            "day_count": 62,
-            "tai_count": 8,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "row_count": 984,
+            "day_count": 123,
+            "tai_count": 16,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.21634,
+          "score": 0.213253,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
-            "上候補以上率32%",
+            "上候補以上率30%",
             "サンプル62件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75414,7 +75510,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.214802,
+          "score": 0.213115,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75424,7 +75520,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75433,29 +75529,29 @@
           "verified_target": false
         },
         {
-          "tai": 368,
+          "tai": 369,
           "model": "L 東京喰種",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 496,
-            "day_count": 62,
-            "tai_count": 8,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "row_count": 984,
+            "day_count": 123,
+            "tai_count": 16,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.214485,
+          "score": 0.212952,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
-            "上候補以上率32%",
+            "上候補以上率29%",
             "サンプル62件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75477,7 +75573,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.21378,
+          "score": 0.212093,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75487,7 +75583,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75508,7 +75604,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.213415,
+          "score": 0.211728,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75518,7 +75614,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75539,7 +75635,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.213158,
+          "score": 0.211471,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75549,7 +75645,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75570,7 +75666,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.212288,
+          "score": 0.210601,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75580,7 +75676,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75601,7 +75697,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.21127,
+          "score": 0.209583,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75611,7 +75707,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75632,7 +75728,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.211168,
+          "score": 0.20948,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75642,7 +75738,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75663,7 +75759,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.210198,
+          "score": 0.208511,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75673,7 +75769,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75694,7 +75790,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.210129,
+          "score": 0.208442,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75704,7 +75800,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75725,7 +75821,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.209644,
+          "score": 0.207957,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75735,42 +75831,10 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 375,
-          "model": "L 東京喰種",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 496,
-            "day_count": 62,
-            "tai_count": 8,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.209446,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率30%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
             "店舗検証が弱い"
           ],
           "verified_target": false
@@ -75788,7 +75852,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.209422,
+          "score": 0.207735,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75798,7 +75862,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75819,7 +75883,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.209385,
+          "score": 0.207698,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75829,42 +75893,10 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 369,
-          "model": "L 東京喰種",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 496,
-            "day_count": 62,
-            "tai_count": 8,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.209144,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率29%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
             "店舗検証が弱い"
           ],
           "verified_target": false
@@ -75882,7 +75914,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.208976,
+          "score": 0.207289,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75892,7 +75924,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75913,7 +75945,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.208774,
+          "score": 0.207087,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75923,7 +75955,39 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 344,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-11-04",
+            "last_date": "2026-06-01",
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.207059,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率37%",
+            "サンプル27件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75945,7 +76009,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.207693,
+          "score": 0.206006,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75955,7 +76019,7 @@
             "推移上昇"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -75976,7 +76040,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.207282,
+          "score": 0.205595,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -75986,7 +76050,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76007,7 +76071,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.206941,
+          "score": 0.205254,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76017,7 +76081,7 @@
             "推移上昇"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76039,7 +76103,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.206576,
+          "score": 0.204889,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76049,7 +76113,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76070,7 +76134,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.206323,
+          "score": 0.204636,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76080,7 +76144,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76102,7 +76166,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.2059,
+          "score": 0.204213,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76112,7 +76176,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76133,7 +76197,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.205498,
+          "score": 0.203811,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76143,7 +76207,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76164,7 +76228,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.204359,
+          "score": 0.202672,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76174,7 +76238,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76196,7 +76260,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.203707,
+          "score": 0.20202,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76206,10 +76270,42 @@
             "推移下降"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 371,
+          "model": "L 東京喰種",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 984,
+            "day_count": 123,
+            "tai_count": 16,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.200523,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率25%",
+            "サンプル62件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
             "店舗検証が弱い"
           ],
           "verified_target": false
@@ -76227,7 +76323,7 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.201163,
+          "score": 0.199476,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76237,7 +76333,39 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 372,
+          "model": "L 東京喰種",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 984,
+            "day_count": 123,
+            "tai_count": 16,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.199146,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率24%",
+            "サンプル62件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76259,7 +76387,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.199823,
+          "score": 0.198136,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76269,7 +76397,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76291,7 +76419,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.199432,
+          "score": 0.197745,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76301,7 +76429,39 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 336,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-11-04",
+            "last_date": "2026-06-01",
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.19763,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率33%",
+            "サンプル27件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76323,7 +76483,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.199215,
+          "score": 0.197528,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76333,7 +76493,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76354,7 +76514,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.19911,
+          "score": 0.197423,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76364,7 +76524,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76385,7 +76545,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.197843,
+          "score": 0.196155,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76395,7 +76555,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76417,7 +76577,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.197626,
+          "score": 0.195939,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76427,7 +76587,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76449,7 +76609,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.197612,
+          "score": 0.195925,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76459,7 +76619,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76468,29 +76628,29 @@
           "verified_target": false
         },
         {
-          "tai": 371,
+          "tai": 374,
           "model": "L 東京喰種",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 496,
-            "day_count": 62,
-            "tai_count": 8,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "row_count": 984,
+            "day_count": 123,
+            "tai_count": 16,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.196716,
+          "score": 0.195336,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
-            "上候補以上率25%",
+            "上候補以上率22%",
             "サンプル62件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76512,7 +76672,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.195522,
+          "score": 0.193835,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76522,7 +76682,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76532,29 +76692,29 @@
           "verified_target": false
         },
         {
-          "tai": 372,
+          "tai": 373,
           "model": "L 東京喰種",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 496,
-            "day_count": 62,
-            "tai_count": 8,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "row_count": 984,
+            "day_count": 123,
+            "tai_count": 16,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.195339,
+          "score": 0.192793,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
-            "上候補以上率24%",
+            "上候補以上率21%",
             "サンプル62件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76576,51 +76736,21 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.193056,
+          "score": 0.192257,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
-            "上候補以上率24%",
-            "サンプル62件",
+            "上候補以上率25%",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 419,
-          "model": "新ハナビ",
-          "analysis_mode": "setting",
-          "model_coverage": {
-            "first_date": "2025-01-01",
-            "last_date": "2026-06-01",
-            "row_count": 1027,
-            "day_count": 514,
-            "tai_count": 6,
-            "coverage_label": "長期",
-            "coverage_strength": "high"
-          },
-          "score": 0.192514,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率20%",
-            "サンプル105件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -76640,17 +76770,51 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.192437,
+          "score": 0.191629,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
-            "上候補以上率24%",
-            "サンプル62件",
+            "上候補以上率25%",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 419,
+          "model": "新ハナビ",
+          "analysis_mode": "setting",
+          "model_coverage": {
+            "first_date": "2025-01-01",
+            "last_date": "2026-06-01",
+            "row_count": 1027,
+            "day_count": 514,
+            "tai_count": 6,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.190827,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率20%",
+            "サンプル105件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76672,7 +76836,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.19191,
+          "score": 0.190222,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76682,7 +76846,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76704,7 +76868,7 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.191773,
+          "score": 0.190086,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76714,42 +76878,10 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 374,
-          "model": "L 東京喰種",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 496,
-            "day_count": 62,
-            "tai_count": 8,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.191528,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率22%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
             "店舗検証が弱い"
           ],
           "verified_target": false
@@ -76767,7 +76899,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.190807,
+          "score": 0.18912,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76777,7 +76909,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76799,7 +76931,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.19079,
+          "score": 0.189103,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76809,7 +76941,39 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 345,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-11-04",
+            "last_date": "2026-06-01",
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.188659,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率30%",
+            "サンプル27件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76831,7 +76995,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.189892,
+          "score": 0.188205,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -76841,71 +77005,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 500,
-          "model": "ゴーゴージャグラー3",
-          "analysis_mode": "setting",
-          "model_coverage": {
-            "first_date": "2025-01-01",
-            "last_date": "2026-06-01",
-            "row_count": 7317,
-            "day_count": 514,
-            "tai_count": 27,
-            "coverage_label": "長期",
-            "coverage_strength": "high"
-          },
-          "score": 0.189185,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率22%",
-            "サンプル299件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 373,
-          "model": "L 東京喰種",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 496,
-            "day_count": 62,
-            "tai_count": 8,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.188986,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率21%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76927,17 +77027,51 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.188419,
+          "score": 0.187552,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率23%",
-            "サンプル62件",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 500,
+          "model": "ゴーゴージャグラー3",
+          "analysis_mode": "setting",
+          "model_coverage": {
+            "first_date": "2025-01-01",
+            "last_date": "2026-06-01",
+            "row_count": 7317,
+            "day_count": 514,
+            "tai_count": 27,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.187498,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率22%",
+            "サンプル299件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -76959,19 +77093,21 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.188274,
+          "score": 0.187405,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率23%",
-            "サンプル62件",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -76991,7 +77127,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.187451,
+          "score": 0.185764,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77001,7 +77137,7 @@
             "推移上昇"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77023,7 +77159,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.185607,
+          "score": 0.18392,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77033,7 +77169,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77055,7 +77191,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.185593,
+          "score": 0.183906,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77065,7 +77201,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77087,7 +77223,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.184859,
+          "score": 0.183172,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77097,7 +77233,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77119,7 +77255,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.184535,
+          "score": 0.182848,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77129,7 +77265,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77151,7 +77287,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.184346,
+          "score": 0.182659,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77161,7 +77297,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77183,7 +77319,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.184079,
+          "score": 0.182392,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77193,7 +77329,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77215,7 +77351,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.183739,
+          "score": 0.182052,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77225,7 +77361,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77247,7 +77383,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.183279,
+          "score": 0.181592,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77257,7 +77393,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77279,7 +77415,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.182698,
+          "score": 0.181011,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77289,7 +77425,7 @@
             "推移上昇"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77311,7 +77447,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.182109,
+          "score": 0.180422,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77321,7 +77457,7 @@
             "推移上昇"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77343,7 +77479,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.181229,
+          "score": 0.179542,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77353,7 +77489,7 @@
             "推移下降"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77375,7 +77511,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.181078,
+          "score": 0.179391,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77385,7 +77521,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77407,7 +77543,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.180874,
+          "score": 0.179187,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77417,71 +77553,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 517,
-          "model": "ゴーゴージャグラー3",
-          "analysis_mode": "setting",
-          "model_coverage": {
-            "first_date": "2025-01-01",
-            "last_date": "2026-06-01",
-            "row_count": 7317,
-            "day_count": 514,
-            "tai_count": 27,
-            "coverage_label": "長期",
-            "coverage_strength": "high"
-          },
-          "score": 0.180329,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率18%",
-            "サンプル299件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 356,
-          "model": "スマスロ北斗の拳 転生の章2",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 992,
-            "day_count": 62,
-            "tai_count": 16,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.179929,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率19%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77503,17 +77575,51 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.17992,
+          "score": 0.17893,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率19%",
-            "サンプル62件",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 517,
+          "model": "ゴーゴージャグラー3",
+          "analysis_mode": "setting",
+          "model_coverage": {
+            "first_date": "2025-01-01",
+            "last_date": "2026-06-01",
+            "row_count": 7317,
+            "day_count": 514,
+            "tai_count": 27,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.178642,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率18%",
+            "サンプル299件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77523,7 +77629,39 @@
           "verified_target": false
         },
         {
-          "tai": 353,
+          "tai": 337,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-11-04",
+            "last_date": "2026-06-01",
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.178448,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率26%",
+            "サンプル27件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 356,
           "model": "スマスロ北斗の拳 転生の章2",
           "analysis_mode": "diff",
           "model_coverage": {
@@ -77535,7 +77673,7 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.179418,
+          "score": 0.178241,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77545,7 +77683,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77567,7 +77705,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.178754,
+          "score": 0.177067,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77577,7 +77715,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77599,7 +77737,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.178393,
+          "score": 0.176705,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77609,7 +77747,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77631,7 +77769,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.177746,
+          "score": 0.176059,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77641,9 +77779,43 @@
             "推移上昇"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 353,
+          "model": "スマスロ北斗の拳 転生の章2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2026-04-01",
+            "last_date": "2026-06-01",
+            "row_count": 992,
+            "day_count": 62,
+            "tai_count": 16,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.174792,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率18%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -77663,7 +77835,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.176275,
+          "score": 0.174588,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77673,7 +77845,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77695,7 +77867,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.175963,
+          "score": 0.174276,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77705,39 +77877,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 456,
-          "model": "マイジャグラーV",
-          "analysis_mode": "setting",
-          "model_coverage": {
-            "first_date": "2025-01-01",
-            "last_date": "2026-06-01",
-            "row_count": 7862,
-            "day_count": 514,
-            "tai_count": 17,
-            "coverage_label": "長期",
-            "coverage_strength": "high"
-          },
-          "score": 0.175518,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率19%",
-            "サンプル514件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77759,19 +77899,21 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.1752,
+          "score": 0.174142,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
-            "上候補以上率17%",
-            "サンプル62件",
+            "上候補以上率18%",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -77791,17 +77933,51 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.175069,
+          "score": 0.174008,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
-            "上候補以上率17%",
-            "サンプル62件",
+            "上候補以上率18%",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 456,
+          "model": "マイジャグラーV",
+          "analysis_mode": "setting",
+          "model_coverage": {
+            "first_date": "2025-01-01",
+            "last_date": "2026-06-01",
+            "row_count": 7862,
+            "day_count": 514,
+            "tai_count": 17,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.173831,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率19%",
+            "サンプル514件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77823,7 +77999,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.174011,
+          "score": 0.172324,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77833,7 +78009,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77855,7 +78031,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.173976,
+          "score": 0.172289,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77865,7 +78041,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77887,7 +78063,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.173754,
+          "score": 0.172067,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77897,7 +78073,7 @@
             "推移上昇"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77919,7 +78095,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.173725,
+          "score": 0.172038,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77929,7 +78105,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77951,7 +78127,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.173608,
+          "score": 0.171921,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77961,7 +78137,7 @@
             "推移下降"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -77983,7 +78159,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.173419,
+          "score": 0.171732,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -77993,7 +78169,72 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 570,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-11-04",
+            "last_date": "2026-06-01",
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.171516,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率23%",
+            "サンプル13件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号サンプル不足",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 341,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-11-04",
+            "last_date": "2026-06-01",
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.171002,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率23%",
+            "サンプル27件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78015,7 +78256,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.17265,
+          "score": 0.170962,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78025,7 +78266,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78047,7 +78288,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.172352,
+          "score": 0.170665,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78057,7 +78298,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78079,7 +78320,7 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.171689,
+          "score": 0.170002,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78089,7 +78330,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78111,7 +78352,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.171633,
+          "score": 0.169946,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78121,7 +78362,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78143,7 +78384,7 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.171614,
+          "score": 0.169927,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78153,7 +78394,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78175,7 +78416,7 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.171482,
+          "score": 0.169795,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78185,7 +78426,39 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 340,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-11-04",
+            "last_date": "2026-06-01",
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.169415,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率22%",
+            "サンプル27件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78207,7 +78480,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.170509,
+          "score": 0.168822,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78217,7 +78490,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78239,7 +78512,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.170164,
+          "score": 0.168476,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78249,7 +78522,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78271,7 +78544,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.170115,
+          "score": 0.168428,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78281,7 +78554,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78303,7 +78576,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.169959,
+          "score": 0.168272,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78313,7 +78586,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78335,7 +78608,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.169266,
+          "score": 0.167579,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78345,7 +78618,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78367,7 +78640,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.169184,
+          "score": 0.167497,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78377,7 +78650,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78399,7 +78672,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.168905,
+          "score": 0.167218,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78409,39 +78682,7 @@
             "推移下降"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 530,
-          "model": "L モンキーターンV",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 744,
-            "day_count": 62,
-            "tai_count": 12,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.168458,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率19%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78463,7 +78704,7 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.166503,
+          "score": 0.164816,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78473,7 +78714,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78495,7 +78736,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.166432,
+          "score": 0.164745,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78505,7 +78746,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78515,34 +78756,70 @@
           "verified_target": false
         },
         {
-          "tai": 528,
-          "model": "L モンキーターンV",
+          "tai": 333,
+          "model": "L 革命機ヴァルヴレイヴ2",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-11-04",
             "last_date": "2026-06-01",
-            "row_count": 744,
-            "day_count": 62,
-            "tai_count": 12,
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.165503,
+          "score": 0.163565,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
-            "上候補以上率18%",
-            "サンプル62件",
+            "上候補以上率20%",
+            "サンプル5件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "サンプル数が10件未満",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "サンプル数が10件未満",
+            "台番号サンプル不足",
             "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
+            "機種条件が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 334,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-11-04",
+            "last_date": "2026-06-01",
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.163565,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率20%",
+            "サンプル5件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "サンプル数が10件未満",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "サンプル数が10件未満",
+            "台番号サンプル不足",
+            "店条件が弱い",
+            "機種条件が弱い"
           ],
           "verified_target": false
         },
@@ -78559,7 +78836,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.164267,
+          "score": 0.16258,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78569,7 +78846,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78591,7 +78868,7 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.16343,
+          "score": 0.161743,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78601,7 +78878,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78611,29 +78888,125 @@
           "verified_target": false
         },
         {
-          "tai": 521,
-          "model": "L モンキーターンV",
+          "tai": 575,
+          "model": "L 革命機ヴァルヴレイヴ2",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-11-04",
             "last_date": "2026-06-01",
-            "row_count": 744,
-            "day_count": 62,
-            "tai_count": 12,
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.162151,
+          "score": 0.161015,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
-            "上候補以上率16%",
-            "サンプル62件",
+            "上候補以上率19%",
+            "サンプル43件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 342,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-11-04",
+            "last_date": "2026-06-01",
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.160895,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率19%",
+            "サンプル27件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 338,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-11-04",
+            "last_date": "2026-06-01",
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.160338,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率19%",
+            "サンプル27件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 343,
+          "model": "L 革命機ヴァルヴレイヴ2",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-11-04",
+            "last_date": "2026-06-01",
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
+            "coverage_label": "中期",
+            "coverage_strength": "medium"
+          },
+          "score": 0.160055,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率18%",
+            "サンプル27件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78655,7 +79028,7 @@
             "coverage_label": "長期",
             "coverage_strength": "high"
           },
-          "score": 0.161134,
+          "score": 0.159447,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78665,7 +79038,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -78687,7 +79060,7 @@
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.160814,
+          "score": 0.159127,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -78697,396 +79070,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 570,
-          "model": "L 革命機ヴァルヴレイヴ2",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.159091,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率23%",
-            "サンプル13件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "台番号サンプル不足",
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 522,
-          "model": "L モンキーターンV",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 744,
-            "day_count": 62,
-            "tai_count": 12,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.156785,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率14%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 527,
-          "model": "L モンキーターンV",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 744,
-            "day_count": 62,
-            "tai_count": 12,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.153171,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率13%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 520,
-          "model": "L モンキーターンV",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 744,
-            "day_count": 62,
-            "tai_count": 12,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.153116,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率13%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 333,
-          "model": "L 革命機ヴァルヴレイヴ2",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.151139,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率20%",
-            "サンプル5件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "サンプル数が10件未満",
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "サンプル数が10件未満",
-            "台番号サンプル不足",
-            "店条件が弱い",
-            "機種条件が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 334,
-          "model": "L 革命機ヴァルヴレイヴ2",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.151139,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率20%",
-            "サンプル5件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "サンプル数が10件未満",
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "サンプル数が10件未満",
-            "台番号サンプル不足",
-            "店条件が弱い",
-            "機種条件が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 523,
-          "model": "L モンキーターンV",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 744,
-            "day_count": 62,
-            "tai_count": 12,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.149841,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率11%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 575,
-          "model": "L 革命機ヴァルヴレイヴ2",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.148589,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率19%",
-            "サンプル43件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 529,
-          "model": "L モンキーターンV",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 744,
-            "day_count": 62,
-            "tai_count": 12,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.145498,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率10%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 524,
-          "model": "L モンキーターンV",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 744,
-            "day_count": 62,
-            "tai_count": 12,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.145353,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率10%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 526,
-          "model": "L モンキーターンV",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 744,
-            "day_count": 62,
-            "tai_count": 12,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.145279,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率10%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 519,
-          "model": "L モンキーターンV",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 744,
-            "day_count": 62,
-            "tai_count": 12,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.145208,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率10%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -79100,15 +79084,15 @@
           "model": "L 革命機ヴァルヴレイヴ2",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-11-04",
             "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.142565,
+          "score": 0.154991,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -79118,39 +79102,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 525,
-          "model": "L モンキーターンV",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 744,
-            "day_count": 62,
-            "tai_count": 12,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.141732,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率8%",
-            "サンプル62件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -79164,15 +79116,15 @@
           "model": "L 革命機ヴァルヴレイヴ2",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-11-04",
             "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.141556,
+          "score": 0.153982,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -79182,7 +79134,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "店条件が弱い",
@@ -79196,15 +79148,15 @@
           "model": "L 革命機ヴァルヴレイヴ2",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-11-04",
             "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.140305,
+          "score": 0.152731,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -79214,10 +79166,214 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "台番号サンプル不足",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 528,
+          "model": "L モンキーターンV",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1476,
+            "day_count": 123,
+            "tai_count": 12,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.150906,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率18%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 530,
+          "model": "L モンキーターンV",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1476,
+            "day_count": 123,
+            "tai_count": 12,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.150276,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率18%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 521,
+          "model": "L モンキーターンV",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1476,
+            "day_count": 123,
+            "tai_count": 12,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.147505,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率17%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 522,
+          "model": "L モンキーターンV",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1476,
+            "day_count": 123,
+            "tai_count": 12,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.138433,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率13%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 527,
+          "model": "L モンキーターンV",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1476,
+            "day_count": 123,
+            "tai_count": 12,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.138395,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率13%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 520,
+          "model": "L モンキーターンV",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1476,
+            "day_count": 123,
+            "tai_count": 12,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.13834,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率13%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79229,15 +79385,15 @@
           "model": "L 革命機ヴァルヴレイヴ2",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-11-04",
             "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.124855,
+          "score": 0.13728,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -79247,9 +79403,43 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 523,
+          "model": "L モンキーターンV",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1476,
+            "day_count": 123,
+            "tai_count": 12,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.135017,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率12%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79261,15 +79451,15 @@
           "model": "L 革命機ヴァルヴレイヴ2",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-11-04",
             "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.120644,
+          "score": 0.133069,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -79279,10 +79469,180 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "台番号サンプル不足",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 529,
+          "model": "L モンキーターンV",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1476,
+            "day_count": 123,
+            "tai_count": 12,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.130611,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率10%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 524,
+          "model": "L モンキーターンV",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1476,
+            "day_count": 123,
+            "tai_count": 12,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.130464,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率10%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 519,
+          "model": "L モンキーターンV",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1476,
+            "day_count": 123,
+            "tai_count": 12,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.130316,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率10%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 526,
+          "model": "L モンキーターンV",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1476,
+            "day_count": 123,
+            "tai_count": 12,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.12676,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率8%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 525,
+          "model": "L モンキーターンV",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1476,
+            "day_count": 123,
+            "tai_count": 12,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.123162,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率7%",
+            "サンプル61件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79294,15 +79654,15 @@
           "model": "L 革命機ヴァルヴレイヴ2",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-11-04",
             "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.101523,
+          "score": 0.113949,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -79313,7 +79673,7 @@
           ],
           "warnings": [
             "サンプル数が10件未満",
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "サンプル数が10件未満",
@@ -79328,15 +79688,15 @@
           "model": "L 革命機ヴァルヴレイヴ2",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-11-04",
             "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.101523,
+          "score": 0.113949,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -79347,7 +79707,7 @@
           ],
           "warnings": [
             "サンプル数が10件未満",
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "サンプル数が10件未満",
@@ -79362,15 +79722,15 @@
           "model": "L 革命機ヴァルヴレイヴ2",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-11-04",
             "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.101523,
+          "score": 0.113949,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -79381,7 +79741,7 @@
           ],
           "warnings": [
             "サンプル数が10件未満",
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "サンプル数が10件未満",
@@ -79396,15 +79756,15 @@
           "model": "L 革命機ヴァルヴレイヴ2",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-11-04",
             "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.101523,
+          "score": 0.113949,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -79415,7 +79775,7 @@
           ],
           "warnings": [
             "サンプル数が10件未満",
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "サンプル数が10件未満",
@@ -79430,15 +79790,15 @@
           "model": "L 革命機ヴァルヴレイヴ2",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-11-04",
             "last_date": "2026-06-01",
-            "row_count": 278,
-            "day_count": 62,
-            "tai_count": 14,
+            "row_count": 548,
+            "day_count": 89,
+            "tai_count": 24,
             "coverage_label": "中期",
             "coverage_strength": "medium"
           },
-          "score": 0.101523,
+          "score": 0.113949,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
@@ -79448,7 +79808,7 @@
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
             "台番号サンプル不足",
@@ -79463,27 +79823,29 @@
           "model": "スマスロ北斗の拳",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
+            "row_count": 1441,
+            "day_count": 123,
             "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.089049,
+          "score": 0.084809,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率8%",
-            "サンプル40件",
+            "サンプル39件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79495,59 +79857,29 @@
           "model": "スマスロ北斗の拳",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
+            "row_count": 1441,
+            "day_count": 123,
             "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.086768,
+          "score": 0.082316,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率7%",
-            "サンプル62件",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
-            "店条件が弱い",
-            "機種条件が弱い",
-            "店舗検証が弱い"
-          ],
-          "verified_target": false
-        },
-        {
-          "tai": 532,
-          "model": "スマスロ北斗の拳",
-          "analysis_mode": "diff",
-          "model_coverage": {
-            "first_date": "2026-04-01",
-            "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
-            "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
-          },
-          "score": 0.082031,
-          "action": "watch",
-          "action_label": "参考",
-          "actionable": false,
-          "reasons": [
-            "上候補以上率5%",
-            "サンプル40件",
-            "推移横ばい"
-          ],
-          "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
-          ],
-          "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79559,27 +79891,63 @@
           "model": "スマスロ北斗の拳",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
+            "row_count": 1441,
+            "day_count": 123,
             "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.077709,
+          "score": 0.073126,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率3%",
-            "サンプル62件",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
+            "店条件が弱い",
+            "機種条件が弱い",
+            "店舗検証が弱い"
+          ],
+          "verified_target": false
+        },
+        {
+          "tai": 532,
+          "model": "スマスロ北斗の拳",
+          "analysis_mode": "diff",
+          "model_coverage": {
+            "first_date": "2025-10-01",
+            "last_date": "2026-06-01",
+            "row_count": 1441,
+            "day_count": 123,
+            "tai_count": 13,
+            "coverage_label": "長期",
+            "coverage_strength": "high"
+          },
+          "score": 0.071695,
+          "action": "watch",
+          "action_label": "参考",
+          "actionable": false,
+          "reasons": [
+            "上候補以上率3%",
+            "サンプル39件",
+            "推移横ばい"
+          ],
+          "warnings": [
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
+          ],
+          "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79591,27 +79959,29 @@
           "model": "スマスロ北斗の拳",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
+            "row_count": 1441,
+            "day_count": 123,
             "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.075597,
+          "score": 0.071037,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率2%",
-            "サンプル40件",
+            "サンプル39件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79623,27 +79993,29 @@
           "model": "スマスロ北斗の拳",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
+            "row_count": 1441,
+            "day_count": 123,
             "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.074074,
+          "score": 0.069438,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率2%",
-            "サンプル62件",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79655,27 +80027,29 @@
           "model": "スマスロ北斗の拳",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
+            "row_count": 1441,
+            "day_count": 123,
             "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.073753,
+          "score": 0.069112,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率2%",
-            "サンプル62件",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79687,27 +80061,29 @@
           "model": "スマスロ北斗の拳",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
+            "row_count": 1441,
+            "day_count": 123,
             "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.073571,
+          "score": 0.068928,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率2%",
-            "サンプル62件",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79719,27 +80095,29 @@
           "model": "スマスロ北斗の拳",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
+            "row_count": 1441,
+            "day_count": 123,
             "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.069738,
+          "score": 0.065039,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率0%",
-            "サンプル62件",
+            "サンプル61件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79751,27 +80129,29 @@
           "model": "スマスロ北斗の拳",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
+            "row_count": 1441,
+            "day_count": 123,
             "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.069738,
+          "score": 0.065039,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率0%",
-            "サンプル40件",
+            "サンプル39件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79783,27 +80163,29 @@
           "model": "スマスロ北斗の拳",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
+            "row_count": 1441,
+            "day_count": 123,
             "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.069738,
+          "score": 0.065039,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率0%",
-            "サンプル40件",
+            "サンプル39件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79815,27 +80197,29 @@
           "model": "スマスロ北斗の拳",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
+            "row_count": 1441,
+            "day_count": 123,
             "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.069738,
+          "score": 0.065039,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率0%",
-            "サンプル40件",
+            "サンプル39件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79847,27 +80231,29 @@
           "model": "スマスロ北斗の拳",
           "analysis_mode": "diff",
           "model_coverage": {
-            "first_date": "2026-04-01",
+            "first_date": "2025-10-01",
             "last_date": "2026-06-01",
-            "row_count": 652,
-            "day_count": 62,
+            "row_count": 1441,
+            "day_count": 123,
             "tai_count": 13,
-            "coverage_label": "中期",
-            "coverage_strength": "medium"
+            "coverage_label": "長期",
+            "coverage_strength": "high"
           },
-          "score": 0.069738,
+          "score": 0.065039,
           "action": "watch",
           "action_label": "参考",
           "actionable": false,
           "reasons": [
             "上候補以上率0%",
-            "サンプル40件",
+            "サンプル39件",
             "推移横ばい"
           ],
           "warnings": [
-            "店舗検証: 見送り。検証上、候補を出す根拠が弱いです。"
+            "台番号変動あり（直近62日）",
+            "店舗検証: 見送り寄り。店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。"
           ],
           "cautions": [
+            "台番号変動あり（直近62日）",
             "店条件が弱い",
             "機種条件が弱い",
             "店舗検証が弱い"
@@ -79967,46 +80353,46 @@
           "coverage_strength": "medium"
         },
         "L 東京喰種": {
-          "first_date": "2026-04-01",
+          "first_date": "2025-10-01",
           "last_date": "2026-06-01",
-          "row_count": 496,
-          "day_count": 62,
-          "tai_count": 8,
-          "coverage_label": "中期",
-          "coverage_strength": "medium"
+          "row_count": 984,
+          "day_count": 123,
+          "tai_count": 16,
+          "coverage_label": "長期",
+          "coverage_strength": "high"
         },
         "L モンキーターンV": {
-          "first_date": "2026-04-01",
+          "first_date": "2025-10-01",
           "last_date": "2026-06-01",
-          "row_count": 744,
-          "day_count": 62,
+          "row_count": 1476,
+          "day_count": 123,
           "tai_count": 12,
-          "coverage_label": "中期",
-          "coverage_strength": "medium"
+          "coverage_label": "長期",
+          "coverage_strength": "high"
         },
         "スマスロ北斗の拳": {
-          "first_date": "2026-04-01",
+          "first_date": "2025-10-01",
           "last_date": "2026-06-01",
-          "row_count": 652,
-          "day_count": 62,
+          "row_count": 1441,
+          "day_count": 123,
           "tai_count": 13,
-          "coverage_label": "中期",
-          "coverage_strength": "medium"
+          "coverage_label": "長期",
+          "coverage_strength": "high"
         },
         "L 革命機ヴァルヴレイヴ2": {
-          "first_date": "2026-04-01",
+          "first_date": "2025-11-04",
           "last_date": "2026-06-01",
-          "row_count": 278,
-          "day_count": 62,
-          "tai_count": 14,
+          "row_count": 548,
+          "day_count": 89,
+          "tai_count": 24,
           "coverage_label": "中期",
           "coverage_strength": "medium"
         }
       },
       "evidence_guard": {
         "actionable": false,
-        "label": "見送り",
-        "detail": "検証上、候補を出す根拠が弱いです。",
+        "label": "見送り寄り",
+        "detail": "店平均よりは上ですが、候補平均が弱く実戦根拠としては不足です。",
         "target_tais": []
       }
     },
