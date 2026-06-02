@@ -10819,6 +10819,32 @@ function getWithdrawModelName() {
   return 'マイジャグラーV';
 }
 
+function syncWithdrawContextFromSeatSelection() {
+  if(!document.body?.classList?.contains('is-seat-layout-active')) return false;
+  const tai = Number(seatLayoutState.selectedTai);
+  if(!Number.isFinite(tai) || !seatLayoutState.store) return false;
+  const row = getSeatLayoutRowsForStore(seatLayoutState.store).find((item) => Number(item.tai) === tai);
+  if(!row) return false;
+  const model = normalizeModelName(row.model || '');
+  const evidenceCandidate = getSeatLayoutEvidenceCandidateByTai(tai);
+  const smartTreatment = isSmartSlotModel(model) ? buildSeatSmartTreatmentForRow(row) : null;
+  G.currentTargetContext = {
+    store: seatLayoutState.store,
+    model,
+    tai,
+    targetDate: seatLayoutState.dateYmd || '',
+    isSpecial: false,
+    rank: evidenceCandidate?.rank || '',
+    totalScore: evidenceCandidate?.score ?? evidenceCandidate?.totalScore ?? null,
+    configScore: 0,
+    valueScore: evidenceCandidate?.score ?? null,
+    smartTreatment,
+    hallEvidence: evidenceCandidate?.hallEvidence || [],
+    seatSelection: true,
+  };
+  return true;
+}
+
 function isWithdrawSettingModel(model) {
   return isSettingAnalysisModel(model) && !!MODEL_SETTINGS[normalizeModelName(model || '')];
 }
@@ -11130,6 +11156,7 @@ function initWithdrawJudgeUI() {
   if(!fab || !overlay || !popup || !runBtn || !bannerClose || !banner) return;
 
   fab.addEventListener('click', () => {
+    syncWithdrawContextFromSeatSelection();
     renderWithdrawJudgeContext();
     overlay.classList.add('open');
   });
