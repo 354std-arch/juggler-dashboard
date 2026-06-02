@@ -10177,6 +10177,14 @@ function formatSmartTreatmentText(treatment, label) {
   return `${label} 平均${formatTargetSigned枚(avg)} / 勝率${formatTargetPercent(treatment.plusRate)} / ${Number.isFinite(count) ? Math.round(count) : 0}件${sampleNote}`;
 }
 
+function getMorningModelMetricLabel(modelOrRanking) {
+  const model = typeof modelOrRanking === 'string'
+    ? modelOrRanking
+    : (modelOrRanking?.model || '');
+  const mode = typeof modelOrRanking === 'object' ? String(modelOrRanking?.analysis_mode || '') : '';
+  return mode === 'diff' || (model && !isSettingAnalysisModel(model)) ? '強挙動率' : '上候補率';
+}
+
 function getMorningModelFocusText(modelRanking) {
   const usable = (Array.isArray(modelRanking) ? modelRanking : [])
     .filter((m) => m && m.sample_usable !== false && Number(m.sample) >= 20)
@@ -10434,7 +10442,7 @@ function renderMorningSummaryForCalendar() {
             ? [
                 matchModel.reason || '機種傾向あり',
                 formatMorningRankCondition(matchModel),
-                `上候補率${formatMorningScorePercent(matchModel.raw_score ?? matchModel.score)}`,
+                `${getMorningModelMetricLabel(matchModel)}${formatMorningScorePercent(matchModel.raw_score ?? matchModel.score)}`,
                 `サンプル${modelSampleText}${matchModel.sample_label && matchModel.sample_label !== '通常評価' ? ` / ${matchModel.sample_label}` : ''}`,
                 formatMorningCoverageText(c?.model_coverage || matchModel.coverage || getMorningModelCoverage(data, modelName)),
                 smartTreatmentText,
@@ -10969,9 +10977,20 @@ function buildSmartSlotWithdrawDecision(counts) {
   const modelAvgG = Number(modelProfile?.avgG);
   const winRate = Number(modelProfile?.winRate);
   const coverage = modelProfile?.coverageLabel || modelProfile?.coverage_label || '';
+  const coverageStrength = modelProfile?.coverageStrength || modelProfile?.coverage_strength || '';
   const smartTreatment = context.smartTreatment || taiProfile?.smartTreatment || null;
   const reasons = [];
   let pts = 0;
+  let evidenceCap = Infinity;
+
+  if(coverageStrength === 'thin') {
+    pts -= 1;
+    evidenceCap = Math.min(evidenceCap, 2);
+    reasons.push(`データ厚み:${coverage || '薄い'}（続行根拠にしません）`);
+  } else if(coverageStrength === 'low') {
+    evidenceCap = Math.min(evidenceCap, 4);
+    reasons.push(`データ厚み:${coverage || '短期'}（短期扱い）`);
+  }
 
   if(Number.isFinite(totalScore) && totalScore >= 260) {
     pts += 2;
@@ -11013,7 +11032,7 @@ function buildSmartSlotWithdrawDecision(counts) {
     pts += 1;
     reasons.push(`番号帯扱い${formatWithdrawDiff(bandTreatment.avg)}・${Math.round(Number(bandTreatment.count))}件`);
   }
-  if(coverage) reasons.push(`データ厚み:${coverage}`);
+  if(coverage && coverageStrength !== 'thin' && coverageStrength !== 'low') reasons.push(`データ厚み:${coverage}`);
   if(context.hallEvidence?.length) reasons.push('ホール位置根拠あり');
   if(Number.isFinite(currentDiff)) {
     reasons.push(`現在${formatWithdrawDiff(currentDiff)}`);
@@ -11022,6 +11041,7 @@ function buildSmartSlotWithdrawDecision(counts) {
   }
 
   const suffix = `（${model} / ${reasons.slice(0, 4).join(' / ') || '過去根拠なし'}）`;
+  if(Number.isFinite(evidenceCap)) pts = Math.min(pts, evidenceCap);
   if(games < 200) {
     return { tone: 'neutral', message: `判定保留：スマスロは序盤だけで決めません ${suffix}` };
   }

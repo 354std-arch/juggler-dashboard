@@ -585,6 +585,11 @@ def classify_morning_model_sample(sample):
     return {"sample_label": "薄い", "sample_strength": "thin", "sample_usable": False}
 
 
+def format_morning_model_reason(model, upper_rate, sample):
+    metric = "上候補以上率" if supports_setting_analysis(model) else "強挙動率"
+    return f"{metric}{upper_rate:.0%}({sample}件)"
+
+
 def classify_label(total_g, bb, rb, diff, syn_threshold, rb_threshold):
     syn_ratio = (total_g / (bb + rb)) if (bb + rb) > 0 else None
     rb_ratio = (total_g / rb) if rb > 0 else None
@@ -985,7 +990,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
                 "analysis_mode": "setting" if supports_setting_analysis(model) else "diff",
                 "score": round(upper_rate if sample_meta["sample_usable"] else upper_rate * 0.25, 6),
                 "raw_score": round(upper_rate, 6),
-                "reason": f"上候補以上率{upper_rate:.0%}({total}件)",
+                "reason": format_morning_model_reason(model, upper_rate, total),
                 "sample": total,
                 **sample_meta,
                 "coverage": model_coverage.get(store, {}).get(model, {}),
@@ -1098,7 +1103,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
                 "action_label": decision["action_label"],
                 "actionable": decision["actionable"],
                 "reasons": [
-                    f"上候補以上率{tai_upper_rate:.0%}",
+                    f"{'上候補以上率' if supports_setting_analysis(recent_model) else '強挙動率'}{tai_upper_rate:.0%}",
                     f"サンプル{sample}件",
                     f"推移{trend}",
                 ][:3],
@@ -1293,7 +1298,7 @@ def build_payload(df, normalized_models, unsupported_models):
                     "analysis_mode": "setting" if supports_setting_analysis(r.model) else "diff",
                     "score": round(float(r.ranking_score), 6),
                     "raw_score": round(float(r.upper_rate), 6),
-                    "reason": f"上候補以上率{float(r.upper_rate):.0%}({int(r.sample)}件)",
+                    "reason": format_morning_model_reason(r.model, float(r.upper_rate), int(r.sample)),
                     "sample": int(r.sample),
                     **sample_meta,
                     "coverage": model_coverage.get(store, {}).get(r.model, {}),
@@ -1338,8 +1343,9 @@ def build_payload(df, normalized_models, unsupported_models):
             else:
                 trend = "横ばい"
 
+            tai_metric = "上候補以上率" if supports_setting_analysis(model) else "強挙動率"
             reasons = [
-                f"上候補以上率{tai_score:.0%}",
+                f"{tai_metric}{tai_score:.0%}",
                 f"サンプル{int(r.sample)}件",
                 f"推移{trend}",
             ][:3]
