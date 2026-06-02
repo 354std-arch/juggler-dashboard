@@ -10233,11 +10233,22 @@ function getMorningHallLayoutSummary(store) {
   const meta = G._precomputed?.hallLayoutEvidence?.[store];
   if(!meta || typeof meta !== 'object') return 'ホール図根拠: 未配置';
   if(meta.analysisReady === false) return 'ホール図根拠: 配置未完成';
+  const analyses = G._precomputed?.byStore?.[store]?.targetAnalyses || {};
+  let hallTargetCount = 0;
+  Object.values(analyses).forEach((analysis) => {
+    (analysis?.topTargets || []).forEach((target) => {
+      if(Array.isArray(target?.hallEvidence) && target.hallEvidence.length) hallTargetCount += 1;
+    });
+  });
   const occupied = Number(meta.occupied);
   const islands = Number(meta.islands);
   const adjacent = Number(meta.adjacentPairs);
+  const applied = hallTargetCount
+    ? `候補反映${hallTargetCount}`
+    : '候補反映なし';
   return [
     'ホール図根拠: 使用中',
+    applied,
     Number.isFinite(occupied) ? `${Math.round(occupied)}台` : '',
     Number.isFinite(islands) ? `島${Math.round(islands)}` : '',
     Number.isFinite(adjacent) ? `隣接${Math.round(adjacent)}` : '',
