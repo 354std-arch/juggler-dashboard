@@ -1234,6 +1234,47 @@ button.seat-heatmap-cell{
   line-height:1.5;
 }
 
+.withdraw-judge-context-title{
+  color:var(--text);
+  font-weight:800;
+  margin-bottom:3px;
+}
+
+.withdraw-judge-context-note{
+  color:var(--muted);
+  margin-bottom:7px;
+}
+
+.withdraw-judge-evidence{
+  display:grid;
+  gap:5px;
+  padding:8px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--bg3);
+}
+
+.withdraw-judge-evidence-row{
+  display:grid;
+  grid-template-columns:minmax(78px, .8fr) minmax(0, 1.4fr);
+  gap:8px;
+  align-items:start;
+}
+
+.withdraw-judge-evidence-row span{
+  color:var(--muted);
+}
+
+.withdraw-judge-evidence-row strong{
+  color:var(--text);
+  font-weight:800;
+  overflow-wrap:anywhere;
+}
+
+.withdraw-judge-evidence-empty{
+  color:var(--muted);
+}
+
 .withdraw-judge-run-btn{
   grid-column:1 / -1;
   margin-top:2px;

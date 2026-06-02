@@ -11248,6 +11248,45 @@ function closeWithdrawPopup() {
   if(overlay) overlay.classList.remove('open');
 }
 
+function renderSmartWithdrawContextHtml(model, context) {
+  const taiProfile = findWithdrawTaiProfile(model, context);
+  const modelProfile = findWithdrawModelProfile(model, context);
+  const smartTreatment = context?.smartTreatment || taiProfile?.smartTreatment || null;
+  const rows = [];
+  const addRow = (label, value) => {
+    if(value === null || value === undefined || value === '') return;
+    rows.push(`<div class="withdraw-judge-evidence-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`);
+  };
+
+  addRow('台の現行平均', Number.isFinite(Number(taiProfile?.avg)) ? formatWithdrawDiff(Number(taiProfile.avg)) : '');
+  addRow('特定日/通常日', [
+    Number.isFinite(Number(taiProfile?.spAvg)) ? `特${formatWithdrawDiff(Number(taiProfile.spAvg))}` : '',
+    Number.isFinite(Number(taiProfile?.nmAvg)) ? `通${formatWithdrawDiff(Number(taiProfile.nmAvg))}` : '',
+  ].filter(Boolean).join(' / '));
+  addRow('機種平均', Number.isFinite(Number(modelProfile?.allAvg)) ? formatWithdrawDiff(Number(modelProfile.allAvg)) : '');
+  addRow('平均G/勝率', [
+    Number.isFinite(Number(modelProfile?.avgG)) ? `${Math.round(Number(modelProfile.avgG)).toLocaleString()}G` : '',
+    Number.isFinite(Number(modelProfile?.winRate)) ? `${round1(Number(modelProfile.winRate))}%` : '',
+  ].filter(Boolean).join(' / '));
+  addRow('データ厚み', modelProfile?.coverageLabel || modelProfile?.coverage_label || '');
+  addRow('直近機種扱い', smartTreatment?.model ? formatSmartTreatmentText(smartTreatment.model, '機種') : '');
+  addRow('番号帯扱い', smartTreatment?.band ? formatSmartTreatmentText(smartTreatment.band, '番号帯') : '');
+  if(context?.hallEvidence?.length) addRow('ホール位置', '配置/角台/並び根拠あり');
+  if(Number.isFinite(Number(context?.totalScore))) addRow('朝の候補スコア', `${Math.round(Number(context.totalScore))}pt`);
+
+  const contextText = context?.tai
+    ? `${context.store || '店舗不明'} / ${context.tai}番台`
+    : '設定推測タブの選択機種を使用';
+  const body = rows.length
+    ? rows.join('')
+    : '<div class="withdraw-judge-evidence-empty">台別・機種別の過去根拠がまだ薄いです。現場挙動と投資上限を優先してください。</div>';
+  return `
+    <div class="withdraw-judge-context-title">判定機種: ${escapeHtml(model)} / ${escapeHtml(contextText)}</div>
+    <div class="withdraw-judge-context-note">スマスロはP設定4+を出さず、差枚・G数・投入頻度・ホール位置で継続/撤退を補助します。</div>
+    <div class="withdraw-judge-evidence">${body}</div>
+  `;
+}
+
 function renderWithdrawJudgeContext() {
   const el = document.getElementById('withdrawJudgeContext');
   if(!el) return;
@@ -11257,9 +11296,11 @@ function renderWithdrawJudgeContext() {
   const contextText = context?.tai
     ? `${context.store || '店舗不明'} / ${context.tai}番台`
     : '設定推測タブの選択機種を使用';
-  el.textContent = settingMode
-    ? `判定機種: ${model} / ${contextText} / Aタイプは設定推測で判定`
-    : `判定機種: ${model} / ${contextText} / スマスロは差枚・G数・過去根拠で判定`;
+  if(settingMode) {
+    el.textContent = `判定機種: ${model} / ${contextText} / Aタイプは設定推測で判定`;
+  } else {
+    el.innerHTML = renderSmartWithdrawContextHtml(model, context);
+  }
   ['withdrawBig', 'withdrawReg', 'withdrawGrape', 'withdrawCherry'].forEach((id) => {
     const field = document.getElementById(id)?.closest('.withdraw-judge-field');
     if(field) field.style.display = settingMode ? '' : 'none';
