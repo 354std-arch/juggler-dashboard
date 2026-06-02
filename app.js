@@ -10197,7 +10197,7 @@ function getMorningModelFocusText(modelRanking) {
   return `${lead}: ${names}`;
 }
 
-function getMorningSmartCoverageSummary(data) {
+function getMorningSmartCoverageMeta(data) {
   const coverageMap = data?.model_coverage && typeof data.model_coverage === 'object' ? data.model_coverage : {};
   const counts = { high: 0, medium: 0, low: 0, thin: 0 };
   let total = 0;
@@ -10210,7 +10210,7 @@ function getMorningSmartCoverageSummary(data) {
     if(Object.prototype.hasOwnProperty.call(counts, strength)) counts[strength] += 1;
     else counts.thin += 1;
   });
-  if(!total) return 'スマスロ厚み: 未取得';
+  if(!total) return { text: 'スマスロ厚み: 未取得', counts, total, riskScore: 2 };
   const parts = [
     counts.high ? `長期${counts.high}` : '',
     counts.medium ? `中期${counts.medium}` : '',
@@ -10218,7 +10218,15 @@ function getMorningSmartCoverageSummary(data) {
     counts.thin ? `薄い${counts.thin}` : '',
   ].filter(Boolean);
   const risk = counts.low || counts.thin ? ' / 短期注意' : '';
-  return `スマスロ厚み: ${parts.join('・')}${risk}`;
+  const riskScore = (counts.low || counts.thin)
+    ? 1.5
+    : (counts.high ? 0 : 0.5);
+  return {
+    text: `スマスロ厚み: ${parts.join('・')}${risk}`,
+    counts,
+    total,
+    riskScore,
+  };
 }
 
 function renderMorningBacktestDigest(storeData) {
@@ -10264,11 +10272,17 @@ function renderMorningBacktestDigest(storeData) {
   </div>`;
 }
 
-function classifyMorningStorePriority({ trustMeta, todayLabel, candidates, backtest }) {
+function classifyMorningStorePriority({ trustMeta, todayLabel, candidates, backtest, modelRanking, smartCoverage }) {
   const actionable = trustMeta?.actionable !== false;
   const summary = backtest?.summary || {};
   const decision = summary.decision || {};
   const robustness = backtest?.robustness || {};
+  const usableModels = (Array.isArray(modelRanking) ? modelRanking : [])
+    .filter((m) => m && m.sample_usable !== false && Number(m.sample) >= 20)
+    .slice(0, 3);
+  const settingFocusCount = usableModels.filter((m) => m.analysis_mode === 'setting').length;
+  const diffFocusCount = usableModels.filter((m) => m.analysis_mode === 'diff').length;
+  const smartFocused = diffFocusCount > settingFocusCount;
   const verifiedCount = candidates.filter((c) => c?.verified_target === true).length;
   const mainCount = candidates.filter((c) => String(c?.action || '') === 'main').length;
   const candidateCount = candidates.filter((c) => ['main', 'candidate'].includes(String(c?.action || ''))).length;
@@ -10287,6 +10301,10 @@ function classifyMorningStorePriority({ trustMeta, todayLabel, candidates, backt
   if(Number.isFinite(topHit) && topHit >= 23) score += 0.5;
   if(!actionable) score -= 2;
   if(robustness.level && robustness.level !== 'stable') score -= robustness.level === 'mixed' ? 1 : 1.5;
+  if(smartFocused && smartCoverage) {
+    score -= Number(smartCoverage.riskScore || 0);
+    if((smartCoverage.counts?.high || 0) >= 2) score += 0.3;
+  }
 
   if(score >= 5) return { label: '優先', className: 'is-main', score };
   if(score >= 3) return { label: '候補', className: 'is-candidate', score };
@@ -10428,11 +10446,14 @@ function renderMorningSummaryForCalendar() {
       Number.isFinite(lift) ? `平均との差${formatTargetSigned枚(lift)}` : '',
       Number.isFinite(topHit) ? `上位${round1(topHit)}%` : '',
     ].filter(Boolean).join(' / ');
+    const smartCoverageMeta = getMorningSmartCoverageMeta(data);
     const priority = classifyMorningStorePriority({
       trustMeta,
       todayLabel,
       candidates,
       backtest: storePrecomputed?.evidenceBacktest || {},
+      modelRanking,
+      smartCoverage: smartCoverageMeta,
     });
     const riskText = trustMeta.actionable === false
       ? (robustness.message || trustMeta.detail || '過去検証では強く出せません')
@@ -10447,7 +10468,7 @@ function renderMorningSummaryForCalendar() {
       topCandidate: candidates[0] || null,
       backtestText,
       focusText: getMorningModelFocusText(modelRanking),
-      coverageText: getMorningSmartCoverageSummary(data),
+      coverageText: smartCoverageMeta.text,
       riskText,
     });
 
