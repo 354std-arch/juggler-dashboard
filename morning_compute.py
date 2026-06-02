@@ -476,12 +476,13 @@ def apply_evidence_guards(stores_payload, target_ymd):
                     candidate["verified_hall_evidence"] = hall_evidence_rows
                 if caution_rows:
                     candidate["verified_cautions"] = caution_rows
+                is_diff_candidate = not supports_setting_analysis(candidate.get("model") or target.get("model") or "")
                 if target.get("rank") == "本命":
                     candidate["action"] = "main"
-                    candidate["action_label"] = "検証本命"
+                    candidate["action_label"] = "検証強扱い" if is_diff_candidate else "検証本命"
                 else:
                     candidate["action"] = "candidate"
-                    candidate["action_label"] = "検証候補"
+                    candidate["action_label"] = "検証扱い候補" if is_diff_candidate else "検証候補"
                 candidate["actionable"] = True
 
             if guard.get("actionable") is False and not is_verified_target:
@@ -520,20 +521,36 @@ def apply_freshness_guard(stores_payload, payload_meta):
     return stores_payload
 
 
-def classify_morning_candidate(total_score, store_score, store_sample, model_score, model_sample, tai_score, tai_sample, warnings):
+def classify_morning_candidate(
+    total_score,
+    store_score,
+    store_sample,
+    model_score,
+    model_sample,
+    tai_score,
+    tai_sample,
+    warnings,
+    analysis_mode="setting",
+):
+    is_diff_mode = analysis_mode == "diff"
+    model_sample_floor = 40 if is_diff_mode else 20
+    tai_sample_floor = 15 if is_diff_mode else 20
+    model_weak_floor = 0.24 if is_diff_mode else 0.2
     cautions = [str(w) for w in (warnings or []) if str(w).strip()]
+    if is_diff_mode:
+        cautions.append("差枚扱い評価")
     if store_sample < 30:
         cautions.append("店条件サンプル不足")
-    if model_sample < 20:
-        cautions.append("機種条件サンプル不足")
-    if tai_sample < 20:
+    if model_sample < model_sample_floor:
+        cautions.append("機種扱いサンプル不足" if is_diff_mode else "機種条件サンプル不足")
+    if tai_sample < tai_sample_floor:
         cautions.append("台番号サンプル不足")
     if store_score < 0.2:
         cautions.append("店条件が弱い")
-    if model_score < 0.2:
+    if model_score < model_weak_floor:
         cautions.append("機種条件が弱い")
 
-    enough_sample = store_sample >= 30 and model_sample >= 20 and tai_sample >= 20
+    enough_sample = store_sample >= 30 and model_sample >= model_sample_floor and tai_sample >= tai_sample_floor
     if (
         enough_sample
         and total_score >= 0.38
@@ -543,7 +560,7 @@ def classify_morning_candidate(total_score, store_score, store_sample, model_sco
     ):
         return {
             "action": "main",
-            "action_label": "本命",
+            "action_label": "強扱い" if is_diff_mode else "本命",
             "actionable": True,
             "cautions": cautions[:4],
         }
@@ -555,7 +572,7 @@ def classify_morning_candidate(total_score, store_score, store_sample, model_sco
     ):
         return {
             "action": "candidate",
-            "action_label": "候補",
+            "action_label": "扱い候補" if is_diff_mode else "候補",
             "actionable": True,
             "cautions": cautions[:4],
         }
@@ -1090,6 +1107,7 @@ def build_payload_fallback(rows, normalized_models, unsupported_models):
             tai_upper_rate,
             sample,
             warnings,
+            "setting" if supports_setting_analysis(recent_model) else "diff",
         )
 
         candidate_by_store[store].append(
@@ -1367,6 +1385,7 @@ def build_payload(df, normalized_models, unsupported_models):
                 tai_score,
                 int(r.sample),
                 warnings,
+                "setting" if supports_setting_analysis(model) else "diff",
             )
 
             candidates.append(
