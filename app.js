@@ -10237,6 +10237,43 @@ function getMorningSmartCoverageMeta(data) {
   };
 }
 
+function isMorningSmartFocused(modelRanking) {
+  const usableModels = (Array.isArray(modelRanking) ? modelRanking : [])
+    .filter((m) => m && m.sample_usable !== false && Number(m.sample) >= 20)
+    .slice(0, 3);
+  const settingFocusCount = usableModels.filter((m) => m.analysis_mode === 'setting').length;
+  const diffFocusCount = usableModels.filter((m) => m.analysis_mode === 'diff').length;
+  return diffFocusCount > settingFocusCount;
+}
+
+function temperMorningBacktestTextForCoverage(text, smartFocused, smartCoverage) {
+  if(!smartFocused || !smartCoverage) return text;
+  const counts = smartCoverage.counts || {};
+  const high = Number(counts.high || 0);
+  const medium = Number(counts.medium || 0);
+  const low = Number(counts.low || 0);
+  const thin = Number(counts.thin || 0);
+  if(high > 0) return text;
+  if(medium > 0) return String(text || '').replace('本命候補あり', '中期検証候補');
+  if(low > 0 || thin > 0) return String(text || '')
+    .replace('本命候補あり', '短期参考候補')
+    .replace('安定候補あり', '短期参考候補');
+  return text;
+}
+
+function getMorningSmartCoverageRiskText(smartFocused, smartCoverage) {
+  if(!smartFocused || !smartCoverage) return '';
+  const counts = smartCoverage.counts || {};
+  const high = Number(counts.high || 0);
+  const medium = Number(counts.medium || 0);
+  const low = Number(counts.low || 0);
+  const thin = Number(counts.thin || 0);
+  if(high > 0) return '';
+  if(medium > 0) return 'スマスロは中期データ中心。候補は扱い傾向として見て、当日の外部根拠や島状況で補強してください。';
+  if(low > 0 || thin > 0) return 'スマスロ根拠が短期/薄め。強い狙い台根拠としては扱わず、観察優先です。';
+  return '';
+}
+
 function getMorningHallLayoutSummary(store) {
   const meta = G._precomputed?.hallLayoutEvidence?.[store];
   if(!meta || typeof meta !== 'object') return 'ホール図根拠: 未配置';
@@ -10311,12 +10348,7 @@ function classifyMorningStorePriority({ trustMeta, todayLabel, candidates, backt
   const summary = backtest?.summary || {};
   const decision = summary.decision || {};
   const robustness = backtest?.robustness || {};
-  const usableModels = (Array.isArray(modelRanking) ? modelRanking : [])
-    .filter((m) => m && m.sample_usable !== false && Number(m.sample) >= 20)
-    .slice(0, 3);
-  const settingFocusCount = usableModels.filter((m) => m.analysis_mode === 'setting').length;
-  const diffFocusCount = usableModels.filter((m) => m.analysis_mode === 'diff').length;
-  const smartFocused = diffFocusCount > settingFocusCount;
+  const smartFocused = isMorningSmartFocused(modelRanking);
   const verifiedCount = candidates.filter((c) => c?.verified_target === true).length;
   const mainCount = candidates.filter((c) => String(c?.action || '') === 'main').length;
   const candidateCount = candidates.filter((c) => ['main', 'candidate'].includes(String(c?.action || ''))).length;
@@ -10476,12 +10508,14 @@ function renderMorningSummaryForCalendar() {
     const robustness = storePrecomputed?.evidenceBacktest?.robustness || {};
     const lift = Number(backtestSummary.lift);
     const topHit = Number(backtestSummary.topHitRate);
-    const backtestText = [
+    const smartCoverageMeta = getMorningSmartCoverageMeta(data);
+    const smartFocused = isMorningSmartFocused(modelRanking);
+    const rawBacktestText = [
       backtestDecision.label || trustMeta.label,
       Number.isFinite(lift) ? `平均との差${formatTargetSigned枚(lift)}` : '',
       Number.isFinite(topHit) ? formatTargetTopHitLift(topHit) : '',
     ].filter(Boolean).join(' / ');
-    const smartCoverageMeta = getMorningSmartCoverageMeta(data);
+    const backtestText = temperMorningBacktestTextForCoverage(rawBacktestText, smartFocused, smartCoverageMeta);
     const priority = classifyMorningStorePriority({
       trustMeta,
       todayLabel,
@@ -10490,9 +10524,10 @@ function renderMorningSummaryForCalendar() {
       modelRanking,
       smartCoverage: smartCoverageMeta,
     });
+    const smartRiskText = getMorningSmartCoverageRiskText(smartFocused, smartCoverageMeta);
     const riskText = trustMeta.actionable === false
       ? (robustness.message || trustMeta.detail || '過去検証では強く出せません')
-      : (robustness.level && robustness.level !== 'stable' ? (robustness.message || robustness.label || '') : '');
+      : (smartRiskText || (robustness.level && robustness.level !== 'stable' ? (robustness.message || robustness.label || '') : ''));
     storeSummaries.push({
       store,
       dayType,
