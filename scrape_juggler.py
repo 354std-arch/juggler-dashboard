@@ -185,6 +185,13 @@ def scrape(target_date, store_name, slug, target_models=None):
             print(f'    response headers: {dict(res.headers)}')
             print(f'    response body (first 500 chars): {str(res.html_content)[:500]}')
             last_err = f'HTTP {res.status}'
+            if res.status in (403, 429):
+                retry_after = (dict(res.headers).get('retry-after') or '').strip()
+                if retry_after:
+                    print(f'    ↳ retry-after: {retry_after}s / クールダウン推奨のため再試行を止めます')
+                else:
+                    print('    ↳ アクセス制限の可能性があるため、このURLの再試行を止めます')
+                break
         except Exception as e:
             last_err = str(e)
         if attempt < 3:
