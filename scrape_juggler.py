@@ -614,6 +614,8 @@ def parse_args():
     parser.add_argument('--max-backfill-tasks', type=int, default=0, help='スマスロバックフィルの最大店舗日数。0なら無制限')
     parser.add_argument('--store-interval-sec', type=float, default=1.0, help='店舗間の待機秒数')
     parser.add_argument('--date-interval-sec', type=float, default=0.0, help='日付間の待機秒数')
+    parser.add_argument('--flush-every', type=int, default=0, help='指定件数の取得ごとにCSVへ途中保存。0なら最後だけ保存')
+    parser.add_argument('--stop-on-consecutive-failures', type=int, default=0, help='連続失敗が指定件数に達したら取得を止める。0なら止めない')
     return parser.parse_args()
 
 def parse_date_str(value):
@@ -726,6 +728,20 @@ if __name__ == '__main__':
     all_model_summary_rows = []
     latest_by_store = {}
     scraped_store_count = set()
+    saved_total = 0
+    model_saved_total = 0
+    fetched_total = 0
+    consecutive_failures = 0
+
+    def flush_buffers(reason):
+        global all_rows, all_model_summary_rows, saved_total, model_saved_total
+        if not all_rows and not all_model_summary_rows:
+            return
+        print(f'  💾 途中保存: {reason} / 台別{len(all_rows)}行 / 機種別{len(all_model_summary_rows)}行')
+        saved_total += save_to_csv(all_rows)
+        model_saved_total += save_model_summary_to_csv(all_model_summary_rows)
+        all_rows = []
+        all_model_summary_rows = []
 
     if args.backfill_smart_slots:
         backfill_tasks = build_smart_slot_backfill_tasks(stores, target_dates, target_models)
@@ -755,14 +771,24 @@ if __name__ == '__main__':
             day_idx = target_dates.index(target_date) + 1
             print(f'\n--- {target_date} ({day_idx}/{len(target_dates)}) ---')
         rows, model_summary_rows, ok = scrape(target_date, store_name, slug, target_models=plan_models)
+        fetched_total += len(rows)
         all_rows.extend(rows)
         all_model_summary_rows.extend(model_summary_rows)
         if ok:
+            consecutive_failures = 0
             latest_data_date = get_latest_data_date(rows) or target_date
             prev_latest = latest_by_store.get(store_name)
             if not prev_latest or latest_data_date > prev_latest:
                 latest_by_store[store_name] = latest_data_date
             scraped_store_count.add(store_name)
+        else:
+            consecutive_failures += 1
+            if args.stop_on_consecutive_failures and consecutive_failures >= args.stop_on_consecutive_failures:
+                print(f'  🛑 連続失敗 {consecutive_failures}件のため停止します')
+                break
+
+        if args.flush_every and plan_idx % args.flush_every == 0:
+            flush_buffers(f'{plan_idx}件処理')
 
         if plan_idx < len(scrape_plan):
             next_date = scrape_plan[plan_idx][0]
@@ -775,10 +801,9 @@ if __name__ == '__main__':
     for store_name, latest_data_date in latest_by_store.items():
         update_store_freshness(store_name, latest_data_date)
 
-    print(f'\n合計 {len(all_rows)} 行取得')
-    saved = save_to_csv(all_rows)
-    model_saved = save_model_summary_to_csv(all_model_summary_rows)
+    flush_buffers('最終')
+    print(f'\n合計 {fetched_total} 行取得')
     model_compacted = compact_model_summary_csv()
     if model_compacted:
         print(f'  🧹 機種別集計の重複 {model_compacted}行を整理')
-    print(f'✅ 完了（台別更新/追加: {saved}行, 機種別更新/追加: {model_saved}行, freshness更新: {len(scraped_store_count)}店舗）')
+    print(f'✅ 完了（台別更新/追加: {saved_total}行, 機種別更新/追加: {model_saved_total}行, freshness更新: {len(scraped_store_count)}店舗）')
