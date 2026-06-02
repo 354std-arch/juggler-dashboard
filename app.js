@@ -10229,6 +10229,21 @@ function getMorningSmartCoverageMeta(data) {
   };
 }
 
+function getMorningHallLayoutSummary(store) {
+  const meta = G._precomputed?.hallLayoutEvidence?.[store];
+  if(!meta || typeof meta !== 'object') return 'ホール図根拠: 未配置';
+  if(meta.analysisReady === false) return 'ホール図根拠: 配置未完成';
+  const occupied = Number(meta.occupied);
+  const islands = Number(meta.islands);
+  const adjacent = Number(meta.adjacentPairs);
+  return [
+    'ホール図根拠: 使用中',
+    Number.isFinite(occupied) ? `${Math.round(occupied)}台` : '',
+    Number.isFinite(islands) ? `島${Math.round(islands)}` : '',
+    Number.isFinite(adjacent) ? `隣接${Math.round(adjacent)}` : '',
+  ].filter(Boolean).join(' / ');
+}
+
 function renderMorningBacktestDigest(storeData) {
   const backtest = storeData?.evidenceBacktest;
   if(!backtest || typeof backtest !== 'object') return '';
@@ -10336,6 +10351,7 @@ function buildMorningStorePriorityBoard(storeSummaries) {
         <div class="morning-priority-top">${escapeHtml(topText)}</div>
         <div class="morning-priority-focus">${escapeHtml(item.focusText || '')}</div>
         ${item.coverageText ? `<div class="morning-priority-coverage">${escapeHtml(item.coverageText)}</div>` : ''}
+        ${item.hallLayoutText ? `<div class="morning-priority-layout">${escapeHtml(item.hallLayoutText)}</div>` : ''}
         <div class="morning-priority-meta">${escapeHtml(backtestText)} / 検証候補${item.verifiedCount}台</div>
         ${item.riskText ? `<div class="morning-priority-risk">${escapeHtml(item.riskText)}</div>` : ''}
       </div>
@@ -10469,6 +10485,7 @@ function renderMorningSummaryForCalendar() {
       backtestText,
       focusText: getMorningModelFocusText(modelRanking),
       coverageText: smartCoverageMeta.text,
+      hallLayoutText: getMorningHallLayoutSummary(store),
       riskText,
     });
 
