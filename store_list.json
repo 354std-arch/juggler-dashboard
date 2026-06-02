@@ -39,16 +39,6 @@
       "backfilled_date": "2026-04-04"
     },
     {
-      "name": "ギンザホール707",
-      "area": "横浜",
-      "source": "minrepo",
-      "added_date": "2026-04-04",
-      "score": 0.0,
-      "exchange_rate": 5.0,
-      "backfilled": true,
-      "backfilled_date": "2026-04-04"
-    },
-    {
       "name": "ジアスセンター南",
       "area": "横浜",
       "source": "minrepo",
