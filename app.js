@@ -4075,6 +4075,95 @@ function renderSeatSmartTreatmentSelection(row) {
   </div>`;
 }
 
+function buildSeatLayoutPositionProfile(row) {
+  if(!row) return null;
+  const tai = Number(row.tai);
+  const cells = getSeatLayoutCellsFromPlacements(seatLayoutState.placements);
+  const idx = cells.findIndex((value) => Number(value) === tai);
+  if(!Number.isFinite(tai) || idx < 0 || !cells.length) return null;
+  const cols = Math.max(1, clampSeatLayoutCols(seatLayoutState.cols));
+  const rowIndex = Math.floor(idx / cols);
+  const colIndex = idx % cols;
+  const isEmpty = (cellIdx) => {
+    if(cellIdx < 0 || cellIdx >= cells.length) return true;
+    return isSeatLayoutSpacer(cells[cellIdx]) || !Number.isFinite(Number(cells[cellIdx]));
+  };
+  const around = {
+    left: colIndex === 0 ? true : isEmpty(idx - 1),
+    right: colIndex === cols - 1 ? true : isEmpty(idx + 1),
+    up: rowIndex === 0 ? true : isEmpty(idx - cols),
+    down: idx + cols >= cells.length ? true : isEmpty(idx + cols),
+  };
+  const openSides = Object.values(around).filter(Boolean).length;
+  const positionLabel = openSides >= 3 ? '角台' : openSides >= 2 ? '端寄り' : '島中';
+  const rowByTai = new Map(getSeatLayoutRowsForStore(seatLayoutState.store).map((item) => [Number(item.tai), item]));
+  const neighborIndices = [
+    colIndex > 0 ? idx - 1 : null,
+    colIndex < cols - 1 ? idx + 1 : null,
+    idx - cols >= 0 ? idx - cols : null,
+    idx + cols < cells.length ? idx + cols : null,
+  ].filter((v) => Number.isInteger(v));
+  const neighbors = neighborIndices
+    .map((neighborIdx) => rowByTai.get(Number(cells[neighborIdx])))
+    .filter(Boolean)
+    .filter((item) => Number.isFinite(Number(item.diff)));
+  const strongNeighbors = neighbors.filter((item) => Number(item.diff) >= 1000);
+  const weakNeighbors = neighbors.filter((item) => Number(item.diff) <= -1000);
+  const bandStart = Math.floor(tai / 10) * 10;
+  const bandRows = Array.from(rowByTai.values())
+    .filter((item) => {
+      const itemTai = Number(item.tai);
+      return Number.isFinite(itemTai)
+        && Math.floor(itemTai / 10) * 10 === bandStart
+        && Number.isFinite(Number(item.diff));
+    });
+  const bandAvg = bandRows.length
+    ? bandRows.reduce((sum, item) => sum + Number(item.diff), 0) / bandRows.length
+    : null;
+  return {
+    positionLabel,
+    openSides,
+    neighbors,
+    strongNeighbors,
+    weakNeighbors,
+    bandLabel: `${bandStart}番台`,
+    bandAvg,
+    bandCount: bandRows.length,
+  };
+}
+
+function renderSeatLayoutPositionSelection(row) {
+  const profile = buildSeatLayoutPositionProfile(row);
+  if(!profile) return '';
+  const neighborText = profile.neighbors.length
+    ? [
+        profile.strongNeighbors.length ? `+1000以上 ${profile.strongNeighbors.length}台` : '',
+        profile.weakNeighbors.length ? `-1000以下 ${profile.weakNeighbors.length}台` : '',
+        !profile.strongNeighbors.length && !profile.weakNeighbors.length ? '強弱は中立' : '',
+      ].filter(Boolean).join(' / ')
+    : '隣接データなし';
+  const bandText = profile.bandCount
+    ? `${formatSeatHeatmapDiff(profile.bandAvg)} / ${profile.bandCount}台`
+    : '当日データなし';
+  const positionTone = profile.positionLabel === '角台' ? 'is-good' : profile.positionLabel === '端寄り' ? 'is-neutral' : 'is-thin';
+  return `<div class="seat-selection-position">
+    <div class="seat-selection-position-title">配置メモ</div>
+    <div class="seat-selection-position-line ${positionTone}">
+      <span>位置</span>
+      <strong>${escapeHtml(profile.positionLabel)} / 開放${escapeHtml(String(profile.openSides))}面</strong>
+    </div>
+    <div class="seat-selection-position-line ${profile.strongNeighbors.length ? 'is-good' : profile.weakNeighbors.length ? 'is-bad' : 'is-neutral'}">
+      <span>隣接</span>
+      <strong>${escapeHtml(neighborText)}</strong>
+    </div>
+    <div class="seat-selection-position-line ${Number(profile.bandAvg) >= 300 ? 'is-good' : Number(profile.bandAvg) <= -300 ? 'is-bad' : 'is-neutral'}">
+      <span>${escapeHtml(profile.bandLabel)}</span>
+      <strong>${escapeHtml(bandText)}</strong>
+    </div>
+    <div class="seat-selection-position-note">当日のホール図から算出。角/並びは単独根拠にせず、検証済み根拠や直近扱いと重ねて見ます。</div>
+  </div>`;
+}
+
 function renderSeatEvidenceBacktestPanel() {
   const el = document.getElementById('seatEvidenceBacktest');
   if(!el) return;
@@ -4203,6 +4292,7 @@ function renderSeatHeatmapSelection(row) {
     : 'データなし';
   const evidenceCandidate = getSeatLayoutEvidenceCandidateByTai(row.tai);
   const smartTreatmentHtml = renderSeatSmartTreatmentSelection(row);
+  const positionHtml = renderSeatLayoutPositionSelection(row);
   const evidenceHtml = evidenceCandidate ? `
     <div class="seat-selection-evidence">
       <div class="seat-selection-evidence-title">検証済み根拠</div>
@@ -4242,6 +4332,7 @@ function renderSeatHeatmapSelection(row) {
         <strong>${escapeHtml(seatLayoutState.store || '-')}</strong>
       </div>
     </div>
+    ${positionHtml}
     ${smartTreatmentHtml}
     ${evidenceHtml}`;
 }
