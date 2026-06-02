@@ -10197,6 +10197,30 @@ function getMorningModelFocusText(modelRanking) {
   return `${lead}: ${names}`;
 }
 
+function getMorningSmartCoverageSummary(data) {
+  const coverageMap = data?.model_coverage && typeof data.model_coverage === 'object' ? data.model_coverage : {};
+  const counts = { high: 0, medium: 0, low: 0, thin: 0 };
+  let total = 0;
+  Array.from(SMART_SLOT_MODELS).forEach((model) => {
+    const coverage = coverageMap[model] || getMorningModelCoverage(data, model);
+    if(!coverage || typeof coverage !== 'object') return;
+    const strength = String(coverage.coverage_strength || '');
+    if(!strength) return;
+    total += 1;
+    if(Object.prototype.hasOwnProperty.call(counts, strength)) counts[strength] += 1;
+    else counts.thin += 1;
+  });
+  if(!total) return 'スマスロ厚み: 未取得';
+  const parts = [
+    counts.high ? `長期${counts.high}` : '',
+    counts.medium ? `中期${counts.medium}` : '',
+    counts.low ? `短期${counts.low}` : '',
+    counts.thin ? `薄い${counts.thin}` : '',
+  ].filter(Boolean);
+  const risk = counts.low || counts.thin ? ' / 短期注意' : '';
+  return `スマスロ厚み: ${parts.join('・')}${risk}`;
+}
+
 function renderMorningBacktestDigest(storeData) {
   const backtest = storeData?.evidenceBacktest;
   if(!backtest || typeof backtest !== 'object') return '';
@@ -10293,6 +10317,7 @@ function buildMorningStorePriorityBoard(storeSummaries) {
         <div class="morning-priority-sub">${escapeHtml(item.trustLabel)} / ${escapeHtml(item.dayType)} / ${escapeHtml(item.todayLabel)}</div>
         <div class="morning-priority-top">${escapeHtml(topText)}</div>
         <div class="morning-priority-focus">${escapeHtml(item.focusText || '')}</div>
+        ${item.coverageText ? `<div class="morning-priority-coverage">${escapeHtml(item.coverageText)}</div>` : ''}
         <div class="morning-priority-meta">${escapeHtml(backtestText)} / 検証候補${item.verifiedCount}台</div>
         ${item.riskText ? `<div class="morning-priority-risk">${escapeHtml(item.riskText)}</div>` : ''}
       </div>
@@ -10422,6 +10447,7 @@ function renderMorningSummaryForCalendar() {
       topCandidate: candidates[0] || null,
       backtestText,
       focusText: getMorningModelFocusText(modelRanking),
+      coverageText: getMorningSmartCoverageSummary(data),
       riskText,
     });
 
