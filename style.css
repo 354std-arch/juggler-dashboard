@@ -250,6 +250,16 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .morning-rank-cond{grid-column:1/-1;font-size:10px;color:var(--accent3);font-family:'Share Tech Mono',monospace;}
 .morning-rank-coverage{grid-column:1/-1;font-size:10px;color:var(--accent4);line-height:1.45;}
 .morning-rank-meta{font-size:11px;color:var(--accent);font-family:'Share Tech Mono',monospace;white-space:nowrap;}
+.morning-smart-coverage-note{font-size:10px;color:var(--muted);line-height:1.45;margin-bottom:6px;}
+.morning-smart-coverage-row{display:grid;grid-template-columns:minmax(90px,auto) 1fr auto;gap:7px;align-items:center;padding:6px 0;border-top:1px solid rgba(255,255,255,.06);}
+.morning-smart-coverage-row:first-of-type{border-top:none;}
+.morning-smart-coverage-model{font-size:11px;font-weight:800;color:var(--text);}
+.morning-smart-coverage-meta{font-size:10px;color:var(--muted);line-height:1.35;}
+.morning-smart-coverage-chip{font-size:10px;font-weight:900;border:1px solid var(--border);border-radius:999px;padding:3px 7px;color:var(--muted);white-space:nowrap;}
+.morning-smart-coverage-row.is-high .morning-smart-coverage-chip{color:var(--plus);border-color:rgba(57,255,20,.35);}
+.morning-smart-coverage-row.is-medium .morning-smart-coverage-chip{color:var(--accent);border-color:rgba(0,229,255,.35);}
+.morning-smart-coverage-row.is-low .morning-smart-coverage-chip{color:var(--accent4);border-color:rgba(255,189,74,.35);}
+.morning-smart-coverage-row.is-thin .morning-smart-coverage-chip{color:var(--minus);border-color:rgba(255,92,122,.35);}
 .morning-empty{font-size:11px;color:var(--muted);}
 .morning-candidate-card{border:1px solid rgba(0,229,255,.2);border-left-width:3px;border-radius:8px;padding:8px;margin-bottom:8px;background:var(--bg3);}
 .morning-candidate-card.is-main{border-left-color:var(--plus);}

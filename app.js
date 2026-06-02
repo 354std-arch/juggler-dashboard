@@ -10085,6 +10085,32 @@ function formatMorningCoverageText(coverage) {
   ].filter(Boolean).join(' / ');
 }
 
+function renderMorningSmartCoverage(data) {
+  const coverageMap = data?.model_coverage && typeof data.model_coverage === 'object' ? data.model_coverage : {};
+  const rows = Array.from(SMART_SLOT_MODELS).map((model) => {
+    const coverage = coverageMap[model] || getMorningModelCoverage(data, model);
+    const text = formatMorningCoverageText(coverage);
+    if(!text) return null;
+    const strength = String(coverage?.coverage_strength || '');
+    const className = strength === 'high' ? 'is-high'
+      : strength === 'medium' ? 'is-medium'
+        : strength === 'low' ? 'is-low'
+          : 'is-thin';
+    const label = String(coverage?.coverage_label || '不明');
+    return `<div class="morning-smart-coverage-row ${className}">
+      <div class="morning-smart-coverage-model">${escapeHtml(formatModelFilterLabel(model, 12))}</div>
+      <div class="morning-smart-coverage-meta">${escapeHtml(text)}</div>
+      <div class="morning-smart-coverage-chip">${escapeHtml(label)}</div>
+    </div>`;
+  }).filter(Boolean);
+  if(!rows.length) return '';
+  return `<div class="morning-block morning-smart-coverage">
+    <div class="morning-block-title">スマスロ対象機種のデータ厚み</div>
+    <div class="morning-smart-coverage-note">設定推測ではなく、差枚・扱い・位置を見るための母数です。短期は強い根拠にしません。</div>
+    ${rows.join('')}
+  </div>`;
+}
+
 function formatSmartTreatmentText(treatment, label) {
   if(!treatment || typeof treatment !== 'object') return '';
   const avg = Number(treatment.avg);
@@ -10459,6 +10485,7 @@ function renderMorningSummaryForCalendar() {
         <div class="morning-block-title">狙い機種ランキング</div>
         ${modelHtml}
       </div>
+      ${renderMorningSmartCoverage(data)}
       <div class="morning-block">
         <div class="morning-block-title">末尾ランキング</div>
         ${tailHtml}
