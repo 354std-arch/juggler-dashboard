@@ -2663,24 +2663,37 @@ function formatModelTableRate(value) {
 
 function formatModelTableCount(row) {
   const count = Number(row?.count);
-  const days = Number(row?.summaryDays);
+  const days = Number(row?.summaryDays ?? row?.dayCount ?? row?.day_count);
   const installs = Number(row?.avgInstallCount);
   if(Number.isFinite(days) && days > 0 && Number.isFinite(installs) && installs > 0) {
     return `${Math.round(days)}日 / ${Math.round(installs)}台`;
+  }
+  const taiCount = Number(row?.taiCount ?? row?.tai_count);
+  if(Number.isFinite(days) && days > 0 && Number.isFinite(taiCount) && taiCount > 0) {
+    return `${Math.round(days)}日 / ${Math.round(taiCount)}台`;
   }
   if(Number.isFinite(count)) return `${Math.round(count).toLocaleString()}件`;
   return '—';
 }
 
+function formatModelCoverageDate(value) {
+  const text = String(value || '').slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : '';
+}
+
+function formatModelCoveragePeriod(row) {
+  const first = formatModelCoverageDate(row?.firstDate || row?.first_date);
+  const last = formatModelCoverageDate(row?.lastDate || row?.last_date);
+  return first && last ? `${first}〜${last}` : '';
+}
+
 function formatModelCoverageMeta(row) {
-  const first = row?.firstDate || row?.first_date;
-  const last = row?.lastDate || row?.last_date;
   const label = row?.coverageLabel || row?.coverage_label || '';
   const strength = row?.coverageStrength || row?.coverage_strength || '';
   const dayCount = Number(row?.dayCount ?? row?.day_count ?? row?.summaryDays);
   const taiCount = Number(row?.taiCount ?? row?.tai_count);
   const rowCount = Number(row?.rowCount ?? row?.row_count ?? row?.count);
-  const dateText = first && last ? `${String(first).slice(5)}〜${String(last).slice(5)}` : '';
+  const dateText = formatModelCoveragePeriod(row);
   const parts = [];
   if(label) parts.push(label);
   if(dateText) parts.push(dateText);
@@ -2702,7 +2715,9 @@ function formatModelCoverageReadNote(row) {
   const label = row?.coverageLabel || row?.coverage_label || '不明';
   const dayCount = Number(row?.dayCount ?? row?.day_count ?? row?.summaryDays);
   const rowCount = Number(row?.rowCount ?? row?.row_count ?? row?.count);
+  const period = formatModelCoveragePeriod(row);
   const volume = [
+    period,
     Number.isFinite(dayCount) && dayCount > 0 ? `${Math.round(dayCount)}日` : '',
     Number.isFinite(rowCount) && rowCount > 0 ? `${Math.round(rowCount).toLocaleString()}件` : '',
   ].filter(Boolean).join('/');
