@@ -23,7 +23,7 @@ const SEAT_LAYOUT_CONFIG_PREFIX = 'juggler_seat_layout_config_';
 const SEAT_LAYOUT_UI_STORAGE_KEY = 'juggler_seat_layout_ui';
 const SEAT_LAYOUT_VIEW_MODES = new Set(['view', 'edit']);
 const SEAT_LAYOUT_DENSITIES = new Set(['normal', 'compact', 'tiny']);
-const SEAT_LAYOUT_LAYERS = new Set(['diff', 'evidence', 'target', 'smart']);
+const SEAT_LAYOUT_LAYERS = new Set(['diff', 'recent30', 'evidence', 'target', 'smart']);
 const SEAT_LAYOUT_COL_MIN = 4;
 const SEAT_LAYOUT_COL_MAX = 40;
 const SEAT_LAYOUT_ZOOM_MIN = 0.15;
@@ -3769,6 +3769,79 @@ function getSeatLayoutRecentRowsForStore(store, limit = 30) {
   return dates.flatMap((ymd) => getSeatLayoutRowsForStoreAtDate(store, ymd));
 }
 
+function buildSeatLayoutRecentStatsByTai(store, rows, limit = 30) {
+  const modelByTai = new Map();
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const tai = Number(row?.tai);
+    if(!Number.isFinite(tai)) return;
+    const model = normalizeModelName(row?.model || '');
+    if(model && model !== '不明') modelByTai.set(tai, model);
+  });
+
+  const statsByTai = new Map();
+  getSeatLayoutRecentRowsForStore(store, limit).forEach((row) => {
+    const tai = Number(row?.tai);
+    const diff = Number(row?.diff);
+    if(!Number.isFinite(tai) || !Number.isFinite(diff)) return;
+
+    const currentModel = modelByTai.get(tai) || '';
+    const rowModel = normalizeModelName(row?.model || '');
+    if(currentModel && rowModel && rowModel !== currentModel) return;
+
+    const stat = statsByTai.get(tai) || { total: 0, count: 0, dates: new Set() };
+    stat.total += diff;
+    stat.count += 1;
+    if(row.date) stat.dates.add(String(row.date));
+    statsByTai.set(tai, stat);
+  });
+
+  const result = new Map();
+  statsByTai.forEach((stat, tai) => {
+    result.set(tai, {
+      total: Math.round(stat.total),
+      count: stat.count,
+      days: stat.dates.size || stat.count,
+    });
+  });
+  return result;
+}
+
+function attachSeatLayoutRecentStats(store, rows, limit = 30) {
+  const statsByTai = buildSeatLayoutRecentStatsByTai(store, rows, limit);
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const stat = statsByTai.get(Number(row?.tai));
+    row.recent30Diff = stat ? stat.total : null;
+    row.recent30Count = stat ? stat.count : 0;
+    row.recent30Days = stat ? stat.days : 0;
+  });
+  return rows;
+}
+
+function getSeatLayoutLayerMetricValue(row, layer = seatLayoutState.layer) {
+  const normalizedLayer = normalizeSeatLayoutLayer(layer);
+  const value = normalizedLayer === 'recent30' ? row?.recent30Diff : row?.diff;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function getSeatLayoutLayerMetricText(row, layer = seatLayoutState.layer) {
+  const value = getSeatLayoutLayerMetricValue(row, layer);
+  return Number.isFinite(value) ? formatSeatHeatmapDiff(value) : 'データなし';
+}
+
+function formatSeatHeatmapCompactDiff(diff) {
+  const n = Number(diff);
+  if(!Number.isFinite(n)) return '';
+  const sign = n >= 0 ? '+' : '-';
+  const abs = Math.abs(Math.round(n));
+  if(abs >= 1000) {
+    const scaled = abs / 1000;
+    const text = scaled >= 10 ? String(Math.round(scaled)) : scaled.toFixed(1).replace(/\.0$/, '');
+    return `${sign}${text}k`;
+  }
+  return `${sign}${abs}`;
+}
+
 function getSeatLayoutDiffMap(store) {
   const map = new Map();
   getSeatLayoutRowsForStore(store).forEach((row) => {
@@ -3777,13 +3850,18 @@ function getSeatLayoutDiffMap(store) {
   return map;
 }
 
-function getSeatHeatmapColorClass(diff) {
+function getSeatHeatmapColorClass(diff, layer = 'diff') {
   if(!Number.isFinite(diff)) return 'seat-heatmap-cell is-missing';
-  if(diff >= 3000) return 'seat-heatmap-cell is-strong-plus';
-  if(diff >= 1000) return 'seat-heatmap-cell is-plus';
+  const recentScale = normalizeSeatLayoutLayer(layer) === 'recent30';
+  const strongPlus = recentScale ? 10000 : 3000;
+  const plus = recentScale ? 3000 : 1000;
+  const minus = recentScale ? -3000 : -1000;
+  const strongMinus = recentScale ? -10000 : -2000;
+  if(diff >= strongPlus) return 'seat-heatmap-cell is-strong-plus';
+  if(diff >= plus) return 'seat-heatmap-cell is-plus';
   if(diff > 0) return 'seat-heatmap-cell is-small-plus';
-  if(diff <= -2000) return 'seat-heatmap-cell is-strong-minus';
-  if(diff <= -1000) return 'seat-heatmap-cell is-minus';
+  if(diff <= strongMinus) return 'seat-heatmap-cell is-strong-minus';
+  if(diff <= minus) return 'seat-heatmap-cell is-minus';
   return 'seat-heatmap-cell is-neutral';
 }
 
@@ -3832,21 +3910,31 @@ function renderSeatHeatmapModelFilter(rows) {
   select.value = seatLayoutState.heatmapModelFilter;
 }
 
-function renderSeatHeatmapSummary(rows, allCount) {
+function renderSeatHeatmapSummary(rows, allCount, layer = seatLayoutState.layer) {
   const summary = document.getElementById('seatHeatmapSummary');
   if(!summary) return;
   if(!rows.length) {
     summary.innerHTML = '<div class="empty-msg">表示対象の台がありません</div>';
     return;
   }
-  const withDiff = rows.filter((row) => Number.isFinite(row.diff));
-  const plusCount = withDiff.filter((row) => row.diff > 0).length;
-  const strongPlusCount = withDiff.filter((row) => row.diff >= 1000).length;
-  const strongMinusCount = withDiff.filter((row) => row.diff <= -1000).length;
-  const totalDiff = withDiff.reduce((sum, row) => sum + row.diff, 0);
-  const avgDiff = withDiff.length ? totalDiff / withDiff.length : 0;
-  const plusRate = withDiff.length ? plusCount / withDiff.length * 100 : 0;
+  const metricRows = rows
+    .map((row) => ({ row, value: getSeatLayoutLayerMetricValue(row, layer) }))
+    .filter((item) => Number.isFinite(item.value));
+  const plusCount = metricRows.filter((item) => item.value > 0).length;
+  const recentScale = normalizeSeatLayoutLayer(layer) === 'recent30';
+  const strongPlusThreshold = recentScale ? 3000 : 1000;
+  const strongMinusThreshold = recentScale ? -3000 : -1000;
+  const strongPlusCount = metricRows.filter((item) => item.value >= strongPlusThreshold).length;
+  const strongMinusCount = metricRows.filter((item) => item.value <= strongMinusThreshold).length;
+  const totalDiff = metricRows.reduce((sum, item) => sum + item.value, 0);
+  const avgDiff = metricRows.length ? totalDiff / metricRows.length : 0;
+  const plusRate = metricRows.length ? plusCount / metricRows.length * 100 : 0;
   const valueColor = (v) => v >= 0 ? 'var(--plus)' : 'var(--minus)';
+  const totalLabel = recentScale ? '直近総差枚' : '総差枚';
+  const avgLabel = recentScale ? '台平均累計' : '平均差枚';
+  const plusRateLabel = recentScale ? 'プラス台率' : '勝率';
+  const plusLabel = recentScale ? '+3000以上' : '+1000以上';
+  const minusLabel = recentScale ? '-3000以下' : '-1000以下';
   const stat = (label, value, color = 'var(--text)') => `
     <div class="seat-heatmap-stat">
       <div class="seat-heatmap-stat-label">${label}</div>
@@ -3854,38 +3942,43 @@ function renderSeatHeatmapSummary(rows, allCount) {
     </div>`;
   summary.innerHTML = [
     stat('表示台数', `${rows.length}台${rows.length !== allCount ? ` / 全${allCount}台` : ''}`, 'var(--accent3)'),
-    stat('総差枚', formatSeatHeatmapDiff(totalDiff), valueColor(totalDiff)),
-    stat('平均差枚', formatSeatHeatmapDiff(avgDiff), valueColor(avgDiff)),
-    stat('勝率', `${Math.round(plusRate)}%`, plusRate >= 50 ? 'var(--plus)' : 'var(--minus)'),
-    stat('+1000以上', `${strongPlusCount}台`, 'var(--plus)'),
-    stat('-1000以下', `${strongMinusCount}台`, strongMinusCount ? 'var(--minus)' : 'var(--muted)'),
+    stat(totalLabel, formatSeatHeatmapDiff(totalDiff), valueColor(totalDiff)),
+    stat(avgLabel, formatSeatHeatmapDiff(avgDiff), valueColor(avgDiff)),
+    stat(plusRateLabel, `${Math.round(plusRate)}%`, plusRate >= 50 ? 'var(--plus)' : 'var(--minus)'),
+    stat(plusLabel, `${strongPlusCount}台`, 'var(--plus)'),
+    stat(minusLabel, `${strongMinusCount}台`, strongMinusCount ? 'var(--minus)' : 'var(--muted)'),
   ].join('');
 }
 
-function renderSeatHeatmapInsight(rows) {
+function renderSeatHeatmapInsight(rows, layer = seatLayoutState.layer) {
   const el = document.getElementById('seatHeatmapInsight');
   if(!el) return;
   if(!rows.length) {
     el.innerHTML = '<div class="empty-msg">表示対象の台がありません</div>';
     return;
   }
-  const withDiff = rows.filter((row) => Number.isFinite(row.diff));
-  if(!withDiff.length) {
+  const metricRows = rows
+    .map((row) => ({ row, value: getSeatLayoutLayerMetricValue(row, layer) }))
+    .filter((item) => Number.isFinite(item.value));
+  if(!metricRows.length) {
     el.innerHTML = '<div class="seat-insight-muted">差枚データがないため、この日の見立てはまだ出せません。</div>';
     return;
   }
-  const totalDiff = withDiff.reduce((sum, row) => sum + row.diff, 0);
-  const plusCount = withDiff.filter((row) => row.diff > 0).length;
-  const plusRate = plusCount / withDiff.length * 100;
-  const strongPlusCount = withDiff.filter((row) => row.diff >= 1000).length;
-  const strongMinusCount = withDiff.filter((row) => row.diff <= -1000).length;
-  const best = withDiff.slice().sort((a, b) => b.diff - a.diff)[0];
-  const worst = withDiff.slice().sort((a, b) => a.diff - b.diff)[0];
+  const recentScale = normalizeSeatLayoutLayer(layer) === 'recent30';
+  const positiveThreshold = recentScale ? 3000 : 1000;
+  const negativeThreshold = recentScale ? -3000 : -1000;
+  const totalDiff = metricRows.reduce((sum, item) => sum + item.value, 0);
+  const plusCount = metricRows.filter((item) => item.value > 0).length;
+  const plusRate = plusCount / metricRows.length * 100;
+  const strongPlusCount = metricRows.filter((item) => item.value >= positiveThreshold).length;
+  const strongMinusCount = metricRows.filter((item) => item.value <= negativeThreshold).length;
+  const best = metricRows.slice().sort((a, b) => b.value - a.value)[0];
+  const worst = metricRows.slice().sort((a, b) => a.value - b.value)[0];
   const modelMap = new Map();
-  withDiff.forEach((row) => {
+  metricRows.forEach(({ row, value }) => {
     const model = String(row.model || '機種未取得');
     const current = modelMap.get(model) || { model, total: 0, count: 0 };
-    current.total += row.diff;
+    current.total += value;
     current.count += 1;
     modelMap.set(model, current);
   });
@@ -3895,10 +3988,12 @@ function renderSeatHeatmapInsight(rows) {
   let headline = '表示範囲は中立寄り';
   if(totalDiff > 0 && plusRate >= 48) headline = '表示範囲はプラス寄り';
   if(totalDiff < 0 && plusRate < 45) headline = '表示範囲はマイナス寄り';
-  const spread = strongPlusCount >= Math.max(2, Math.ceil(withDiff.length * 0.08))
-    ? `+1000以上が${strongPlusCount}台あり、強い場所が複数あります。`
-    : strongMinusCount >= Math.max(2, Math.ceil(withDiff.length * 0.12))
-      ? `-1000以下が${strongMinusCount}台あり、沈み台も目立ちます。`
+  const positiveLabel = recentScale ? '+3000以上' : '+1000以上';
+  const negativeLabel = recentScale ? '-3000以下' : '-1000以下';
+  const spread = strongPlusCount >= Math.max(2, Math.ceil(metricRows.length * 0.08))
+    ? `${positiveLabel}が${strongPlusCount}台あり、強い場所が複数あります。`
+    : strongMinusCount >= Math.max(2, Math.ceil(metricRows.length * 0.12))
+      ? `${negativeLabel}が${strongMinusCount}台あり、沈み台も目立ちます。`
       : '大きな偏りは控えめで、個別台の確認が中心です。';
   const modelText = bestModel
     ? `${bestModel.model} が機種単位では上位です。`
@@ -3907,50 +4002,55 @@ function renderSeatHeatmapInsight(rows) {
     <div class="seat-insight-headline">${escapeHtml(headline)}</div>
     <div class="seat-insight-body">${escapeHtml(spread)} ${escapeHtml(modelText)}</div>
     <div class="seat-insight-extremes">
-      <span>最大 ${escapeHtml(String(best?.tai || '-'))}: ${escapeHtml(formatSeatHeatmapDiff(best?.diff))}</span>
-      <span>最低 ${escapeHtml(String(worst?.tai || '-'))}: ${escapeHtml(formatSeatHeatmapDiff(worst?.diff))}</span>
+      <span>最大 ${escapeHtml(String(best?.row?.tai || '-'))}: ${escapeHtml(formatSeatHeatmapDiff(best?.value))}</span>
+      <span>最低 ${escapeHtml(String(worst?.row?.tai || '-'))}: ${escapeHtml(formatSeatHeatmapDiff(worst?.value))}</span>
     </div>`;
 }
 
-function renderSeatHeatmapPatternInsight(rows) {
+function renderSeatHeatmapPatternInsight(rows, layer = seatLayoutState.layer) {
   const el = document.getElementById('seatHeatmapPatternInsight');
   if(!el) return;
   if(!rows.length) {
     el.innerHTML = '<div class="empty-msg">表示対象の台がありません</div>';
     return;
   }
-  const withDiff = rows.filter((row) => Number.isFinite(row.diff));
-  if(!withDiff.length) {
+  const metricRows = rows
+    .map((row) => ({ row, value: getSeatLayoutLayerMetricValue(row, layer) }))
+    .filter((item) => Number.isFinite(item.value));
+  if(!metricRows.length) {
     el.innerHTML = '<div class="seat-insight-muted">差枚データがないため、配置上の偏りはまだ見られません。</div>';
     return;
   }
 
-  const rowByTai = new Map(withDiff.map((row) => [Number(row.tai), row]));
+  const recentScale = normalizeSeatLayoutLayer(layer) === 'recent30';
+  const strongThreshold = recentScale ? 3000 : 1000;
+  const strongLabel = recentScale ? '+3000以上' : '+1000以上';
+  const rowByTai = new Map(metricRows.map((item) => [Number(item.row.tai), item]));
   const cells = getSeatLayoutCellsFromPlacements(seatLayoutState.placements);
   const cols = Math.max(1, clampSeatLayoutCols(seatLayoutState.cols));
   const strongCells = cells
     .map((value, idx) => {
-      const row = rowByTai.get(Number(value));
-      return row && row.diff >= 1000 ? { idx, row } : null;
+      const item = rowByTai.get(Number(value));
+      return item && item.value >= strongThreshold ? { idx, item } : null;
     })
     .filter(Boolean);
   let adjacentStrong = 0;
-  strongCells.forEach(({ idx, row }) => {
+  strongCells.forEach(({ idx }) => {
     const rightIdx = idx + 1;
     const downIdx = idx + cols;
     const right = rowByTai.get(Number(cells[rightIdx]));
     const down = rowByTai.get(Number(cells[downIdx]));
-    if(right && right.diff >= 1000) adjacentStrong += 1;
-    if(down && down.diff >= 1000) adjacentStrong += 1;
+    if(right && right.value >= strongThreshold) adjacentStrong += 1;
+    if(down && down.value >= strongThreshold) adjacentStrong += 1;
   });
 
   const modelMap = new Map();
-  withDiff.forEach((row) => {
+  metricRows.forEach(({ row, value }) => {
     const model = String(row.model || '機種未取得');
     const current = modelMap.get(model) || { model, total: 0, count: 0, plus: 0 };
-    current.total += row.diff;
+    current.total += value;
     current.count += 1;
-    if(row.diff > 0) current.plus += 1;
+    if(value > 0) current.plus += 1;
     modelMap.set(model, current);
   });
   const modelRanks = Array.from(modelMap.values())
@@ -3962,8 +4062,8 @@ function renderSeatHeatmapPatternInsight(rows) {
     ? `${item.model} / ${formatSeatHeatmapDiff(item.total)} / 勝率${Math.round(item.plus / item.count * 100)}%`
     : '対象なし';
   const clusterText = strongCells.length
-    ? `+1000以上 ${strongCells.length}台 / 近接 ${adjacentStrong}組`
-    : '+1000以上の台はなし';
+    ? `${strongLabel} ${strongCells.length}台 / 近接 ${adjacentStrong}組`
+    : `${strongLabel}の台はなし`;
   const recentRows = getSeatLayoutRecentRowsForStore(seatLayoutState.store, 30)
     .filter((row) => Number.isFinite(row.diff));
   const smartRecentRows = recentRows.filter((row) => isSmartSlotModel(row.model));
@@ -4317,6 +4417,16 @@ function renderSeatHeatmapSelection(row) {
   const diffColor = Number.isFinite(diff)
     ? (diff >= 0 ? 'var(--plus)' : 'var(--minus)')
     : 'var(--muted)';
+  const fallbackRecent = Number.isFinite(Number(row.recent30Diff))
+    ? null
+    : buildSeatLayoutRecentStatsByTai(seatLayoutState.store, [row], 30).get(Number(row.tai));
+  const recent30Diff = Number.isFinite(Number(row.recent30Diff))
+    ? Number(row.recent30Diff)
+    : Number(fallbackRecent?.total);
+  const recent30Days = Number(row.recent30Days) || Number(fallbackRecent?.days) || 0;
+  const recent30Color = Number.isFinite(recent30Diff)
+    ? (recent30Diff >= 0 ? 'var(--plus)' : 'var(--minus)')
+    : 'var(--muted)';
   el.hidden = false;
   const model = String(row.model || '').trim();
   const judgeLabel = Number.isFinite(diff)
@@ -4350,6 +4460,10 @@ function renderSeatHeatmapSelection(row) {
       <div>
         <span>差枚</span>
         <strong class="seat-selection-diff" style="color:${diffColor}">${escapeHtml(formatSeatHeatmapDiff(row.diff))}</strong>
+      </div>
+      <div>
+        <span>直近30日</span>
+        <strong style="color:${recent30Color}">${escapeHtml(Number.isFinite(recent30Diff) ? `${formatSeatHeatmapDiff(recent30Diff)} / ${recent30Days}日` : 'データなし')}</strong>
       </div>
       <div>
         <span>判定</span>
@@ -4394,7 +4508,10 @@ function renderSeatHeatmap(store) {
     rowsByTai.set(tai, { tai, model: card.model || '不明', diff: null });
   });
 
-  const allRows = Array.from(rowsByTai.values()).sort((a, b) => a.tai - b.tai);
+  const allRows = attachSeatLayoutRecentStats(
+    store,
+    Array.from(rowsByTai.values()).sort((a, b) => a.tai - b.tai)
+  );
   renderSeatHeatmapModelFilter(allRows);
   const layer = normalizeSeatLayoutLayer(seatLayoutState.layer);
   const smartLayer = layer === 'smart';
@@ -4403,10 +4520,10 @@ function renderSeatHeatmap(store) {
     if(doesSeatLayoutCardMatchFilters(row) && (!smartLayer || isSmartSlotModel(row.model))) matchingTai.add(Number(row.tai));
   });
   const rows = allRows.filter((row) => matchingTai.has(Number(row.tai)));
-  renderSeatHeatmapSummary(rows, allRows.length);
+  renderSeatHeatmapSummary(rows, allRows.length, layer);
   renderSeatEvidenceBacktestPanel();
-  renderSeatHeatmapInsight(rows);
-  renderSeatHeatmapPatternInsight(rows);
+  renderSeatHeatmapInsight(rows, layer);
+  renderSeatHeatmapPatternInsight(rows, layer);
   const selectedTai = Number(seatLayoutState.selectedTai);
   renderSeatHeatmapSelection(Number.isFinite(selectedTai) ? rowsByTai.get(selectedTai) : null);
 
@@ -4451,7 +4568,8 @@ function renderSeatHeatmap(store) {
     const row = rowsByTai.get(tai) || { tai, model: getSeatLayoutCardByTai(tai)?.model || '不明', diff: null };
     const card = getSeatLayoutCardByTai(tai) || { tai, model: row.model || '不明' };
     const matches = matchingTai.has(tai);
-    const colorClass = getSeatHeatmapColorClass(row.diff);
+    const metricValue = getSeatLayoutLayerMetricValue(row, layer);
+    const colorClass = getSeatHeatmapColorClass(metricValue, layer);
     const selectedClass = seatLayoutState.selectedTai === tai ? ' is-selected' : '';
     const hiddenClass = matches ? '' : ' is-filtered-out';
     const evidenceCandidate = evidenceByTai.get(tai);
@@ -4462,11 +4580,17 @@ function renderSeatHeatmap(store) {
     const model = row.model || card.model || '不明';
     const smartClass = isSmartSlotModel(model) ? ' is-smart-slot' : '';
     const shortModel = formatSeatHeatmapModelLabel(model, density);
+    const recentText = layer === 'recent30' && Number.isFinite(metricValue)
+      ? formatSeatHeatmapCompactDiff(metricValue)
+      : '';
+    const titleMetric = layer === 'recent30'
+      ? `当日 ${formatSeatHeatmapDiff(row.diff)} / 直近30日 ${getSeatLayoutLayerMetricText(row, layer)}${row.recent30Days ? ` / ${row.recent30Days}日` : ''}`
+      : formatSeatHeatmapDiff(row.diff);
     return `<button type="button"
       class="${colorClass}${selectedClass}${hiddenClass}${groupSelectedClass}${evidenceClass}${smartClass}"
       data-cell-index="${idx}"
       draggable="false"
-      title="${escapeHtml(`${store} ${tai}番台 ${model} ${formatSeatHeatmapDiff(row.diff)}`)}"
+      title="${escapeHtml(`${store} ${tai}番台 ${model} ${titleMetric}`)}"
       onpointerdown="onSeatLayoutPointerDown(event, ${idx})"
       onclick="onSeatLayoutCardClick(event, ${idx})"
       ontouchstart="onSeatLayoutCardTouchStart(event, ${tai}, ${idx})"
@@ -4478,6 +4602,7 @@ function renderSeatHeatmap(store) {
       ${evidenceCandidate ? `<span class="seat-heatmap-evidence-rank">${escapeHtml(String(evidenceCandidate.rank || ''))}</span>` : ''}
       <div class="seat-heatmap-tai">${tai}</div>
       ${shortModel ? `<div class="seat-heatmap-model">${escapeHtml(shortModel)}</div>` : ''}
+      ${recentText ? `<div class="seat-heatmap-diff">${escapeHtml(recentText)}</div>` : ''}
     </button>`;
   }).join('');
 }
@@ -4788,7 +4913,7 @@ function renderSeatLayoutChromeState() {
   shell?.classList.toggle('is-edit-mode', viewMode === 'edit');
   shell?.classList.toggle('is-mobile-view', mobileMode);
   shell?.classList.toggle('is-side-collapsed', !!seatLayoutState.sidePanelCollapsed);
-  ['diff', 'evidence', 'target', 'smart'].forEach((name) => {
+  ['diff', 'recent30', 'evidence', 'target', 'smart'].forEach((name) => {
     shell?.classList.toggle(`is-layer-${name}`, layer === name);
   });
   restoreSeatLayoutDesktopZoomIfNeeded();
@@ -4807,7 +4932,7 @@ function renderSeatLayoutChromeState() {
     ['normal', 'compact', 'tiny'].forEach((name) => {
       grid.classList.toggle(`is-density-${name}`, density === name);
     });
-    ['diff', 'evidence', 'target', 'smart'].forEach((name) => {
+    ['diff', 'recent30', 'evidence', 'target', 'smart'].forEach((name) => {
       grid.classList.toggle(`is-layer-${name}`, layer === name);
     });
   }
