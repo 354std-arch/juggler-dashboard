@@ -9732,21 +9732,58 @@ function renderModelDayBar() {
     document.getElementById('modelDayBar').innerHTML = '<div class="empty-msg">ℹ️ この機種のデータがありません</div>';
     return;
   }
+  const dayItems = days.map(d => {
+    const s = byDayStats[d];
+    const count = Number(s?.count || 0);
+    const a = round1(count > 0 ? (Number(s.sum || 0) / count) : 0);
+    return {
+      day: d,
+      avg: a,
+      count,
+      isSp: SP.includes(d),
+      thin: count > 0 && count < 5,
+    };
+  });
   const maxAbs = Math.max(...days.map(d => {
     const s = byDayStats[d];
     return Math.abs((s && s.count > 0) ? (s.sum / s.count) : 0);
   }), 1);
-  document.getElementById('modelDayBar').innerHTML = days.map(d => {
-    const s = byDayStats[d];
-    const a = round1((s && s.count > 0) ? (s.sum / s.count) : 0);
-    const pct = Math.abs(a) / maxAbs * 100;
-    const isSp = SP.includes(d);
+  const topDays = dayItems
+    .filter(item => item.count >= 5 && item.avg > 0)
+    .sort((a, b) => b.avg - a.avg)
+    .slice(0, 5);
+  const thinCount = dayItems.filter(item => item.thin).length;
+  const chip = (item) => `<span class="model-day-chip ${item.isSp ? 'is-special' : ''}">
+    ${escapeHtml(String(item.day))}${item.isSp ? '★' : ''}日
+    <b>${escapeHtml(`${item.avg >= 0 ? '+' : ''}${item.avg}枚`)}</b>
+    <small>N=${escapeHtml(String(Math.round(item.count)))}</small>
+  </span>`;
+  const summaryHtml = `
+    <div class="model-day-summary">
+      <div class="model-day-summary-head">
+        <div>
+          <strong>${escapeHtml(formatModelFilterLabel(currentModelFilter, 14))}</strong>
+          <span>日にち別の扱い</span>
+        </div>
+        ${formatModelCoverageMeta(m)}
+      </div>
+      <div class="model-day-chip-row">
+        ${topDays.length ? topDays.map(chip).join('') : '<span class="model-day-muted">N5以上でプラスの日がまだありません</span>'}
+      </div>
+      ${thinCount ? `<div class="model-day-note">N&lt;5の日が${thinCount}個あります。薄い日は色が強くても参考止まりです。</div>` : ''}
+    </div>`;
+  const rowsHtml = dayItems.map(item => {
+    const pct = Math.abs(item.avg) / maxAbs * 100;
     return`<div class="bar-row">
-      <div class="bar-label" style="${isSp?'color:var(--accent3)':''}">${d}${isSp?'★':''}</div>
-      <div class="bar-bg"><div class="bar-fill ${a>=0?'pos':'neg'}" style="width:${pct}%"></div></div>
-      <div class="bar-val" style="color:${a>=0?'var(--plus)':'var(--minus)'}">${a>=0?'+':''}${a}</div>
+      <div class="bar-label" style="${item.isSp?'color:var(--accent3)':''}">${item.day}${item.isSp?'★':''}</div>
+      <div class="bar-bg"><div class="bar-fill ${item.avg>=0?'pos':'neg'} ${item.thin?'thin':''}" style="width:${pct}%"></div></div>
+      <div class="bar-val" style="color:${item.avg>=0?'var(--plus)':'var(--minus)'}">
+        ${item.avg>=0?'+':''}${item.avg}
+        <small>N=${Math.round(item.count)}${item.thin?' 参考':''}</small>
+      </div>
     </div>`;
   }).join('');
+  document.getElementById('modelDayBar').innerHTML = summaryHtml + rowsHtml;
 }
 
 // ====== 台別 ======
