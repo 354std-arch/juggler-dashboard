@@ -2696,6 +2696,23 @@ function formatModelCoverageMeta(row) {
   return `<span class="model-coverage-chip ${className}">${escapeHtml(text)}</span>`;
 }
 
+function formatModelCoverageReadNote(row) {
+  if(!row || !isSmartSlotModel(row.model)) return '';
+  const strength = row?.coverageStrength || row?.coverage_strength || '';
+  const label = row?.coverageLabel || row?.coverage_label || '不明';
+  const dayCount = Number(row?.dayCount ?? row?.day_count ?? row?.summaryDays);
+  const rowCount = Number(row?.rowCount ?? row?.row_count ?? row?.count);
+  const volume = [
+    Number.isFinite(dayCount) && dayCount > 0 ? `${Math.round(dayCount)}日` : '',
+    Number.isFinite(rowCount) && rowCount > 0 ? `${Math.round(rowCount).toLocaleString()}件` : '',
+  ].filter(Boolean).join('/');
+  const suffix = volume ? `（${volume}）` : '';
+  if(strength === 'thin' || strength === 'low') return `<span class="model-coverage-read-note is-warn">短期参考: ${escapeHtml(label)}${escapeHtml(suffix)}</span>`;
+  if(strength === 'medium') return `<span class="model-coverage-read-note is-mid">中期検証: ${escapeHtml(label)}${escapeHtml(suffix)}</span>`;
+  if(strength === 'high') return `<span class="model-coverage-read-note is-ok">扱い傾向: ${escapeHtml(label)}${escapeHtml(suffix)}</span>`;
+  return `<span class="model-coverage-read-note">差枚/G数で評価</span>`;
+}
+
 function getSeatLayoutStorageKey(store) {
   return String(store || '');
 }
@@ -9366,7 +9383,10 @@ function renderModelComp() {
           <th>ベース比</th>
         </tr></thead>
         <tbody>${data.map(m=>`<tr>
-          <td style="font-size:11px;font-weight:700">${m.model}</td>
+          <td style="font-size:11px;font-weight:700">
+            <div>${escapeHtml(m.model)}</div>
+            ${formatModelCoverageReadNote(m)}
+          </td>
           <td style="color:${col(m.avg)};font-family:'Share Tech Mono',monospace">${fmt(m.avg)}</td>
           <td style="color:var(--muted);font-family:'Share Tech Mono',monospace">${formatModelTableNumber(m.avgG)}</td>
           <td style="color:${Number(m.winRate)>=50?'var(--plus)':'var(--muted)'};font-family:'Share Tech Mono',monospace">${formatModelTableRate(m.winRate)}</td>
