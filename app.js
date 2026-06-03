@@ -10489,6 +10489,49 @@ function classifyMorningStorePriority({ trustMeta, todayLabel, candidates, backt
   return { label: '見送り寄り', className: 'is-skip', score };
 }
 
+function buildMorningDecisionLadder(sortedSummaries) {
+  const top = Array.isArray(sortedSummaries) ? sortedSummaries[0] : null;
+  if(!top) return '';
+  const topCandidate = top.topCandidate || {};
+  const score = Number(top.priority?.score);
+  const actionable = top.priority?.className === 'is-main' || top.priority?.className === 'is-candidate';
+  const dayDecision = actionable
+    ? '打つなら候補あり'
+    : (score >= 1 ? '観察優先' : '見送り寄り');
+  const storeDecision = actionable
+    ? top.store
+    : '無理に店を決めない';
+  const modelDecision = top.primaryModel
+    ? top.primaryModel
+    : (top.focusText || '機種根拠なし');
+  const seatDecision = topCandidate.tai
+    ? `${topCandidate.tai}番 ${topCandidate.model || '機種不明'}`
+    : '候補台なし';
+  const risk = top.riskText || top.freshnessText || '';
+  const step = (num, label, value, note, className = '') => `
+    <div class="morning-ladder-step ${className}">
+      <span>${num}</span>
+      <div>
+        <small>${escapeHtml(label)}</small>
+        <strong>${escapeHtml(value)}</strong>
+        ${note ? `<em>${escapeHtml(note)}</em>` : ''}
+      </div>
+    </div>`;
+  return `<div class="morning-decision-ladder">
+    <div class="morning-ladder-head">
+      <strong>今日の判断順</strong>
+      <span>台候補は最後。先に日・店・機種の根拠を見る</span>
+    </div>
+    <div class="morning-ladder-grid">
+      ${step('1', '今日は行く日か', dayDecision, top.backtestText || top.todayLabel, actionable ? 'is-ok' : 'is-watch')}
+      ${step('2', 'この店で打つ価値', storeDecision, `${top.dayType} / ${top.trustLabel}`, actionable ? 'is-ok' : 'is-watch')}
+      ${step('3', '打つなら機種', modelDecision, top.coverageText || '', 'is-info')}
+      ${step('4', '最後に台', seatDecision, topCandidate.tai ? '候補に座る前に外部根拠と島状況で補強' : '候補なしなら無理に探さない', topCandidate.tai ? 'is-seat' : 'is-watch')}
+    </div>
+    ${risk ? `<div class="morning-ladder-risk">${escapeHtml(risk)}</div>` : ''}
+  </div>`;
+}
+
 function buildMorningStorePriorityBoard(storeSummaries) {
   const list = storeSummaries
     .slice()
@@ -10510,7 +10553,7 @@ function buildMorningStorePriorityBoard(storeSummaries) {
           <span>${escapeHtml(item.priority.label)}</span>
         </div>
         <div class="morning-priority-sub">${escapeHtml(item.trustLabel)} / ${escapeHtml(item.dayType)} / ${escapeHtml(item.todayLabel)}</div>
-        <div class="morning-priority-top">${escapeHtml(topText)}</div>
+        <div class="morning-priority-top">最後に見る台: ${escapeHtml(topText)}</div>
         <div class="morning-priority-focus">${escapeHtml(item.focusText || '')}</div>
         ${item.coverageText ? `<div class="morning-priority-coverage">${escapeHtml(item.coverageText)}</div>` : ''}
         ${item.hallLayoutText ? `<div class="morning-priority-layout">${escapeHtml(item.hallLayoutText)}</div>` : ''}
@@ -10520,9 +10563,10 @@ function buildMorningStorePriorityBoard(storeSummaries) {
     </div>`;
   }).join('');
   return `<div class="morning-priority-board">
+    ${buildMorningDecisionLadder(list)}
     <div class="morning-priority-title">
       <strong>今日見る店</strong>
-      <span>過去検証・店条件・候補台の重なりで並べ替え</span>
+      <span>台候補ではなく、日・店・機種の根拠で並べ替え</span>
     </div>
     <div class="morning-priority-grid">${rows}</div>
   </div>`;
@@ -10647,6 +10691,7 @@ function renderMorningSummaryForCalendar() {
       priority,
       verifiedCount,
       topCandidate: candidates[0] || null,
+      primaryModel: modelRanking[0]?.model || '',
       backtestText,
       focusText: getMorningModelFocusText(modelRanking),
       coverageText: smartCoverageMeta.text,
