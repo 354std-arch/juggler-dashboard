@@ -741,7 +741,7 @@
           <div id="seatEvidenceBacktest" class="seat-evidence-panel">店舗を選択してください</div>
         </section>
         <section class="seat-side-section">
-          <div class="seat-side-title">当日サマリー</div>
+          <div class="seat-side-title" id="seatHeatmapSummaryTitle">当日サマリー</div>
           <div id="seatHeatmapSummary" class="seat-heatmap-summary">店舗を選択してください</div>
         </section>
         <section class="seat-side-section">
@@ -765,12 +765,13 @@
           </div>
         </section>
         <section class="seat-side-section">
-          <div class="seat-side-title">凡例</div>
-          <div class="seat-heatmap-legend">
+          <div class="seat-side-title" id="seatHeatmapLegendTitle">凡例</div>
+          <div class="seat-heatmap-legend" id="seatHeatmapLegend">
             <span><i class="legend-box is-strong-plus"></i>+3000以上</span>
-            <span><i class="legend-box is-plus"></i>プラス</span>
-            <span><i class="legend-box is-neutral"></i>±999以内</span>
-            <span><i class="legend-box is-minus"></i>-1000以下</span>
+            <span><i class="legend-box is-plus"></i>+1000〜2999</span>
+            <span><i class="legend-box is-small-plus"></i>+1〜999</span>
+            <span><i class="legend-box is-neutral"></i>-999〜0</span>
+            <span><i class="legend-box is-minus"></i>-1000〜-1999</span>
             <span><i class="legend-box is-strong-minus"></i>-2000以下</span>
           </div>
         </section>

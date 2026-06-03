@@ -3842,6 +3842,42 @@ function formatSeatHeatmapCompactDiff(diff) {
   return `${sign}${abs}`;
 }
 
+function getSeatLayoutLegendItems(layer = seatLayoutState.layer) {
+  if(normalizeSeatLayoutLayer(layer) === 'recent30') {
+    return [
+      { cls: 'is-strong-plus', label: '+10000以上' },
+      { cls: 'is-plus', label: '+3000〜9999' },
+      { cls: 'is-small-plus', label: '+1〜2999' },
+      { cls: 'is-neutral', label: '-2999〜0' },
+      { cls: 'is-minus', label: '-3000〜-9999' },
+      { cls: 'is-strong-minus', label: '-10000以下' },
+    ];
+  }
+  return [
+    { cls: 'is-strong-plus', label: '+3000以上' },
+    { cls: 'is-plus', label: '+1000〜2999' },
+    { cls: 'is-small-plus', label: '+1〜999' },
+    { cls: 'is-neutral', label: '-999〜0' },
+    { cls: 'is-minus', label: '-1000〜-1999' },
+    { cls: 'is-strong-minus', label: '-2000以下' },
+  ];
+}
+
+function renderSeatLayoutLayerText(layer = seatLayoutState.layer) {
+  const normalizedLayer = normalizeSeatLayoutLayer(layer);
+  const recentLayer = normalizedLayer === 'recent30';
+  const summaryTitle = document.getElementById('seatHeatmapSummaryTitle');
+  if(summaryTitle) summaryTitle.textContent = recentLayer ? '直近30日サマリー' : '当日サマリー';
+  const legendTitle = document.getElementById('seatHeatmapLegendTitle');
+  if(legendTitle) legendTitle.textContent = recentLayer ? '凡例（直近30日累計）' : '凡例（当日差枚）';
+  const legend = document.getElementById('seatHeatmapLegend');
+  if(legend) {
+    legend.innerHTML = getSeatLayoutLegendItems(normalizedLayer).map((item) => `
+      <span><i class="legend-box ${escapeHtml(item.cls)}"></i>${escapeHtml(item.label)}</span>
+    `).join('');
+  }
+}
+
 function getSeatLayoutDiffMap(store) {
   const map = new Map();
   getSeatLayoutRowsForStore(store).forEach((row) => {
@@ -4947,6 +4983,7 @@ function renderSeatLayoutChromeState() {
   document.querySelectorAll('[data-seat-layout-layer]').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.seatLayoutLayer === layer);
   });
+  renderSeatLayoutLayerText(layer);
   document.querySelectorAll('[data-seat-layout-preset]').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.seatLayoutPreset === seatLayoutState.preset);
   });
