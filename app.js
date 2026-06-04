@@ -2808,21 +2808,23 @@ function renderModelCompMobileCards(data) {
     const liftColor = Number.isFinite(lift) && lift >= 0 ? 'var(--plus)' : 'var(--minus)';
     const mech = Number(m.mechRitu);
     const mechColor = Number.isFinite(mech) ? (mech >= 100 ? 'var(--plus)' : 'var(--minus)') : 'var(--muted)';
+    const countText = formatModelTableCount(m);
+    const periodText = formatModelCoverageMeta(m);
     return `<div class="model-mobile-card">
       <div class="model-mobile-card-head">
         <strong>${escapeHtml(m.model || '-')}</strong>
         <span style="color:${avgColor}">${escapeHtml(Number.isFinite(avg) ? `${avg >= 0 ? '+' : ''}${avg}枚` : '—')}</span>
       </div>
       ${formatModelCoverageReadNote(m)}
-      <div class="model-mobile-metrics">
-        <span>平均G <b>${escapeHtml(formatModelTableNumber(m.avgG))}</b></span>
+      <div class="model-mobile-metrics is-primary">
         <span>勝率 <b>${escapeHtml(formatModelTableRate(m.winRate))}</b></span>
+        <span>件数 <b>${escapeHtml(countText)}</b></span>
+      </div>
+      <div class="model-mobile-meta is-secondary">
+        <span>平均G ${escapeHtml(formatModelTableNumber(m.avgG))}</span>
         <span>出率 <b style="color:${mechColor}">${escapeHtml(Number.isFinite(mech) ? `${mech.toFixed(1)}%` : '—')}</b></span>
         <span>ベース比 <b style="color:${liftColor}">${escapeHtml(Number.isFinite(lift) ? `${lift >= 0 ? '+' : ''}${lift}` : '—')}</b></span>
-      </div>
-      <div class="model-mobile-meta">
-        <span>${escapeHtml(formatModelTableCount(m))}</span>
-        ${formatModelCoverageMeta(m)}
+        ${periodText}
       </div>
     </div>`;
   }).join('')}</div>`;
@@ -3949,8 +3951,7 @@ function renderSeatLayoutDataNotice(rows = [], allRows = [], layer = seatLayoutS
   const normalizedLayer = normalizeSeatLayoutLayer(layer);
   const missingText = formatMissingDataRangeText(freshness.sourceYmd, freshness.targetYmd);
   const smartVisible = normalizedLayer === 'smart'
-    || (Array.isArray(rows) && rows.some((row) => isSmartSlotModel(row.model)))
-    || (Array.isArray(allRows) && allRows.some((row) => isSmartSlotModel(row.model)));
+    || (seatLayoutState.heatmapModelFilter !== 'all' && Array.isArray(rows) && rows.some((row) => isSmartSlotModel(row.model)));
   const noteRows = [];
   noteRows.push(`<span><b>データ</b>${escapeHtml(freshness.label || '不明')}</span>`);
   if(range) {
@@ -3967,7 +3968,7 @@ function renderSeatLayoutDataNotice(rows = [], allRows = [], layer = seatLayoutS
       : 'スマスロは設定判別ではなく、差枚・番号帯・位置の補助。';
     noteRows.push(`<span class="is-smart"><b>スマスロ</b>${escapeHtml(smartText)}</span>`);
   }
-  el.className = `seat-layout-data-notice is-${freshness.tone || 'ok'}`;
+  el.className = `seat-layout-data-notice is-${freshness.tone || 'ok'} is-layer-${normalizedLayer}`;
   el.innerHTML = noteRows.join('');
 }
 
