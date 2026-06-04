@@ -107,6 +107,10 @@ warn_large_file() {
   fi
 }
 
+fingerprint_scrape_inputs() {
+  cksum raw_data.csv store_freshness.json store_model_summary.csv store_list.json hall_layouts.json 2>/dev/null || true
+}
+
 abort_if_conflicts
 
 # Pull latest changes first
@@ -118,6 +122,7 @@ fi
 abort_if_conflicts
 
 # Run pipeline
+SCRAPE_INPUTS_BEFORE="$(fingerprint_scrape_inputs)"
 log "scrape_juggler.py start"
 python3 scrape_juggler.py >> "$LOG_FILE" 2>&1
 log "scrape_juggler.py done"
@@ -133,6 +138,13 @@ if [ "$SMART_SLOT_BACKFILL_TASKS" -gt 0 ]; then
     --max-backfill-tasks "$SMART_SLOT_BACKFILL_TASKS" \
     --store-interval-sec "$SMART_SLOT_BACKFILL_INTERVAL_SEC" >> "$LOG_FILE" 2>&1
   log "smart slot backfill done"
+fi
+SCRAPE_INPUTS_AFTER="$(fingerprint_scrape_inputs)"
+if [ "$SCRAPE_INPUTS_BEFORE" = "$SCRAPE_INPUTS_AFTER" ] && [ "${ALLOW_EMPTY_DAILY_COMPUTE:-0}" != "1" ]; then
+  log "no scraped data changes detected; skipping compute, commit, and push"
+  write_status "OK no scraped changes"
+  log "=== DONE no changes ==="
+  exit 0
 fi
 log "compute.py start"
 python3 compute.py >> "$LOG_FILE" 2>&1
