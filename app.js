@@ -1800,6 +1800,27 @@ function diffDaysLocal(fromDate, toDate) {
   return Math.round((end - start) / 86400000);
 }
 
+function formatMissingDataRangeText(sourceYmd, targetYmd) {
+  const sourceDate = parseYmdLocal(sourceYmd || '');
+  const targetDate = parseYmdLocal(targetYmd || '');
+  if(!sourceDate || !targetDate) return '';
+  const firstMissing = addDaysLocal(sourceDate, 1);
+  if(!firstMissing || firstMissing.getTime() > targetDate.getTime()) return '';
+  const firstText = toYmdLocal(firstMissing);
+  const targetText = toYmdLocal(targetDate);
+  return firstText === targetText ? `${firstText}未反映` : `${firstText}〜${targetText}未反映`;
+}
+
+function renderFreshnessWarningPanel(meta, title = 'データ鮮度注意') {
+  if(!meta || !meta.alertText) return '';
+  const missingText = formatMissingDataRangeText(meta.sourceYmd, meta.targetYmd);
+  return `<div class="freshness-warning-panel">
+    <div class="freshness-warning-title">${escapeHtml(title)}</div>
+    <div class="freshness-warning-text">${escapeHtml(meta.alertText)}</div>
+    ${missingText ? `<div class="freshness-warning-sub">${escapeHtml(missingText)}</div>` : ''}
+  </div>`;
+}
+
 function getMorningFreshnessMeta() {
   const morning = G.morningData || {};
   const targetYmd = normalizeDataDateValue(morning.target_date || morning.data_date) || toYmdLocal(getTodayLocalDate());
@@ -1817,6 +1838,7 @@ function getMorningFreshnessMeta() {
       alertText: '元データの日付を確認できません。朝の候補は強く信用しすぎないでください。',
       targetYmd,
       sourceYmd,
+      lagDays,
     };
   }
   if(lagDays <= 1) {
@@ -1827,15 +1849,18 @@ function getMorningFreshnessMeta() {
       alertText: '',
       targetYmd,
       sourceYmd,
+      lagDays,
     };
   }
+  const missingText = formatMissingDataRangeText(sourceYmd, targetYmd);
   return {
     badgeClass: 'red',
     badgeText: `${lagDays}日前データ`,
     subText: `${targetText} / ${sourceText}`,
-    alertText: `元データが${lagDays}日前です。入替・傾向変化の影響が大きい可能性があります。`,
+    alertText: `元データが${lagDays}日前です。${missingText ? `${missingText}のため、` : ''}候補は本命ではなく参考扱いで見てください。`,
     targetYmd,
     sourceYmd,
+    lagDays,
   };
 }
 
@@ -6460,6 +6485,46 @@ function getPredictionFreshnessMeta() {
   };
 }
 
+function getAnalysisFreshnessMeta() {
+  const sourceYmd = normalizeDataDateValue(G.dataDate || G._precomputed?.data_date || G._precomputed?.dataDate);
+  const targetYmd = toYmdLocal(getTodayLocalDate());
+  const sourceDate = parseYmdLocal(sourceYmd || '');
+  const targetDate = parseYmdLocal(targetYmd);
+  const lagDays = sourceDate && targetDate ? diffDaysLocal(sourceDate, targetDate) : null;
+  if(!Number.isFinite(lagDays)) {
+    return {
+      badgeClass: 'red',
+      badgeText: '鮮度不明',
+      subText: sourceYmd ? `元データ ${sourceYmd}` : '元データ日不明',
+      alertText: '分析元データの日付を確認できません。直近傾向は参考扱いで見てください。',
+      sourceYmd,
+      targetYmd,
+      lagDays,
+    };
+  }
+  if(lagDays < 2) {
+    return {
+      badgeClass: 'green',
+      badgeText: '鮮度OK',
+      subText: `元データ ${sourceYmd}`,
+      alertText: '',
+      sourceYmd,
+      targetYmd,
+      lagDays,
+    };
+  }
+  const missingText = formatMissingDataRangeText(sourceYmd, targetYmd);
+  return {
+    badgeClass: 'red',
+    badgeText: `${lagDays}日前データ`,
+    subText: `元データ ${sourceYmd}`,
+    alertText: `${missingText ? `${missingText}です。` : ''}直近傾向・今月比較は古いデータとして読んでください。`,
+    sourceYmd,
+    targetYmd,
+    lagDays,
+  };
+}
+
 function buildCalculatedRecommendations(targetDate, predictionBaseDate) {
   const taiRows = Array.isArray(G.taiDetail) ? G.taiDetail : [];
   if(!taiRows.length) return [];
@@ -9583,8 +9648,10 @@ function renderModelComp() {
     const col = v => v>=0 ? 'var(--plus)' : 'var(--minus)';
     const fmt = v => v===null ? '—' : `${v>=0?'+':''}${v}`;
     const fmtR = v => v===null ? '—' : `${v.toFixed(1)}%`;
+    const freshnessPanel = renderFreshnessWarningPanel(getAnalysisFreshnessMeta(), '機種分析のデータ鮮度');
 
     document.getElementById('modelCompTable').innerHTML=`
+      ${freshnessPanel}
       <div style="font-size:10px;color:var(--muted);margin-bottom:8px">全体平均：${fmt(allAvgDiff)}枚</div>
       <table class="data-table">
         <thead><tr>
@@ -9654,8 +9721,10 @@ function renderModelComp() {
   const col = v => v>=0 ? 'var(--plus)' : 'var(--minus)';
   const fmt = v => v===null ? '—' : `${v>=0?'+':''}${v}`;
   const fmtR = v => v===null ? '—' : `${v.toFixed(1)}%`;
+  const freshnessPanel = renderFreshnessWarningPanel(getAnalysisFreshnessMeta(), '機種分析のデータ鮮度');
 
   document.getElementById('modelCompTable').innerHTML=`
+    ${freshnessPanel}
     <div style="font-size:10px;color:var(--muted);margin-bottom:8px">全体平均：${fmt(allAvgDiff)}枚 | フィルター：${currentModelSpFilter==='all'?'全体':currentModelSpFilter==='sp'?'特定日':currentModelSpFilter==='nm'?'通常日':currentModelSpFilter==='zoro'?'ゾロ目':currentModelSpFilter.replace('digit_','')+'の付く日'}</div>
     <table class="data-table">
       <thead><tr>
@@ -9710,6 +9779,7 @@ function renderModelMonthComp() {
   const sampleLabel = (n) => n < 10 ? `${n}件・月初参考` : `${n}件`;
   const fmt = (v,n) => v===null?`<span style="color:var(--muted)">—</span>`:`<span style="color:${col(v)}">${v>=0?'+':''}${v}枚</span><br><span style="font-size:10px;color:${n<10?'var(--accent4)':'var(--muted)'}">${sampleLabel(n)}</span>`;
 
+  const freshnessPanel = renderFreshnessWarningPanel(getAnalysisFreshnessMeta(), '今月比較のデータ鮮度');
   const warning = fewDaysWarning ? `<div class="model-month-note">月初参考: 今月はまだ${thisMonthDays}日分です。これは未取得ではなく、月内サンプルが少ないという注意です。</div>` : '';
   const mobileCards = (items) => `<div class="model-month-mobile-list">${items.map((m) => {
     const delta = m.thisMonthAvg!==null&&m.lastMonthAvg!==null ? round1(m.thisMonthAvg-m.lastMonthAvg) : null;
@@ -9727,7 +9797,7 @@ function renderModelMonthComp() {
     </div>`;
   }).join('')}</div>`;
 
-  document.getElementById('modelMonthComp').innerHTML= warning + `
+  document.getElementById('modelMonthComp').innerHTML= freshnessPanel + warning + `
     <table class="data-table">
       <thead><tr>
         <th style="text-align:left">機種名</th>
@@ -10895,9 +10965,7 @@ function renderMorningSummaryForCalendar() {
 
   const generatedAt = escapeHtml(G.morningData.generated_at || '不明');
   const freshness = getMorningFreshnessMeta();
-  const freshnessAlertHtml = freshness.alertText
-    ? `<div class="recommendation-alert">${escapeHtml(freshness.alertText)}</div>`
-    : '';
+  const staleMorningData = Number.isFinite(Number(freshness.lagDays)) && Number(freshness.lagDays) >= 2;
   const storeSummaries = [];
   const cards = stores.map((store) => {
     const data = getMorningStoreData(store) || {};
@@ -11068,12 +11136,17 @@ function renderMorningSummaryForCalendar() {
             action = 'watch';
             actionLabel = '参考';
           }
+          if(staleMorningData) {
+            action = 'watch';
+            actionLabel = '参考';
+          }
           const actionClass = action === 'main' ? 'is-main' : action === 'candidate' ? 'is-candidate' : 'is-watch';
           const warnings = [
             ...(Array.isArray(c?.warnings) ? c.warnings : []),
             ...(Array.isArray(c?.cautions) ? c.cautions : []),
             ...(Array.isArray(c?.verified_cautions) ? c.verified_cautions : []),
             ...(storeEvidenceBlocked ? [`店舗検証: ${trustMeta.label}。${trustMeta.detail}`] : []),
+            ...(staleMorningData ? [`データ鮮度: ${freshness.subText}。未反映日があるため参考扱い`] : []),
           ].filter(Boolean);
           const uniqueWarnings = Array.from(new Set(warnings)).slice(0, 3);
           if(!uniqueWarnings.length) uniqueWarnings.push('特記事項なし');
@@ -11087,7 +11160,7 @@ function renderMorningSummaryForCalendar() {
             verifiedHallEvidence,
           }) - 1;
 
-          return `<div class="morning-candidate-card ${actionClass}">
+          return `<div class="morning-candidate-card ${actionClass}${staleMorningData ? ' is-stale-data' : ''}">
             <div class="morning-candidate-head">
               <div class="morning-candidate-name">${idx + 1}. ${escapeHtml(String(c?.tai ?? '-'))}番台 / ${escapeHtml(modelName)}</div>
               <div class="morning-candidate-score"><span class="morning-action-chip ${actionClass}">${escapeHtml(actionLabel)}</span>${verifiedHtml}${formatMorningScorePercent(c?.score)}</div>
@@ -11155,7 +11228,7 @@ function renderMorningSummaryForCalendar() {
       <span class="prediction-badge ${freshness.badgeClass}">${escapeHtml(freshness.badgeText)}</span>
       <span>更新: ${generatedAt} / ${escapeHtml(freshness.subText)} / 表示店舗: ${stores.length}件</span>
     </div>
-    ${freshnessAlertHtml}
+    ${renderFreshnessWarningPanel(freshness, '朝判断のデータ鮮度')}
     ${buildMorningStorePriorityBoard(storeSummaries)}
     ${cards}`;
 }

@@ -96,6 +96,10 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .prediction-badge.red{background:rgba(255,77,109,.14);color:var(--minus);border-color:rgba(255,77,109,.35);}
 .recommendation-status-note{font-size:11px;color:var(--muted);}
 .recommendation-alert{background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.3);border-radius:6px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:var(--minus);}
+.freshness-warning-panel{background:rgba(255,159,0,.08);border:1px solid rgba(255,159,0,.28);border-left:3px solid var(--accent4);border-radius:7px;padding:9px 10px;margin:0 0 10px;color:var(--text);}
+.freshness-warning-title{font-size:11px;font-weight:900;color:var(--accent4);margin-bottom:3px;}
+.freshness-warning-text{font-size:11px;line-height:1.55;color:var(--text);}
+.freshness-warning-sub{font-size:10px;line-height:1.45;color:var(--muted);margin-top:3px;font-family:var(--font-mono);}
 .seat-data-quality-alert{background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.28);border-radius:7px;padding:8px;font-size:10px;line-height:1.45;color:var(--minus);}
 .recommendation-card{background:var(--bg3);border:1px solid rgba(0,229,255,.18);border-radius:8px;padding:10px;}
 .recommendation-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;}
@@ -299,6 +303,7 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .morning-candidate-card.is-main{border-left-color:var(--plus);}
 .morning-candidate-card.is-candidate{border-left-color:var(--accent);}
 .morning-candidate-card.is-watch{border-left-color:var(--muted);}
+.morning-candidate-card.is-stale-data{border-left-color:var(--accent4);background:linear-gradient(0deg,rgba(255,159,0,.055),rgba(255,159,0,.055)),var(--bg3);}
 .morning-candidate-card:last-child{margin-bottom:0;}
 .morning-candidate-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
 .morning-candidate-name{font-size:12px;color:var(--text);font-weight:800;}
