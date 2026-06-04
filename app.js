@@ -2753,6 +2753,53 @@ function formatModelCoverageReadNote(row) {
   return `<span class="model-coverage-read-note">差枚/G数で評価</span>`;
 }
 
+function getSmartSlotKnownRangeNote(model) {
+  const normalized = normalizeModelName(model);
+  if(normalized === 'L 革命機ヴァルヴレイヴ2') return '実データは2025-11以降';
+  if(normalized === 'スマスロ北斗の拳 転生の章2') return '実データは2026-01以降';
+  return '';
+}
+
+function renderSmartSlotCoverageOverview(modelStats) {
+  const stats = Array.isArray(modelStats) ? modelStats : [];
+  const byModel = new Map();
+  stats.forEach((m) => {
+    const key = normalizeModelName(m?.model);
+    if(key && isSmartSlotModel(key)) byModel.set(key, m);
+  });
+  const rows = Array.from(SMART_SLOT_MODELS).map((model) => {
+    const stat = byModel.get(normalizeModelName(model)) || null;
+    const strength = stat?.coverageStrength || stat?.coverage_strength || 'none';
+    const label = stat?.coverageLabel || stat?.coverage_label || 'データなし';
+    const period = stat ? formatModelCoveragePeriod(stat) : '';
+    const dayCount = Number(stat?.dayCount ?? stat?.day_count ?? stat?.summaryDays);
+    const taiCount = Number(stat?.taiCount ?? stat?.tai_count);
+    const rowCount = Number(stat?.rowCount ?? stat?.row_count ?? stat?.count);
+    const caution = getSmartSlotKnownRangeNote(model);
+    const weak = !stat || strength === 'thin' || strength === 'low' || !Number.isFinite(dayCount) || dayCount < 30;
+    return `<div class="smart-coverage-item ${weak ? 'is-weak' : ''}">
+      <div class="smart-coverage-head">
+        <strong>${escapeHtml(model)}</strong>
+        <span class="smart-coverage-badge ${escapeHtml(strength)}">${escapeHtml(label)}</span>
+      </div>
+      <div class="smart-coverage-meta">
+        ${period ? `<span>${escapeHtml(period)}</span>` : '<span>期間なし</span>'}
+        ${Number.isFinite(dayCount) && dayCount > 0 ? `<span>${Math.round(dayCount)}日</span>` : ''}
+        ${Number.isFinite(taiCount) && taiCount > 0 ? `<span>${Math.round(taiCount)}台</span>` : ''}
+        ${Number.isFinite(rowCount) && rowCount > 0 ? `<span>${Math.round(rowCount).toLocaleString()}件</span>` : ''}
+      </div>
+      <div class="smart-coverage-note">${escapeHtml(weak ? '短期/薄い根拠は参考扱い' : '店の扱い傾向として利用可')}${caution ? ` / ${escapeHtml(caution)}` : ''}</div>
+    </div>`;
+  });
+  return `<section class="smart-coverage-overview">
+    <div class="smart-coverage-title">
+      <span>スマスロ対象機種のデータ範囲</span>
+      <small>${currentStore === 'all' ? '全店舗合算' : escapeHtml(currentStore)}</small>
+    </div>
+    <div class="smart-coverage-grid">${rows.join('')}</div>
+  </section>`;
+}
+
 function renderModelCompMobileCards(data) {
   return `<div class="model-mobile-card-list">${(data || []).map((m) => {
     const avg = Number(m.avg);
@@ -9649,9 +9696,11 @@ function renderModelComp() {
     const fmt = v => v===null ? '—' : `${v>=0?'+':''}${v}`;
     const fmtR = v => v===null ? '—' : `${v.toFixed(1)}%`;
     const freshnessPanel = renderFreshnessWarningPanel(getAnalysisFreshnessMeta(), '機種分析のデータ鮮度');
+    const smartCoveragePanel = renderSmartSlotCoverageOverview(G.modelStats);
 
     document.getElementById('modelCompTable').innerHTML=`
       ${freshnessPanel}
+      ${smartCoveragePanel}
       <div style="font-size:10px;color:var(--muted);margin-bottom:8px">全体平均：${fmt(allAvgDiff)}枚</div>
       <table class="data-table">
         <thead><tr>
@@ -9722,9 +9771,11 @@ function renderModelComp() {
   const fmt = v => v===null ? '—' : `${v>=0?'+':''}${v}`;
   const fmtR = v => v===null ? '—' : `${v.toFixed(1)}%`;
   const freshnessPanel = renderFreshnessWarningPanel(getAnalysisFreshnessMeta(), '機種分析のデータ鮮度');
+  const smartCoveragePanel = renderSmartSlotCoverageOverview(G.modelStats);
 
   document.getElementById('modelCompTable').innerHTML=`
     ${freshnessPanel}
+    ${smartCoveragePanel}
     <div style="font-size:10px;color:var(--muted);margin-bottom:8px">全体平均：${fmt(allAvgDiff)}枚 | フィルター：${currentModelSpFilter==='all'?'全体':currentModelSpFilter==='sp'?'特定日':currentModelSpFilter==='nm'?'通常日':currentModelSpFilter==='zoro'?'ゾロ目':currentModelSpFilter.replace('digit_','')+'の付く日'}</div>
     <table class="data-table">
       <thead><tr>
