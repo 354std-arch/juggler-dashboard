@@ -10819,6 +10819,7 @@ function renderMorningBacktestDigest(storeData) {
   const lift = Number(summary.lift);
   const topHit = Number(summary.topHitRate);
   const pickCount = Number(summary.pickCount);
+  const testDayCount = Number(summary.testDayCount);
   const periodText = periods.length
     ? periods.map((period) => {
         const s = period.summary || {};
@@ -10841,7 +10842,9 @@ function renderMorningBacktestDigest(storeData) {
       ${metric('平均との差', Number.isFinite(lift) ? formatTargetSigned枚(lift) : '-', lift >= 0 ? 'is-plus' : 'is-minus')}
       ${metric('上位命中', Number.isFinite(topHit) ? formatTargetTopHitLift(topHit).replace('上位命中 ', '') : '-', Number.isFinite(topHit) && topHit >= 23 ? 'is-plus' : 'is-muted')}
       ${metric('候補数', Number.isFinite(pickCount) ? `${Math.round(pickCount)}件` : '-', 'is-muted')}
+      ${metric('検証日数', Number.isFinite(testDayCount) ? `${Math.round(testDayCount)}日` : '-', 'is-muted')}
     </div>
+    <div class="morning-backtest-note">各日より前のデータだけで候補を出し、その日の結果で答え合わせしています。</div>
     ${periodText ? `<div class="morning-backtest-periods">${escapeHtml(periodText)}</div>` : ''}
   </div>`;
 }
