@@ -2523,7 +2523,7 @@ function setHeaderDataStatus(text, type = '') {
   const el = document.getElementById('dataStatus');
   if(!el) return;
   el.textContent = text;
-  el.classList.remove('loaded', 'loading', 'error');
+  el.classList.remove('loaded', 'loading', 'error', 'stale');
   if(type) el.classList.add(type);
 }
 
@@ -2644,7 +2644,7 @@ function formatMorningRankCondition(row) {
   }
   if(Number.isFinite(sample) && sample > 0) {
     const sampleNote = sample < 5 ? ' 薄い' : (sample < 10 ? ' 参考' : '');
-    parts.push(`N=${Math.round(sample)}${sampleNote}`);
+    parts.push(`${Math.round(sample)}件${sampleNote}`);
   }
   return parts.join(' / ');
 }
@@ -2726,6 +2726,34 @@ function formatModelCoverageReadNote(row) {
   if(strength === 'medium') return `<span class="model-coverage-read-note is-mid">中期検証: ${escapeHtml(label)}${escapeHtml(suffix)}</span>`;
   if(strength === 'high') return `<span class="model-coverage-read-note is-ok">扱い傾向: ${escapeHtml(label)}${escapeHtml(suffix)}</span>`;
   return `<span class="model-coverage-read-note">差枚/G数で評価</span>`;
+}
+
+function renderModelCompMobileCards(data) {
+  return `<div class="model-mobile-card-list">${(data || []).map((m) => {
+    const avg = Number(m.avg);
+    const avgColor = Number.isFinite(avg) && avg >= 0 ? 'var(--plus)' : 'var(--minus)';
+    const lift = Number(m.lift);
+    const liftColor = Number.isFinite(lift) && lift >= 0 ? 'var(--plus)' : 'var(--minus)';
+    const mech = Number(m.mechRitu);
+    const mechColor = Number.isFinite(mech) ? (mech >= 100 ? 'var(--plus)' : 'var(--minus)') : 'var(--muted)';
+    return `<div class="model-mobile-card">
+      <div class="model-mobile-card-head">
+        <strong>${escapeHtml(m.model || '-')}</strong>
+        <span style="color:${avgColor}">${escapeHtml(Number.isFinite(avg) ? `${avg >= 0 ? '+' : ''}${avg}枚` : '—')}</span>
+      </div>
+      ${formatModelCoverageReadNote(m)}
+      <div class="model-mobile-metrics">
+        <span>平均G <b>${escapeHtml(formatModelTableNumber(m.avgG))}</b></span>
+        <span>勝率 <b>${escapeHtml(formatModelTableRate(m.winRate))}</b></span>
+        <span>出率 <b style="color:${mechColor}">${escapeHtml(Number.isFinite(mech) ? `${mech.toFixed(1)}%` : '—')}</b></span>
+        <span>ベース比 <b style="color:${liftColor}">${escapeHtml(Number.isFinite(lift) ? `${lift >= 0 ? '+' : ''}${lift}` : '—')}</b></span>
+      </div>
+      <div class="model-mobile-meta">
+        <span>${escapeHtml(formatModelTableCount(m))}</span>
+        ${formatModelCoverageMeta(m)}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
 }
 
 function getSeatLayoutStorageKey(store) {
@@ -6292,12 +6320,22 @@ function mergeAllDateSummary(stores, json) {
 function showStatusPrecomputed(json) {
   const stores = json.stores || [];
   const updatedAt = json.updated_at || '更新日不明';
-  setHeaderDataStatus(`${updatedAt}更新`, 'loaded');
+  const dataDate = normalizeDataDateValue(json.data_date || json.dataDate || updatedAt);
+  const dataDt = parseYmdLocal(dataDate || '');
+  const lagDays = dataDt ? diffDaysLocal(dataDt, getTodayLocalDate()) : null;
+  const stale = Number.isFinite(lagDays) && lagDays >= 2;
+  const headerText = stale
+    ? `データ古い ${dataDate}`
+    : `${updatedAt}更新`;
+  setHeaderDataStatus(headerText, stale ? 'stale' : 'loaded');
   setDataEmptyState(DATA_EMPTY_STATE.LOADED);
   document.getElementById('loadedInfo').style.display = 'block';
+  const staleNote = stale
+    ? `<br><span style="color:var(--accent4)">⚠️ 最新データ日が${lagDays}日前です。定時取得の実行状況を確認してください。</span>`
+    : '';
   document.getElementById('loadedSummary').innerHTML = `
     <div style="font-size:12px;line-height:2;">
-      📅 更新日: ${updatedAt}<br>
+      📅 更新日: ${updatedAt}${dataDate ? ` / データ日: ${dataDate}` : ''}${staleNote}<br>
       🏪 ${stores.map(s=>`<span class="badge badge-info">${s}</span>`).join('')}
     </div>`;
 }
@@ -7519,12 +7557,12 @@ function calcTaiConfigScore(tai, context) {
     const ref = isSpecial && tai.spAvg !== null ? tai.spAvg : (!isSpecial && tai.nmAvg !== null ? tai.nmAvg : tai.avg);
     if(ref !== null && ref >= 800 && condN >= 3) {
       score += 2;
-      reasons.push({ label: `${isSpecial?'特定日':'通常日'}差枚評価`, val: `平均${ref>=0?'+':''}${ref}枚（N=${condN || tai.count}）`, pts: 2 });
+      reasons.push({ label: `${isSpecial?'特定日':'通常日'}差枚評価`, val: `平均${ref>=0?'+':''}${ref}枚（${condN || tai.count}件）`, pts: 2 });
     } else if(ref !== null && ref >= 200 && condN >= 3) {
       score += 1;
-      reasons.push({ label: `${isSpecial?'特定日':'通常日'}差枚評価`, val: `平均${ref>=0?'+':''}${ref}枚（N=${condN || tai.count}）`, pts: 1 });
+      reasons.push({ label: `${isSpecial?'特定日':'通常日'}差枚評価`, val: `平均${ref>=0?'+':''}${ref}枚（${condN || tai.count}件）`, pts: 1 });
     } else {
-      reasons.push({ label: `${isSpecial?'特定日':'通常日'}差枚評価`, val: `平均${ref!==null ? `${ref>=0?'+':''}${ref}枚` : 'データ不足'}（N=${condN || tai.count}）`, pts: 0 });
+      reasons.push({ label: `${isSpecial?'特定日':'通常日'}差枚評価`, val: `平均${ref!==null ? `${ref>=0?'+':''}${ref}枚` : 'データ不足'}（${condN || tai.count}件）`, pts: 0 });
     }
   } else if(bayesProb !== null) {
     let pts = 0;
@@ -7538,18 +7576,18 @@ function calcTaiConfigScore(tai, context) {
     }
     if(pts > 0) {
       score += pts;
-      reasons.push({ label: `${isSpecial?'特定日':'通常日'}ベイズ評価`, val: `高設定確率${bayesProb}%（N=${condN}）`, pts });
+      reasons.push({ label: `${isSpecial?'特定日':'通常日'}ベイズ評価`, val: `高設定確率${bayesProb}%（${condN}件）`, pts });
     } else {
       // スコアなしでも参考表示
-      reasons.push({ label: `${isSpecial?'特定日':'通常日'}ベイズ評価`, val: `高設定確率${bayesProb}%（N=${condN}）`, pts: 0 });
+      reasons.push({ label: `${isSpecial?'特定日':'通常日'}ベイズ評価`, val: `高設定確率${bayesProb}%（${condN}件）`, pts: 0 });
     }
   } else {
     // データ不足 → 全期間データでフォールバック
     const fallbackProb = tai.bayesProbAll;
     if(fallbackProb !== null) {
-      reasons.push({ label: '全期間ベイズ評価（参考）', val: `高設定確率${fallbackProb}%（N=${tai.count}）`, pts: 0 });
+      reasons.push({ label: '全期間ベイズ評価（参考）', val: `高設定確率${fallbackProb}%（${tai.count}件）`, pts: 0 });
     } else {
-      reasons.push({ label: `${isSpecial?'特定日':'通常日'}データ`, val: `サンプル不足（N=${condN}）`, pts: 0 });
+      reasons.push({ label: `${isSpecial?'特定日':'通常日'}データ`, val: `サンプル不足（${condN}件）`, pts: 0 });
     }
   }
 
@@ -7596,7 +7634,7 @@ function calcTaiValueScore(tai, context) {
     }
     reasons.push({
       label: `${isSpecial?'特定日':'通常日'}差枚`,
-      val: ref !== null ? `${ref>=0?'+':''}${ref}枚（N=${sample || tai.count}）` : 'データ不足',
+      val: ref !== null ? `${ref>=0?'+':''}${ref}枚（${sample || tai.count}件）` : 'データ不足',
       pts,
       rawPts: pts,
     });
@@ -9573,7 +9611,8 @@ function renderModelComp() {
           <td style="color:${col(m.lift)};font-size:11px">${fmt(m.lift)}</td>
         </tr>`).join('')}
         </tbody>
-      </table>`;
+      </table>
+      ${renderModelCompMobileCards(data)}`;
 
     renderModelMonthComp();
     renderModelFilter();
@@ -9640,7 +9679,8 @@ function renderModelComp() {
         <td style="color:${col(m.lift)};font-size:11px">${fmt(m.lift)}</td>
       </tr>`).join('')}
       </tbody>
-    </table>`;
+    </table>
+    ${renderModelCompMobileCards(data)}`;
 
   renderModelMonthComp();
   renderModelFilter();
@@ -9667,9 +9707,25 @@ function renderModelMonthComp() {
   const fewDaysWarning = thisMonthDays <= 7;
 
   const col = v => v===null?'var(--muted)':v>=0?'var(--plus)':'var(--minus)';
-  const fmt = (v,n) => v===null?`<span style="color:var(--muted)">—</span>`:`<span style="color:${col(v)}">${v>=0?'+':''}${v}枚</span><br><span style="font-size:10px;color:${n<10?'var(--accent4)':'var(--muted)'}">${n}件${n<10?' ⚠️':''}</span>`;
+  const sampleLabel = (n) => n < 10 ? `${n}件・月初参考` : `${n}件`;
+  const fmt = (v,n) => v===null?`<span style="color:var(--muted)">—</span>`:`<span style="color:${col(v)}">${v>=0?'+':''}${v}枚</span><br><span style="font-size:10px;color:${n<10?'var(--accent4)':'var(--muted)'}">${sampleLabel(n)}</span>`;
 
-  const warning = fewDaysWarning ? `<div style="padding:8px 10px;background:rgba(255,159,0,0.1);border:1px solid rgba(255,159,0,0.3);border-radius:6px;font-size:11px;color:var(--accent4);margin-bottom:10px">⚠️ 今月はまだ${thisMonthDays}日分のデータです。件数が少ない機種は参考値としてご覧ください。</div>` : '';
+  const warning = fewDaysWarning ? `<div class="model-month-note">月初参考: 今月はまだ${thisMonthDays}日分です。これは未取得ではなく、月内サンプルが少ないという注意です。</div>` : '';
+  const mobileCards = (items) => `<div class="model-month-mobile-list">${items.map((m) => {
+    const delta = m.thisMonthAvg!==null&&m.lastMonthAvg!==null ? round1(m.thisMonthAvg-m.lastMonthAvg) : null;
+    const arrow = delta===null?'横ばい':delta>50?'急上昇':delta>20?'上昇':delta<-50?'急落':delta<-20?'下落':'横ばい';
+    return `<div class="model-month-card">
+      <div class="model-month-card-head">
+        <strong>${escapeHtml(m.model || '-')}</strong>
+        <span style="color:${col(delta)}">${escapeHtml(delta!==null ? `${delta>=0?'+':''}${delta}` : '—')}</span>
+      </div>
+      <div class="model-month-card-grid">
+        <div><span>${escapeHtml(thisLabel)}</span><b style="color:${col(m.thisMonthAvg)}">${escapeHtml(m.thisMonthAvg!==null ? `${m.thisMonthAvg>=0?'+':''}${m.thisMonthAvg}枚` : '—')}</b><small>${escapeHtml(sampleLabel(m.thisMonthCount || 0))}</small></div>
+        <div><span>${escapeHtml(lastLabel)}</span><b style="color:${col(m.lastMonthAvg)}">${escapeHtml(m.lastMonthAvg!==null ? `${m.lastMonthAvg>=0?'+':''}${m.lastMonthAvg}枚` : '—')}</b><small>${escapeHtml(`${m.lastMonthCount || 0}件`)}</small></div>
+        <div><span>変化</span><b style="color:${col(delta)}">${escapeHtml(arrow)}</b><small>${escapeHtml(delta!==null ? `${delta>=0?'+':''}${delta}` : '比較不足')}</small></div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
 
   document.getElementById('modelMonthComp').innerHTML= warning + `
     <table class="data-table">
@@ -9689,7 +9745,8 @@ function renderModelMonthComp() {
           <td style="font-size:12px">${arrow}${delta!==null?`<br><span style="font-size:10px;color:${col(delta)}">${delta>=0?'+':''}${delta}</span>`:''}</td>
         </tr>`;}).join('')}
       </tbody>
-    </table>`;
+    </table>
+    ${mobileCards(data)}`;
 }
 
 function renderModelFilter() {
@@ -9756,7 +9813,7 @@ function renderModelDayBar() {
   const chip = (item) => `<span class="model-day-chip ${item.isSp ? 'is-special' : ''}">
     ${escapeHtml(String(item.day))}${item.isSp ? '★' : ''}日
     <b>${escapeHtml(`${item.avg >= 0 ? '+' : ''}${item.avg}枚`)}</b>
-    <small>N=${escapeHtml(String(Math.round(item.count)))}</small>
+    <small>${escapeHtml(String(Math.round(item.count)))}件</small>
   </span>`;
   const summaryHtml = `
     <div class="model-day-summary">
@@ -9768,9 +9825,9 @@ function renderModelDayBar() {
         ${formatModelCoverageMeta(m)}
       </div>
       <div class="model-day-chip-row">
-        ${topDays.length ? topDays.map(chip).join('') : '<span class="model-day-muted">N5以上でプラスの日がまだありません</span>'}
+        ${topDays.length ? topDays.map(chip).join('') : '<span class="model-day-muted">5件以上でプラスの日がまだありません</span>'}
       </div>
-      ${thinCount ? `<div class="model-day-note">N&lt;5の日が${thinCount}個あります。薄い日は色が強くても参考止まりです。</div>` : ''}
+      ${thinCount ? `<div class="model-day-note">5件未満の日が${thinCount}個あります。薄い日は色が強くても参考止まりです。</div>` : ''}
     </div>`;
   const rowsHtml = dayItems.map(item => {
     const pct = Math.abs(item.avg) / maxAbs * 100;
@@ -9779,7 +9836,7 @@ function renderModelDayBar() {
       <div class="bar-bg"><div class="bar-fill ${item.avg>=0?'pos':'neg'} ${item.thin?'thin':''}" style="width:${pct}%"></div></div>
       <div class="bar-val" style="color:${item.avg>=0?'var(--plus)':'var(--minus)'}">
         ${item.avg>=0?'+':''}${item.avg}
-        <small>N=${Math.round(item.count)}${item.thin?' 参考':''}</small>
+        <small>${Math.round(item.count)}件${item.thin?' 参考':''}</small>
       </div>
     </div>`;
   }).join('');
@@ -11262,7 +11319,7 @@ function buildUpcomingList() {
       </div>
       <div style="flex:1;min-width:0">
         <div style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${labelsStr}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">N=${item.score.totalCount} サンプル</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${item.score.totalCount}件 サンプル</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-size:19px;font-weight:900;color:${tc};font-family:'Share Tech Mono',monospace">${set456}%</div>
@@ -11318,7 +11375,7 @@ function showCalendarDayDetail(year, month, day) {
           <div style="flex:1;background:var(--bg2);border-radius:2px;height:5px;overflow:hidden">
             <div style="width:${set456Bar}%;height:100%;background:${sc};border-radius:2px"></div>
           </div>
-          <div style="font-size:10px;color:var(--muted);white-space:nowrap">差枚${avgSign2}${s.avg} N=${s.count}</div>
+          <div style="font-size:10px;color:var(--muted);white-space:nowrap">差枚${avgSign2}${s.avg} ${s.count}件</div>
         </div>
       </div>`;
     });
