@@ -3869,6 +3869,108 @@ function getSeatLayoutRecentRowsForStore(store, limit = 30) {
   return dates.flatMap((ymd) => getSeatLayoutRowsForStoreAtDate(store, ymd));
 }
 
+function getSeatLayoutRecentRangeMeta(store, limit = 30) {
+  if(!store) return null;
+  const dates = getSeatLayoutDatesFromBundle()
+    .filter((ymd) => ymd && (!seatLayoutState.dateYmd || ymd <= seatLayoutState.dateYmd))
+    .slice(0, limit);
+  if(!dates.length) return null;
+  const rows = dates.flatMap((ymd) => getSeatLayoutRowsForStoreAtDate(store, ymd));
+  const rowCount = rows.length;
+  const smartCount = rows.filter((row) => isSmartSlotModel(row.model)).length;
+  const sortedAsc = dates.slice().sort((a, b) => String(a).localeCompare(String(b)));
+  return {
+    firstYmd: sortedAsc[0] || '',
+    lastYmd: sortedAsc[sortedAsc.length - 1] || '',
+    dayCount: dates.length,
+    rowCount,
+    smartCount,
+  };
+}
+
+function getSeatLayoutFreshnessMeta() {
+  const targetYmd = normalizeDataDateValue(seatLayoutState.dateYmd)
+    || normalizeDataDateValue(G.dataDate)
+    || toYmdLocal(getTodayLocalDate());
+  const latestBundleYmd = getSeatLayoutDatesFromBundle()[0] || '';
+  const sourceYmd = normalizeDataDateValue(latestBundleYmd || G.dataDate || G._precomputed?.data_date || G._precomputed?.dataDate);
+  const targetDate = parseYmdLocal(targetYmd || '');
+  const sourceDate = parseYmdLocal(sourceYmd || '');
+  const lagDays = sourceDate && targetDate ? diffDaysLocal(sourceDate, targetDate) : null;
+  const todayYmd = toYmdLocal(getTodayLocalDate());
+  const todayLag = sourceDate ? diffDaysLocal(sourceDate, todayYmd) : null;
+
+  if(!sourceYmd) {
+    return {
+      tone: 'warn',
+      label: 'データ日不明',
+      sourceYmd,
+      targetYmd,
+      alertText: 'ホール図の最終データ日を確認できません。',
+    };
+  }
+  if(Number.isFinite(lagDays) && lagDays > 0) {
+    return {
+      tone: 'warn',
+      label: `${sourceYmd}まで`,
+      sourceYmd,
+      targetYmd,
+      alertText: `${targetYmd}より後のデータは未反映です。`,
+    };
+  }
+  if(Number.isFinite(todayLag) && todayLag >= 2) {
+    return {
+      tone: 'warn',
+      label: `${sourceYmd}まで`,
+      sourceYmd,
+      targetYmd,
+      alertText: `今日基準では${todayLag}日前のデータです。`,
+    };
+  }
+  return {
+    tone: 'ok',
+    label: `${sourceYmd}まで`,
+    sourceYmd,
+    targetYmd,
+    alertText: '',
+  };
+}
+
+function renderSeatLayoutDataNotice(rows = [], allRows = [], layer = seatLayoutState.layer) {
+  const el = document.getElementById('seatLayoutDataNotice');
+  if(!el) return;
+  if(!seatLayoutState.store) {
+    el.innerHTML = '';
+    el.className = 'seat-layout-data-notice';
+    return;
+  }
+  const freshness = getSeatLayoutFreshnessMeta();
+  const range = getSeatLayoutRecentRangeMeta(seatLayoutState.store, 30);
+  const normalizedLayer = normalizeSeatLayoutLayer(layer);
+  const missingText = formatMissingDataRangeText(freshness.sourceYmd, freshness.targetYmd);
+  const smartVisible = normalizedLayer === 'smart'
+    || (Array.isArray(rows) && rows.some((row) => isSmartSlotModel(row.model)))
+    || (Array.isArray(allRows) && allRows.some((row) => isSmartSlotModel(row.model)));
+  const noteRows = [];
+  noteRows.push(`<span><b>データ</b>${escapeHtml(freshness.label || '不明')}</span>`);
+  if(range) {
+    noteRows.push(`<span><b>直近30日</b>${escapeHtml(`${range.firstYmd}〜${range.lastYmd} / ${range.dayCount}日 / ${range.rowCount}件`)}</span>`);
+  }
+  if(missingText) {
+    noteRows.push(`<span class="is-warn"><b>未反映</b>${escapeHtml(missingText)}</span>`);
+  } else if(freshness.alertText) {
+    noteRows.push(`<span class="is-warn"><b>注意</b>${escapeHtml(freshness.alertText)}</span>`);
+  }
+  if(smartVisible) {
+    const smartText = range
+      ? `スマスロ${range.smartCount}件。設定判別ではなく、差枚・番号帯・位置の補助。`
+      : 'スマスロは設定判別ではなく、差枚・番号帯・位置の補助。';
+    noteRows.push(`<span class="is-smart"><b>スマスロ</b>${escapeHtml(smartText)}</span>`);
+  }
+  el.className = `seat-layout-data-notice is-${freshness.tone || 'ok'}`;
+  el.innerHTML = noteRows.join('');
+}
+
 function buildSeatLayoutRecentStatsByTai(store, rows, limit = 30) {
   const modelByTai = new Map();
   (Array.isArray(rows) ? rows : []).forEach((row) => {
@@ -4627,6 +4729,7 @@ function renderSeatHeatmap(store) {
   if(!wrap) return;
   if(!store) {
     if(summary) summary.textContent = '店舗を選択してください';
+    renderSeatLayoutDataNotice([], [], seatLayoutState.layer);
     renderSeatHeatmapModelFilter([]);
     renderSeatHeatmapSelection(null);
     renderSeatEvidenceBacktestPanel();
@@ -4656,6 +4759,7 @@ function renderSeatHeatmap(store) {
     if(doesSeatLayoutCardMatchFilters(row) && (!smartLayer || isSmartSlotModel(row.model))) matchingTai.add(Number(row.tai));
   });
   const rows = allRows.filter((row) => matchingTai.has(Number(row.tai)));
+  renderSeatLayoutDataNotice(rows, allRows, layer);
   renderSeatHeatmapSummary(rows, allRows.length, layer);
   renderSeatEvidenceBacktestPanel();
   renderSeatHeatmapInsight(rows, layer);
