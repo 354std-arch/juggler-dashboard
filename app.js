@@ -2,7 +2,7 @@
 let G = {
   raw:[], dayStats:[], taiDetail:[], dateSummary:[], modelStats:[], nextStats:{}, heatmap:{}, autoSpecial:[], weekMatrix:{}, dayWdayMatrix:{},
   currentTargetContext: null, layer3Scored: [], layer3SelectionMeta: null, storeFreshness: {}, recommendations: [], dataUpdatedAt: null, dataDate: null,
-  morningData: null, morningDataError: ''
+  trendView: null, externalEvents: null, morningData: null, morningDataError: ''
 };
 let chartInst = null;
 let currentStore = 'all';
@@ -2310,13 +2310,12 @@ function detectAutoSpecial(rows) {
 }
 
 // ====== タブ ======
-const DETAIL_TABS = new Set(['tab-model','tab-heat','tab-period','tab-setsuteii','tab-next']);
+const DETAIL_TABS = new Set(['tab-settings','tab-setsuteii','tab-next']);
 
 function updateRecommendationSectionVisibility(activeTabId) {
   const el = document.getElementById('recommendationSection');
   if(!el) return;
-  const id = activeTabId || document.querySelector('.tab-content.active')?.id || '';
-  const visible = id === 'tab-target';
+  const visible = false;
   el.classList.toggle('visible', visible);
   el.setAttribute('aria-hidden', visible ? 'false' : 'true');
   el.style.display = visible ? '' : 'none';
@@ -2358,7 +2357,8 @@ function showTab(id, btn) {
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('is-seat-layout-active', id === 'tab-layout');
   updateRecommendationSectionVisibility(id);
-  if(btn) btn.classList.add('active');
+  const navBtn = btn || document.querySelector(`#mainNav button[data-tab="${id}"]`);
+  if(navBtn) navBtn.classList.add('active');
   // TAB_RENDER_MAPで統一（未定義のタブは何もしない）
   const fn = TAB_RENDER_MAP[id];
   if(fn) {
@@ -2816,6 +2816,9 @@ function renderModelCompMobileCards(data) {
     const mechColor = Number.isFinite(mech) ? (mech >= 100 ? 'var(--plus)' : 'var(--minus)') : 'var(--muted)';
     const countText = formatModelTableCount(m);
     const periodText = formatModelCoverageMeta(m);
+    const settingRef = m.modelCategory === 'smart_slot'
+      ? 'スマスロは差枚扱い'
+      : `RB ${formatModelTableNumber(m.rbRate)} / 合算 ${formatModelTableNumber(m.synRate)}`;
     return `<div class="model-mobile-card">
       <div class="model-mobile-card-head">
         <strong>${escapeHtml(m.model || '-')}</strong>
@@ -2829,6 +2832,7 @@ function renderModelCompMobileCards(data) {
       <div class="model-mobile-meta is-secondary">
         <span>平均G ${escapeHtml(formatModelTableNumber(m.avgG))}</span>
         <span>出率 <b style="color:${mechColor}">${escapeHtml(Number.isFinite(mech) ? `${mech.toFixed(1)}%` : '—')}</b></span>
+        <span>${escapeHtml(settingRef)}</span>
         <span>ベース比 <b style="color:${liftColor}">${escapeHtml(Number.isFinite(lift) ? `${lift >= 0 ? '+' : ''}${lift}` : '—')}</b></span>
         ${periodText}
       </div>
@@ -4076,9 +4080,9 @@ function renderSeatLayoutLayerText(layer = seatLayoutState.layer) {
   const normalizedLayer = normalizeSeatLayoutLayer(layer);
   const recentLayer = normalizedLayer === 'recent30';
   const summaryTitle = document.getElementById('seatHeatmapSummaryTitle');
-  if(summaryTitle) summaryTitle.textContent = recentLayer ? '直近30日サマリー' : '当日サマリー';
+  if(summaryTitle) summaryTitle.textContent = recentLayer ? '直近推移' : '直近推移';
   const legendTitle = document.getElementById('seatHeatmapLegendTitle');
-  if(legendTitle) legendTitle.textContent = recentLayer ? '凡例（直近30日累計）' : '凡例（当日差枚）';
+  if(legendTitle) legendTitle.textContent = recentLayer ? '凡例（直近推移）' : '凡例（当日差枚）';
   const legend = document.getElementById('seatHeatmapLegend');
   if(legend) {
     legend.innerHTML = getSeatLayoutLegendItems(normalizedLayer).map((item) => `
@@ -6219,6 +6223,7 @@ function loadFromPrecomputed(json) {
   G.storeFreshness = (json.store_freshness && typeof json.store_freshness === 'object')
     ? json.store_freshness
     : ((json.storeFreshness && typeof json.storeFreshness === 'object') ? json.storeFreshness : {});
+  G.externalEvents = (json.externalEvents && typeof json.externalEvents === 'object') ? json.externalEvents : null;
   G.recommendations = Array.isArray(json.recommendations) ? json.recommendations : [];
   const stores = Array.isArray(json.stores) ? json.stores : storesFromByStore;
   G.stores = [...stores];
@@ -6231,7 +6236,7 @@ function loadFromPrecomputed(json) {
   currentTaiPeriod = 0;
   document.querySelectorAll('#taiPeriodBtns .filter-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector('#taiPeriodBtns .filter-btn')?.classList.add('active');
-  setStoreData('all');
+  setStoreData(currentStore);
   const diagInput = document.getElementById('diagDate');
   if(diagInput) {
     const modeDate = getDateForTargetMode(targetDayMode);
@@ -6296,6 +6301,7 @@ function setStoreData(store) {
       G.dayWdayMatrix = {};
       G.dateSummary = [];
       G.todayAnalysis = null;
+      G.trendView = null;
       G.raw = [];
       return;
     }
@@ -6308,6 +6314,7 @@ function setStoreData(store) {
     G.dayWdayMatrix = (byStore[allStores[0]] || {}).dayWdayMatrix || {};
     G.dateSummary = mergeAllDateSummary(allStores, json);
     G.todayAnalysis = pickPreferredTodayAnalysis(allStores, byStore);
+    G.trendView = buildMergedTrendView(allStores, json);
   } else {
     const storeData = byStore[store] || {};
     G.dayStats = storeData.dayStats || [];
@@ -6319,6 +6326,7 @@ function setStoreData(store) {
     G.dayWdayMatrix = storeData.dayWdayMatrix || {};
     G.dateSummary = storeData.dateSummary || [];
     G.todayAnalysis = normalizeTodayAnalysisRecord(storeData.todayAnalysis);
+    G.trendView = storeData.trendView || null;
   }
   G.raw = [];
 }
@@ -9772,7 +9780,9 @@ function renderModelComp() {
       const lift = round1(a - allAvgDiff);
       return {
         model:m.model, avg:a, count, mechRitu:m.mechRitu, lift,
-        avgG:m.avgG, winRate:m.winRate, avgInstallCount:m.avgInstallCount, summaryDays:m.summaryDays,
+        avgG:m.avgG, winRate:m.winRate, rbRate:m.rbRate, synRate:m.synRate,
+        analysisMode:m.analysisMode, modelCategory:m.modelCategory,
+        avgInstallCount:m.avgInstallCount, summaryDays:m.summaryDays,
         firstDate:m.firstDate, lastDate:m.lastDate, dayCount:m.dayCount, taiCount:m.taiCount,
         rowCount:m.rowCount, coverageLabel:m.coverageLabel, coverageStrength:m.coverageStrength,
       };
@@ -9789,6 +9799,10 @@ function renderModelComp() {
           mechRitu: m.mechRitu,
           avgG: m.avgG,
           winRate: m.winRate,
+          rbRate: m.rbRate,
+          synRate: m.synRate,
+          analysisMode: m.analysisMode,
+          modelCategory: m.modelCategory,
           avgInstallCount: m.avgInstallCount,
           summaryDays: m.summaryDays,
           firstDate: m.firstDate,
@@ -9820,6 +9834,7 @@ function renderModelComp() {
           <th>平均G</th>
           <th>勝率</th>
           <th>推定出率</th>
+          <th>RB/合算</th>
           <th>件数/設置</th>
           <th>データ期間</th>
           <th>ベース比</th>
@@ -9833,6 +9848,7 @@ function renderModelComp() {
           <td style="color:var(--muted);font-family:'Share Tech Mono',monospace">${formatModelTableNumber(m.avgG)}</td>
           <td style="color:${Number(m.winRate)>=50?'var(--plus)':'var(--muted)'};font-family:'Share Tech Mono',monospace">${formatModelTableRate(m.winRate)}</td>
           <td style="color:${m.mechRitu===null?'var(--muted)':m.mechRitu>=100?'var(--plus)':'var(--minus)'};font-family:'Share Tech Mono',monospace">${fmtR(m.mechRitu)}</td>
+          <td style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:11px">${m.modelCategory === 'smart_slot' ? '扱い' : `${formatModelTableNumber(m.rbRate)} / ${formatModelTableNumber(m.synRate)}`}</td>
           <td style="color:var(--muted);font-size:11px">${formatModelTableCount(m)}</td>
           <td style="font-size:10px">${formatModelCoverageMeta(m)}</td>
           <td style="color:${col(m.lift)};font-size:11px">${fmt(m.lift)}</td>
@@ -9895,6 +9911,7 @@ function renderModelComp() {
         <th>平均G</th>
         <th>勝率</th>
         <th>推定出率</th>
+        <th>RB/合算</th>
         <th>件数/設置</th>
         <th>データ期間</th>
         <th>ベース比</th>
@@ -9905,6 +9922,7 @@ function renderModelComp() {
         <td style="color:var(--muted);font-family:'Share Tech Mono',monospace">${formatModelTableNumber(m.avgG)}</td>
         <td style="color:${Number(m.winRate)>=50?'var(--plus)':'var(--muted)'};font-family:'Share Tech Mono',monospace">${formatModelTableRate(m.winRate)}</td>
         <td style="color:${m.mechRitu===null?'var(--muted)':m.mechRitu>=100?'var(--plus)':'var(--minus)'};font-family:'Share Tech Mono',monospace">${fmtR(m.mechRitu)}</td>
+        <td style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:11px">${m.modelCategory === 'smart_slot' ? '扱い' : `${formatModelTableNumber(m.rbRate)} / ${formatModelTableNumber(m.synRate)}`}</td>
         <td style="color:var(--muted);font-size:11px">${formatModelTableCount(m)}</td>
         <td style="font-size:10px">${formatModelCoverageMeta(m)}</td>
         <td style="color:${col(m.lift)};font-size:11px">${fmt(m.lift)}</td>
@@ -10488,8 +10506,424 @@ function saveDataHTML() {
   URL.revokeObjectURL(a.href);
 }
 
+// ====== 過去データ変遷ビューア ======
+function toFiniteTrendNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatTrendDiff(value) {
+  const n = toFiniteTrendNumber(value);
+  if(n === null) return '—';
+  return `${n > 0 ? '+' : ''}${Math.round(n).toLocaleString()}枚`;
+}
+
+function formatTrendNumber(value, suffix = '') {
+  const n = toFiniteTrendNumber(value);
+  if(n === null) return '—';
+  return `${Math.round(n).toLocaleString()}${suffix}`;
+}
+
+function formatTrendRate(value) {
+  const n = toFiniteTrendNumber(value);
+  if(n === null) return '—';
+  return `${Math.round(n)}%`;
+}
+
+function getTrendToneClass(tone) {
+  const key = String(tone || '');
+  if(key === 'up') return 'is-up';
+  if(key === 'down') return 'is-down';
+  if(key === 'thin') return 'is-thin';
+  if(key === 'stale') return 'is-stale';
+  return 'is-flat';
+}
+
+function classifyTrendFromValues(avgDiff, delta, count) {
+  const n = Number(count);
+  const avgVal = toFiniteTrendNumber(avgDiff);
+  const deltaVal = toFiniteTrendNumber(delta);
+  if(!Number.isFinite(n) || n < 10) return { label: '件数少', tone: 'thin' };
+  if(avgVal === null) return { label: '未取得', tone: 'thin' };
+  if(deltaVal !== null && deltaVal >= 150) return { label: '注目変化', tone: 'up' };
+  if(avgVal >= 150 || (deltaVal !== null && deltaVal >= 60)) return { label: '強め推移', tone: 'up' };
+  if(deltaVal !== null && deltaVal <= -150) return { label: '落ち気味', tone: 'down' };
+  return { label: '横ばい', tone: 'flat' };
+}
+
+function summarizeDateRowsForWindow(dateRows, latestYmd, days, offsetDays = 0) {
+  const latest = parseYmdLocal(latestYmd || '');
+  if(!latest || !Array.isArray(dateRows) || !dateRows.length) {
+    return { count: 0, activeDays: 0, avgDiff: null, totalDiff: null, winRate: null, avgG: null };
+  }
+  const end = addDaysLocal(latest, -offsetDays);
+  const start = addDaysLocal(end, -(days - 1));
+  const matched = dateRows.filter(row => {
+    const dt = parseYmdLocal(row?.dateStr || row?.date || '');
+    return dt && dt.getTime() >= start.getTime() && dt.getTime() <= end.getTime();
+  });
+  const totalCount = matched.reduce((sum, row) => sum + (Number(row?.count) || 0), 0);
+  const totalDiff = matched.reduce((sum, row) => sum + (Number(row?.total) || 0), 0);
+  const plus = matched.reduce((sum, row) => sum + (Number(row?.plus) || 0), 0);
+  return {
+    from: toYmdLocal(start),
+    to: toYmdLocal(end),
+    count: totalCount,
+    activeDays: matched.length,
+    avgDiff: totalCount > 0 ? round1(totalDiff / totalCount) : null,
+    totalDiff: matched.length ? round1(totalDiff) : null,
+    winRate: totalCount > 0 ? round1(plus / totalCount * 100) : null,
+    avgG: null,
+  };
+}
+
+function buildFallbackTrendView(store, storeData = {}) {
+  const dateRows = Array.isArray(storeData.dateSummary) ? storeData.dateSummary : [];
+  const sortedDates = dateRows.map(row => normalizeDataDateValue(row?.dateStr || row?.date)).filter(Boolean).sort();
+  const latestYmd = sortedDates[sortedDates.length - 1] || normalizeDataDateValue(G.dataDate || G._precomputed?.data_date);
+  const firstYmd = sortedDates[0] || null;
+  const recent30 = summarizeDateRowsForWindow(dateRows, latestYmd, 30, 0);
+  const prior30 = summarizeDateRowsForWindow(dateRows, latestYmd, 30, 30);
+  const recent90 = summarizeDateRowsForWindow(dateRows, latestYmd, 90, 0);
+  const prior90 = summarizeDateRowsForWindow(dateRows, latestYmd, 90, 90);
+  const delta30 = recent30.avgDiff !== null && prior30.avgDiff !== null ? round1(recent30.avgDiff - prior30.avgDiff) : null;
+  const delta90 = recent90.avgDiff !== null && prior90.avgDiff !== null ? round1(recent90.avgDiff - prior90.avgDiff) : null;
+  const storeTrendLabel = classifyTrendFromValues(recent30.avgDiff, delta30, recent30.count);
+  const modelTrends = (Array.isArray(storeData.modelStats) ? storeData.modelStats : []).map((row) => {
+    const delta = row.thisMonthAvg !== null && row.thisMonthAvg !== undefined && row.lastMonthAvg !== null && row.lastMonthAvg !== undefined
+      ? round1(Number(row.thisMonthAvg) - Number(row.lastMonthAvg))
+      : null;
+    const label = classifyTrendFromValues(row.thisMonthAvg ?? row.allAvg, delta, row.thisMonthCount || row.count || 0);
+    return {
+      model: row.model,
+      category: row.modelCategory,
+      analysisMode: row.analysisMode,
+      source: row.summarySource === 'store_model_summary' ? '機種日別サマリー' : '台別データ',
+      label: label.label,
+      tone: label.tone,
+      allAvg: row.allAvg,
+      avgG: row.avgG,
+      winRate: row.winRate,
+      mechRitu: row.mechRitu,
+      thisMonthAvg: row.thisMonthAvg,
+      thisMonthCount: row.thisMonthCount,
+      lastMonthAvg: row.lastMonthAvg,
+      lastMonthCount: row.lastMonthCount,
+      deltaMonth: delta,
+      count: row.count,
+      firstDate: row.firstDate,
+      lastDate: row.lastDate,
+      coverageLabel: row.coverageLabel,
+      coverageStrength: row.coverageStrength,
+    };
+  });
+  const taiTrends = (Array.isArray(storeData.taiDetail) ? storeData.taiDetail : []).map((row) => {
+    const label = classifyTrendFromValues(row.avg, null, row.count || 0);
+    return {
+      tai: row.tai,
+      taiNum: row.taiNum,
+      model: row.model,
+      label: label.label,
+      tone: label.tone,
+      avgDiff: row.avg,
+      count: row.count,
+      plusRate: row.plusRate,
+      avgG: row.avgG,
+      spAvg: row.spAvg,
+      nmAvg: row.nmAvg,
+      rbRate: row.rbRate,
+      synRate: row.synRate,
+      features: (row.hallFeatures || []).map(f => typeof f === 'string' ? f : (f?.label || f?.key || f?.type)).filter(Boolean).slice(0, 4),
+    };
+  });
+  modelTrends.sort((a, b) => (Number(b.deltaMonth) || -9999) - (Number(a.deltaMonth) || -9999));
+  taiTrends.sort((a, b) => (Number(b.avgDiff) || -9999) - (Number(a.avgDiff) || -9999));
+  return {
+    version: 0,
+    store,
+    specialDays: storeData.special || [],
+    dataFreshness: {
+      firstDataDate: firstYmd,
+      latestDataDate: latestYmd,
+      rowCount: dateRows.reduce((sum, row) => sum + (Number(row?.count) || 0), 0),
+      diffRowCount: dateRows.reduce((sum, row) => sum + (Number(row?.count) || 0), 0),
+      quality: storeData.dataQuality || {},
+    },
+    storeTrend: {
+      label: storeTrendLabel.label,
+      tone: storeTrendLabel.tone,
+      baselineAvgDiff: null,
+      recent30,
+      prior30,
+      delta30,
+      recent90,
+      prior90,
+      delta90,
+    },
+    modelTrends,
+    taiTrends,
+    externalEvents: {
+      enabled: false,
+      items: [],
+      note: '旧イベ日・取材・入替などは将来ここへ重ねます。v1では外部情報を自動取得しません。',
+    },
+  };
+}
+
+function getStoreTrendView(store) {
+  const byStore = G._precomputed?.byStore || {};
+  const storeData = byStore[store] || {};
+  return storeData.trendView || buildFallbackTrendView(store, storeData);
+}
+
+function buildMergedTrendView(stores, json) {
+  const views = (stores || []).map((store) => {
+    const storeData = json?.byStore?.[store] || {};
+    return storeData.trendView || buildFallbackTrendView(store, storeData);
+  });
+  const modelTrends = [];
+  const taiTrends = [];
+  views.forEach((view) => {
+    (view.modelTrends || []).forEach(row => modelTrends.push({ ...row, store: view.store }));
+    (view.taiTrends || []).forEach(row => taiTrends.push({ ...row, store: view.store }));
+  });
+  modelTrends.sort((a, b) => (Number(b.deltaMonth) || -9999) - (Number(a.deltaMonth) || -9999));
+  taiTrends.sort((a, b) => (Number(b.avgDiff) || -9999) - (Number(a.avgDiff) || -9999));
+  return {
+    version: 0,
+    store: '全店舗',
+    dataFreshness: {},
+    storeTrend: { label: '全店舗', tone: 'flat' },
+    modelTrends,
+    taiTrends,
+    externalEvents: G.externalEvents || { enabled: false, items: [] },
+  };
+}
+
+function getTrendFreshnessForStore(store, trendView) {
+  const record = G.storeFreshness?.[store] || {};
+  const ymd = normalizeDataDateValue(record.data_date || record.dataDate)
+    || normalizeDataDateValue(trendView?.dataFreshness?.latestDataDate)
+    || normalizeDataDateValue(G.dataDate || G._precomputed?.data_date);
+  const dt = parseYmdLocal(ymd || '');
+  const lagDays = dt ? diffDaysLocal(dt, getTodayLocalDate()) : null;
+  return { ymd, lagDays };
+}
+
+function getStoreOverviewStatus(store, trendView) {
+  const freshness = getTrendFreshnessForStore(store, trendView);
+  if(Number.isFinite(freshness.lagDays) && freshness.lagDays >= 2) {
+    return { label: 'データ古い', tone: 'stale', freshness };
+  }
+  return {
+    label: trendView?.storeTrend?.label || '横ばい',
+    tone: trendView?.storeTrend?.tone || 'flat',
+    freshness,
+  };
+}
+
+function renderOverviewFreshness() {
+  const wrap = document.getElementById('overviewFreshness');
+  if(!wrap) return;
+  if(!G._precomputed) {
+    wrap.innerHTML = `<div class="card viewer-empty-card">
+      <div class="card-title">データ未読込</div>
+      <p class="section-note">まず生成済み data.json を読み込むと、概況・変遷・ホール図を確認できます。</p>
+      <button class="btn" onclick="loadFromJSON()">データを読み込む</button>
+    </div>`;
+    return;
+  }
+  const freshness = getAnalysisFreshnessMeta();
+  const sourceText = freshness.sourceYmd || G.dataDate || '不明';
+  const lagText = Number.isFinite(freshness.lagDays) ? `${freshness.lagDays}日前` : '不明';
+  const blockText = Number.isFinite(freshness.lagDays) && freshness.lagDays >= 2
+    ? '取得停止/接続ブロックの可能性あり。自動取得は失敗時に再試行を抑制します。'
+    : '取得データは概況表示に使えます。';
+  wrap.innerHTML = `<div class="viewer-status-grid">
+    <div class="viewer-status-card ${freshness.alertText ? 'is-stale' : 'is-ok'}">
+      <span>最終データ</span>
+      <strong>${escapeHtml(sourceText)}</strong>
+      <small>${escapeHtml(lagText)}</small>
+    </div>
+    <div class="viewer-status-card">
+      <span>更新</span>
+      <strong>${escapeHtml(G.dataUpdatedAt || G._precomputed?.updated_at || '不明')}</strong>
+      <small>生成済みJSON</small>
+    </div>
+    <div class="viewer-status-card ${freshness.alertText ? 'is-stale' : ''}">
+      <span>取得状態</span>
+      <strong>${freshness.alertText ? '要注意' : '通常'}</strong>
+      <small>${escapeHtml(blockText)}</small>
+    </div>
+  </div>${renderFreshnessWarningPanel(freshness, 'データ鮮度')}`;
+}
+
+function renderExternalEventsPanel() {
+  const wrap = document.getElementById('overviewExternalEvents');
+  if(!wrap) return;
+  const events = G.externalEvents || G._precomputed?.externalEvents || {};
+  const items = Array.isArray(events.items) ? events.items : [];
+  if(!items.length) {
+    wrap.innerHTML = `<div class="external-events-empty">
+      <strong>外部情報は未接続</strong>
+      <span>${escapeHtml(events.note || '旧イベ日・取材・入替などは将来ここへ重ねます。v1では自動取得しません。')}</span>
+    </div>`;
+    return;
+  }
+  wrap.innerHTML = `<div class="external-events-list">${items.map(item => `
+    <div class="external-event-row">
+      <strong>${escapeHtml(item.title || item.label || '外部情報')}</strong>
+      <span>${escapeHtml(item.date || item.source || '')}</span>
+    </div>`).join('')}</div>`;
+}
+
+function openStoreTrendFromButton(btn) {
+  const store = btn?.dataset?.store;
+  if(!store) return;
+  const storeBtn = Array.from(document.querySelectorAll('#storeBar .store-btn'))
+    .find((candidate) => candidate.dataset.store === store);
+  switchStore(store, storeBtn || null);
+  showTab('tab-trends');
+}
+
+function renderOverviewStoreList() {
+  const wrap = document.getElementById('overviewStoreList');
+  if(!wrap) return;
+  const stores = Array.isArray(G.stores) ? G.stores : [];
+  if(!G._precomputed || !stores.length) {
+    wrap.innerHTML = '<div class="empty-msg">データを読み込んでください</div>';
+    return;
+  }
+  const rows = stores.map((store) => {
+    const view = getStoreTrendView(store);
+    const status = getStoreOverviewStatus(store, view);
+    const recent = view?.storeTrend?.recent30 || {};
+    const delta = view?.storeTrend?.delta30;
+    const topModel = (view?.modelTrends || []).find(m => m.tone === 'up') || (view?.modelTrends || [])[0] || null;
+    return { store, view, status, recent, delta, topModel };
+  }).sort((a, b) => {
+    const priority = { up: 0, flat: 1, thin: 2, stale: 3, down: 4 };
+    const pa = priority[a.status.tone] ?? 5;
+    const pb = priority[b.status.tone] ?? 5;
+    if(pa !== pb) return pa - pb;
+    return (Number(b.delta) || -9999) - (Number(a.delta) || -9999);
+  });
+  wrap.innerHTML = `<div class="overview-store-grid">${rows.map((row) => `
+    <button type="button" class="overview-store-card ${getTrendToneClass(row.status.tone)}" data-store="${escapeHtml(row.store)}" onclick="openStoreTrendFromButton(this)">
+      <div class="overview-store-head">
+        <strong>${escapeHtml(row.store)}</strong>
+        <span>${escapeHtml(row.status.label)}</span>
+      </div>
+      <div class="overview-store-metrics">
+        <div><span>直近30日</span><b>${formatTrendDiff(row.recent.avgDiff)}</b></div>
+        <div><span>前30日比</span><b>${formatTrendDiff(row.delta)}</b></div>
+        <div><span>勝率</span><b>${formatTrendRate(row.recent.winRate)}</b></div>
+      </div>
+      <div class="overview-store-note">
+        ${escapeHtml(row.topModel ? `注目: ${row.topModel.model} ${row.topModel.deltaMonth !== null && row.topModel.deltaMonth !== undefined ? formatTrendDiff(row.topModel.deltaMonth) : row.topModel.label}` : '機種変化データなし')}
+      </div>
+      <div class="overview-store-freshness">${escapeHtml(row.status.freshness.ymd ? `データ ${row.status.freshness.ymd}` : 'データ日不明')}</div>
+    </button>`).join('')}</div>`;
+}
+
+function renderOverview() {
+  renderOverviewFreshness();
+  renderOverviewStoreList();
+  renderExternalEventsPanel();
+}
+
+function renderTrendMetricCards(storeTrend) {
+  const recent30 = storeTrend?.recent30 || {};
+  const recent90 = storeTrend?.recent90 || {};
+  return `<div class="trend-metric-grid">
+    <div><span>直近30日</span><strong>${formatTrendDiff(recent30.avgDiff)}</strong><small>${formatTrendNumber(recent30.count, '件')} / 勝率${formatTrendRate(recent30.winRate)}</small></div>
+    <div><span>前30日比</span><strong>${formatTrendDiff(storeTrend?.delta30)}</strong><small>扱いの変化</small></div>
+    <div><span>直近90日</span><strong>${formatTrendDiff(recent90.avgDiff)}</strong><small>${formatTrendNumber(recent90.count, '件')} / 勝率${formatTrendRate(recent90.winRate)}</small></div>
+    <div><span>前90日比</span><strong>${formatTrendDiff(storeTrend?.delta90)}</strong><small>長めの変化</small></div>
+  </div>`;
+}
+
+function renderTrendStorePanel() {
+  const wrap = document.getElementById('trendStorePanel');
+  if(!wrap) return;
+  if(!G._precomputed) {
+    wrap.innerHTML = '<div class="empty-msg">データを読み込んでください</div>';
+    return;
+  }
+  const store = currentStore || G.stores?.[0] || '';
+  const view = getStoreTrendView(store);
+  const status = getStoreOverviewStatus(store, view);
+  wrap.innerHTML = `<div class="trend-store-summary ${getTrendToneClass(status.tone)}">
+    <div class="trend-store-title">
+      <div>
+        <strong>${escapeHtml(store)}</strong>
+        <span>${escapeHtml(status.freshness.ymd ? `データ ${status.freshness.ymd}` : 'データ日不明')}</span>
+      </div>
+      <b>${escapeHtml(status.label)}</b>
+    </div>
+    ${renderTrendMetricCards(view.storeTrend || {})}
+    <div class="trend-store-note">この画面は「行く/座る」の断定ではなく、店全体の扱いが上がっているか落ちているかを確認するための入口です。</div>
+  </div>`;
+}
+
+function renderTrendModelPanel() {
+  const wrap = document.getElementById('trendModelPanel');
+  if(!wrap) return;
+  const view = G.trendView || getStoreTrendView(currentStore);
+  const models = Array.isArray(view?.modelTrends) ? view.modelTrends.slice(0, 12) : [];
+  if(!models.length) {
+    wrap.innerHTML = '<div class="empty-msg">機種変化データなし</div>';
+    return;
+  }
+  wrap.innerHTML = `<div class="trend-list">${models.map((m) => {
+    const category = m.category === 'smart_slot' ? 'スマスロ扱い' : (m.analysisMode === 'setting' ? 'Aタイプ参考' : '差枚推移');
+    return `<div class="trend-row ${getTrendToneClass(m.tone)}">
+      <div class="trend-row-main">
+        <strong>${escapeHtml(m.model || '不明')}</strong>
+        <span>${escapeHtml(category)} / ${escapeHtml(m.source || '集計')}</span>
+      </div>
+      <div class="trend-row-metrics">
+        <span>${escapeHtml(m.label || '横ばい')}</span>
+        <b>${formatTrendDiff(m.deltaMonth)}</b>
+        <small>今月 ${formatTrendDiff(m.thisMonthAvg)} / ${formatTrendNumber(m.thisMonthCount, '件')}</small>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function renderTrendTaiPanel() {
+  const wrap = document.getElementById('trendTaiPanel');
+  if(!wrap) return;
+  const view = G.trendView || getStoreTrendView(currentStore);
+  const rows = Array.isArray(view?.taiTrends) ? view.taiTrends.slice(0, 12) : [];
+  if(!rows.length) {
+    wrap.innerHTML = '<div class="empty-msg">台履歴データなし</div>';
+    return;
+  }
+  wrap.innerHTML = `<div class="trend-list">${rows.map((t) => `
+    <div class="trend-row ${getTrendToneClass(t.tone)}">
+      <div class="trend-row-main">
+        <strong>${escapeHtml(t.tai || t.taiNum || '-')}番 ${escapeHtml(t.model || '機種不明')}</strong>
+        <span>${escapeHtml((t.features || []).length ? t.features.join(' / ') : '位置特徴なし')}</span>
+      </div>
+      <div class="trend-row-metrics">
+        <span>${escapeHtml(t.label || '横ばい')}</span>
+        <b>${formatTrendDiff(t.avgDiff)}</b>
+        <small>${formatTrendNumber(t.count, '件')} / 勝率${formatTrendRate(t.plusRate)} / 平均G ${formatTrendNumber(t.avgG)}</small>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function renderTrends() {
+  renderTrendStorePanel();
+  renderTrendModelPanel();
+  renderTrendTaiPanel();
+}
+
 // ====== 全レンダリング（アクティブタブのみ描画） ======
 const TAB_RENDER_MAP = {
+  'tab-overview': () => { renderOverview(); },
+  'tab-trends':   () => { renderTrends(); },
   'tab-days':     () => { renderDayBar(); },
   'tab-model':    () => { renderModelComp(); },
   'tab-tai':      () => { renderTaiFilter(); renderTaiList(); },

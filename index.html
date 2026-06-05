@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ジャグラー分析</title>
+<title>SLOT 変遷ビューア</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=withdraw-diff-1">
+<link rel="stylesheet" href="style.css?v=trend-viewer-1">
 </head>
 <body>
 
 <header>
-  <div class="logo"><span>JUGGLER</span> 分析</div>
+  <div class="logo"><span>SLOT</span> 変遷</div>
   <div class="header-right">
     <div class="data-status" id="dataStatus">未読込</div>
     <button class="save-btn" id="saveBtn" onclick="saveDataHTML()" disabled>💾 保存</button>
@@ -24,16 +24,12 @@
 </div>
 
 <nav id="mainNav">
-  <button class="active" onclick="showTab('tab-data',this)">📂 読込</button>
-  <button onclick="showTab('tab-target',this)">🎯 狙い台</button>
-  <button onclick="showTab('tab-days',this)">📊 日にち</button>
-  <button onclick="showTab('tab-tai',this)">🎰 台別</button>
-  <button onclick="showTab('tab-model',this)">🎮 機種分析</button>
-  <button onclick="showTab('tab-heat',this)">🗺️ 組合せ</button>
-  <button onclick="showTab('tab-period',this)">📈 期間分析</button>
-  <button onclick="showTab('tab-calendar',this)">📅 予報</button>
-  <button onclick="showTab('tab-settings',this)">⚙️ 設定</button>
-  <button onclick="showTab('tab-layout',this)">🗺️ ホール図</button>
+  <button class="active" data-tab="tab-overview" onclick="showTab('tab-overview',this)">概況</button>
+  <button data-tab="tab-trends" onclick="showTab('tab-trends',this)">変遷</button>
+  <button data-tab="tab-layout" onclick="showTab('tab-layout',this)">ホール図</button>
+  <button data-tab="tab-model" onclick="showTab('tab-model',this)">機種</button>
+  <button data-tab="tab-tai" onclick="showTab('tab-tai',this)">台履歴</button>
+  <button data-tab="tab-data" onclick="showTab('tab-data',this)">データ</button>
   <button id="detailMenuBtn" onclick="toggleDetailMenu(this)">🔍 詳細 ▾</button>
 </nav>
 
@@ -41,13 +37,14 @@
 <div id="detailMenu" style="display:none;position:fixed;background:var(--bg3);border:1px solid var(--border);border-radius:8px;min-width:150px;box-shadow:0 8px 24px rgba(0,0,0,.7);z-index:9999;">
   <button onclick="showTabFromMenu('tab-setsuteii',this)">🔬 設定推測</button>
   <button onclick="showTabFromMenu('tab-next',this)">🔮 前日条件</button>
+  <button onclick="showTabFromMenu('tab-settings',this)">⚙️ 設定</button>
 </div>
 
 <main>
 
 <section class="card recommendation-section" id="recommendationSection" style="display:none" aria-hidden="true">
   <button type="button" class="card-title recommendation-toggle" id="recommendationToggle" aria-expanded="false" onclick="toggleRecommendationSection()">
-    <span>🎯 本日の推薦台</span>
+    <span>注目変化</span>
     <span class="recommendation-toggle-icon" aria-hidden="true">▸</span>
   </button>
   <div id="recommendationsList" class="recommendation-content" hidden>
@@ -55,8 +52,49 @@
   </div>
 </section>
 
+<!-- ====== 概況 ====== -->
+<div id="tab-overview" class="tab-content active">
+  <div class="viewer-hero">
+    <div>
+      <div class="viewer-kicker">過去データ変遷ビューア</div>
+      <h1>店・機種・島・台番の扱いを読む</h1>
+      <p>台を断定せず、過去データから扱いの変化とデータの厚みを確認します。</p>
+    </div>
+    <button class="btn viewer-load-btn" onclick="loadFromJSON()">データ読込</button>
+  </div>
+  <div id="overviewFreshness"><div class="empty-msg">データを読み込んでください</div></div>
+  <div class="card">
+    <div class="card-title">店舗の状態</div>
+    <p class="section-note">直近30日と前30日を比べ、店全体の推移を表示します。座る台ではなく、見る価値のある店を探すための入口です。</p>
+    <div id="overviewStoreList"><div class="empty-msg">データを読み込んでください</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">外部情報の枠</div>
+    <div id="overviewExternalEvents"><div class="empty-msg">v1では外部情報を自動取得しません</div></div>
+  </div>
+</div>
+
+<!-- ====== 変遷 ====== -->
+<div id="tab-trends" class="tab-content">
+  <div class="card">
+    <div class="card-title">店舗変遷</div>
+    <p class="section-note">平均差枚、勝率、平均G、件数を直近/過去期間で比較します。データが古い場合は参考扱いです。</p>
+    <div id="trendStorePanel"><div class="empty-msg">店舗を選択してください</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">機種の扱い変化</div>
+    <p class="section-note">ランキングではなく、前期間から扱いが上がった/落ちた機種を確認します。</p>
+    <div id="trendModelPanel"><div class="empty-msg">データを読み込んでください</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">台番・位置の履歴入口</div>
+    <p class="section-note">台番は最終判断ではなく、過去の動きと周辺傾向を見るための履歴として扱います。</p>
+    <div id="trendTaiPanel"><div class="empty-msg">データを読み込んでください</div></div>
+  </div>
+</div>
+
 <!-- ====== データ読込 ====== -->
-<div id="tab-data" class="tab-content active">
+<div id="tab-data" class="tab-content">
   <div class="card">
     <div class="card-title">🔗 生成済みJSONから読み込み</div>
     <p class="section-note">Macローカルの自動取得で生成・pushされた data.json を読み込みます。</p>
@@ -148,18 +186,18 @@
 <!-- ====== 機種比較 ====== -->
 <div id="tab-model" class="tab-content">
   <div class="card">
-    <div class="card-title">🎮 機種別成績</div>
-    <p class="section-note">特定日フィルターで絞り込むと「この機種はX日に強い」がわかります。推定出率は機械割%（100%=収支0）。</p>
+    <div class="card-title">機種の扱いを見る</div>
+    <p class="section-note">ランキング断定ではなく、差枚・勝率・平均G・件数・データ期間から扱いの変化を確認します。</p>
     <div class="filter-btns" id="modelSpFilterBtns" style="margin-bottom:10px"></div>
     <div id="modelCompTable"><div class="empty-msg">データを読み込んでください</div></div>
   </div>
   <div class="card">
-    <div class="card-title">📅 今月 vs 先月</div>
-    <p class="section-note">直近の傾向変化。先月から大きく変化している機種は要注目。</p>
+    <div class="card-title">月別の変化</div>
+    <p class="section-note">今月と先月の差を見ます。月初は件数が少ないため参考表示です。</p>
     <div id="modelMonthComp"><div class="empty-msg">データを読み込んでください</div></div>
   </div>
   <div class="card">
-    <div class="card-title">📊 機種別 日にちごとの平均差枚</div>
+    <div class="card-title">日にち別の機種推移</div>
     <div class="filter-btns" id="modelFilterBtns"></div>
     <div class="bar-chart" id="modelDayBar"></div>
   </div>
@@ -168,9 +206,9 @@
 <!-- ====== 台別 ====== -->
 <div id="tab-tai" class="tab-content">
   <div class="card">
-    <div class="card-title">🧭 機種サマリー</div>
+    <div class="card-title">機種サマリー</div>
     <div id="taiModelSummary" style="margin-bottom:10px"><div class="empty-msg">データを読み込んでください</div></div>
-    <div class="card-title">🎛️ 台別フィルタ</div>
+    <div class="card-title">台履歴フィルタ</div>
     <div class="filter-btns" id="taiFilterBtns"></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;" id="taiPeriodBtns">
       <button class="filter-btn active" onclick="selectTaiPeriod(0,this)">全期間</button>
@@ -178,7 +216,7 @@
       <button class="filter-btn" onclick="selectTaiPeriod(30,this)">直近30日</button>
       <button class="filter-btn" onclick="selectTaiPeriod(60,this)">直近60日</button>
     </div>
-    <div class="card-title">🎰 台別成績</div>
+    <div class="card-title">台番ごとの履歴</div>
     <div class="tai-list" id="taiList"><div class="empty-msg">データを読み込んでください</div></div>
   </div>
 </div>
@@ -675,10 +713,10 @@
         </div>
         <div class="seat-layout-segment seat-layout-layer-control" aria-label="ホール図レイヤー">
           <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="diff" onclick="setSeatLayoutLayer('diff')">当日差枚</button>
-          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="recent30" onclick="setSeatLayoutLayer('recent30')">直近30日</button>
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="recent30" onclick="setSeatLayoutLayer('recent30')">直近推移</button>
           <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="evidence" onclick="setSeatLayoutLayer('evidence')">過去根拠</button>
-          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="target" onclick="setSeatLayoutLayer('target')">狙い候補</button>
-          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="smart" onclick="setSeatLayoutLayer('smart')">スマスロ</button>
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="target" onclick="setSeatLayoutLayer('target')">注目変化</button>
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="smart" onclick="setSeatLayoutLayer('smart')">スマスロ扱い</button>
         </div>
         <div class="seat-layout-day-filter" id="seatLayoutDayFilterBtns" aria-label="ホール図の日付フィルター"></div>
         <div class="seat-layout-segment" aria-label="ホール図モード">
@@ -737,20 +775,20 @@
           <div class="seat-side-title">選択台</div>
           <div id="seatHeatmapSelection" class="seat-heatmap-selection"></div>
         </section>
-        <section class="seat-side-section seat-side-section-evidence">
-          <div class="seat-side-title">検証済み根拠</div>
-          <div id="seatEvidenceBacktest" class="seat-evidence-panel">店舗を選択してください</div>
-        </section>
         <section class="seat-side-section">
-          <div class="seat-side-title" id="seatHeatmapSummaryTitle">当日サマリー</div>
+          <div class="seat-side-title" id="seatHeatmapSummaryTitle">直近推移</div>
           <div id="seatHeatmapSummary" class="seat-heatmap-summary">店舗を選択してください</div>
         </section>
         <section class="seat-side-section">
-          <div class="seat-side-title">見立て</div>
+          <div class="seat-side-title">周辺/島傾向</div>
           <div id="seatHeatmapInsight" class="seat-heatmap-insight">店舗を選択してください</div>
         </section>
+        <section class="seat-side-section seat-side-section-evidence">
+          <div class="seat-side-title">過去根拠</div>
+          <div id="seatEvidenceBacktest" class="seat-evidence-panel">店舗を選択してください</div>
+        </section>
         <section class="seat-side-section seat-side-section-analysis">
-          <div class="seat-side-title">分析メモ</div>
+          <div class="seat-side-title">注意</div>
           <div id="seatHeatmapPatternInsight" class="seat-heatmap-patterns">店舗を選択してください</div>
         </section>
         <section class="seat-side-section">

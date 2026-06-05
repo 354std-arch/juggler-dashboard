@@ -1410,6 +1410,192 @@ def merge_model_stats_with_summary(raw_stats, summary_stats):
     merged.extend(row for row in summary_stats if row.get("model") not in existing)
     return merged
 
+def _trend_window_metrics(rows, latest_date, days, offset_days=0):
+    if not rows or not isinstance(latest_date, date):
+        return {
+            "label": f"直近{days}日" if offset_days == 0 else f"{offset_days + days}〜{offset_days + 1}日前",
+            "count": 0,
+            "activeDays": 0,
+            "avgDiff": None,
+            "totalDiff": None,
+            "avgG": None,
+            "winRate": None,
+        }
+    end = latest_date - timedelta(days=offset_days)
+    start = end - timedelta(days=days - 1)
+    window_rows = [
+        r for r in rows
+        if start <= r["date"].date() <= end and has_trustworthy_diff(r)
+    ]
+    if not window_rows:
+        return {
+            "label": f"直近{days}日" if offset_days == 0 else f"{offset_days + days}〜{offset_days + 1}日前",
+            "from": start.strftime("%Y-%m-%d"),
+            "to": end.strftime("%Y-%m-%d"),
+            "count": 0,
+            "activeDays": 0,
+            "avgDiff": None,
+            "totalDiff": None,
+            "avgG": None,
+            "winRate": None,
+        }
+    return {
+        "label": f"直近{days}日" if offset_days == 0 else f"{offset_days + days}〜{offset_days + 1}日前",
+        "from": start.strftime("%Y-%m-%d"),
+        "to": end.strftime("%Y-%m-%d"),
+        "count": len(window_rows),
+        "activeDays": len({r["date"].date() for r in window_rows}),
+        "avgDiff": r1(weighted_avg_rows(window_rows, "diff")),
+        "totalDiff": r1(weighted_sum(window_rows, "diff")),
+        "avgG": r1(weighted_avg_rows(window_rows, "g")),
+        "winRate": r1(weighted_diff_rate(window_rows, lambda r: r["diff"] > 0) * 100),
+    }
+
+def _classify_trend_label(avg_diff, delta, count):
+    if not count or count < 10:
+        return {"label": "件数少", "tone": "thin"}
+    if avg_diff is None:
+        return {"label": "未取得", "tone": "muted"}
+    if delta is not None and delta >= 150:
+        return {"label": "注目変化", "tone": "up"}
+    if avg_diff >= 150 or (delta is not None and delta >= 60):
+        return {"label": "強め推移", "tone": "up"}
+    if delta is not None and delta <= -150:
+        return {"label": "落ち気味", "tone": "down"}
+    return {"label": "横ばい", "tone": "flat"}
+
+def _format_model_trend_source(row):
+    if row.get("summarySource") == "store_model_summary":
+        return "機種日別サマリー"
+    return "台別データ"
+
+def build_trend_view(store, store_rows, special, model_stats, tai_detail, latest_data_date, data_quality=None):
+    diff_rows = diff_valid_rows(store_rows)
+    latest = max((r["date"].date() for r in diff_rows), default=latest_data_date)
+    first = min((r["date"].date() for r in diff_rows), default=None)
+    baseline_avg = r1(weighted_avg_rows(diff_rows, "diff")) if diff_rows else None
+    recent30 = _trend_window_metrics(diff_rows, latest, 30, 0)
+    prior30 = _trend_window_metrics(diff_rows, latest, 30, 30)
+    recent90 = _trend_window_metrics(diff_rows, latest, 90, 0)
+    prior90 = _trend_window_metrics(diff_rows, latest, 90, 90)
+    delta30 = None
+    if recent30["avgDiff"] is not None and prior30["avgDiff"] is not None:
+        delta30 = r1(recent30["avgDiff"] - prior30["avgDiff"])
+    delta90 = None
+    if recent90["avgDiff"] is not None and prior90["avgDiff"] is not None:
+        delta90 = r1(recent90["avgDiff"] - prior90["avgDiff"])
+    store_status = _classify_trend_label(recent30["avgDiff"], delta30, recent30["count"])
+
+    model_trends = []
+    for row in model_stats or []:
+        this_avg = row.get("thisMonthAvg")
+        last_avg = row.get("lastMonthAvg")
+        delta = None
+        if this_avg is not None and last_avg is not None:
+            delta = r1(this_avg - last_avg)
+        count = int(row.get("thisMonthCount") or row.get("count") or 0)
+        trend = _classify_trend_label(this_avg if this_avg is not None else row.get("allAvg"), delta, count)
+        avg_all = row.get("allAvg")
+        lift_vs_store = None
+        if avg_all is not None and baseline_avg is not None:
+            lift_vs_store = r1(avg_all - baseline_avg)
+        model_trends.append({
+            "model": row.get("model"),
+            "category": row.get("modelCategory") or ("smart_slot" if row.get("model") in SMART_SLOT_MODELS else "normal"),
+            "analysisMode": row.get("analysisMode") or get_model_analysis_mode(row.get("model", "")),
+            "source": _format_model_trend_source(row),
+            "label": trend["label"],
+            "tone": trend["tone"],
+            "allAvg": row.get("allAvg"),
+            "avgG": row.get("avgG"),
+            "winRate": row.get("winRate"),
+            "mechRitu": row.get("mechRitu"),
+            "thisMonthAvg": this_avg,
+            "thisMonthCount": row.get("thisMonthCount"),
+            "lastMonthAvg": last_avg,
+            "lastMonthCount": row.get("lastMonthCount"),
+            "deltaMonth": delta,
+            "liftVsStore": lift_vs_store,
+            "count": row.get("count"),
+            "firstDate": row.get("firstDate"),
+            "lastDate": row.get("lastDate"),
+            "coverageLabel": row.get("coverageLabel"),
+            "coverageStrength": row.get("coverageStrength"),
+        })
+    model_trends.sort(key=lambda x: (
+        0 if x["tone"] == "up" else 1 if x["tone"] == "flat" else 2,
+        -(x.get("deltaMonth") if x.get("deltaMonth") is not None else -9999),
+        -(x.get("allAvg") if x.get("allAvg") is not None else -9999),
+    ))
+
+    tai_trends = []
+    for row in tai_detail or []:
+        count = int(row.get("count") or 0)
+        avg_diff = row.get("avg")
+        trend = _classify_trend_label(avg_diff, None, count)
+        features = []
+        for feature in row.get("hallFeatures") or []:
+            if isinstance(feature, dict):
+                label = feature.get("label") or feature.get("key") or feature.get("type")
+            else:
+                label = str(feature)
+            if label and label not in features:
+                features.append(label)
+        tai_trends.append({
+            "tai": row.get("tai"),
+            "taiNum": row.get("taiNum"),
+            "model": row.get("model"),
+            "label": trend["label"],
+            "tone": trend["tone"],
+            "avgDiff": avg_diff,
+            "count": count,
+            "plusRate": row.get("plusRate"),
+            "avgG": row.get("avgG"),
+            "spAvg": row.get("spAvg"),
+            "nmAvg": row.get("nmAvg"),
+            "rbRate": row.get("rbRate"),
+            "synRate": row.get("synRate"),
+            "features": features[:4],
+            "historyScope": row.get("historyScope") or "current_install_segment",
+        })
+    tai_trends.sort(key=lambda x: (
+        0 if x["tone"] == "up" else 1 if x["tone"] == "flat" else 2,
+        -(x.get("avgDiff") if x.get("avgDiff") is not None else -9999),
+        -(x.get("count") or 0),
+        x.get("taiNum") or 0,
+    ))
+
+    return {
+        "version": 1,
+        "store": store,
+        "specialDays": special,
+        "dataFreshness": {
+            "firstDataDate": first.strftime("%Y-%m-%d") if first else None,
+            "latestDataDate": latest.strftime("%Y-%m-%d") if latest else None,
+            "rowCount": len(store_rows),
+            "diffRowCount": len(diff_rows),
+            "quality": data_quality or {},
+        },
+        "storeTrend": {
+            "label": store_status["label"],
+            "tone": store_status["tone"],
+            "baselineAvgDiff": baseline_avg,
+            "recent30": recent30,
+            "prior30": prior30,
+            "delta30": delta30,
+            "recent90": recent90,
+            "prior90": prior90,
+            "delta90": delta90,
+        },
+        "modelTrends": model_trends,
+        "taiTrends": tai_trends,
+        "externalEvents": {
+            "enabled": False,
+            "items": [],
+            "note": "旧イベ日・取材・入替などは将来ここへ重ねます。v1では外部情報を自動取得しません。",
+        },
+    }
+
 def compute_next_day(rows, special):
     by_tai = defaultdict(list)
     for r in rows:
@@ -2630,6 +2816,11 @@ if __name__ == "__main__":
             "note": "係数は暫定値です。店舗別の微調整は byStore[店名].store_coefficients と STORE_COEFFICIENTS による拡張を想定しています。",
         },
         "hallLayoutEvidence": hall_layout_meta,
+        "externalEvents": {
+            "enabled": False,
+            "items": [],
+            "note": "旧イベ日・取材・入替などは将来の重ね合わせ用。v1では外部情報を自動取得しません。",
+        },
         "byStore": {},
         "recommendations": [],
         "predictionAccuracy": {"overall": None, "byStore": {}},
@@ -2682,6 +2873,15 @@ if __name__ == "__main__":
                 today_analysis["date"]: today_analysis,
                 tomorrow_analysis["date"]: tomorrow_analysis,
             },
+            "trendView": build_trend_view(
+                store,
+                store_rows,
+                special,
+                model_stats,
+                tai_detail,
+                latest_data_date,
+                data_quality=DIFF_QUALITY_BY_STORE.get(store, {}),
+            ),
             "evidenceBacktest": evidence_backtest,
             "holdoverRate": {
                 "rate": r1(get_holdover_rate(store) * 100),

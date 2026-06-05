@@ -1,13 +1,14 @@
 # juggler-dashboard CLAUDE.md
 
 ## このツールのゴール
-朝、Macローカルで取得・生成・push済みのデータを見て、「今日はどの店・どの台を狙うか」をすぐ判断できる状態にする。
+アナスロの過去データを見て、店・機種・島・台番の扱いがどう変化しているかを確認できるビューアにする。
+「この台に座る」と断定するのではなく、データ鮮度・件数・期間差・ホール図の位置根拠を見て、ユーザーが判断できる材料を整理する。
 
 理想の1日の流れ：
 1. Macローカルの `run_daily.sh` が前日分データを取得する
 2. 集計JSONが生成され、GitHubへpushされる
-3. スマホ/PCでダッシュボードを開き、推薦・朝イチ判断を見る
-4. ユーザーが行く/行かないを判断する
+3. スマホ/PCでダッシュボードを開き、概況・変遷・ホール図・機種/台履歴を見る
+4. ユーザーが店・機種・台番の扱い変化を読んで判断する
 
 ## 現在のアーキテクチャ
 | ファイル | 役割 |
@@ -60,11 +61,12 @@ raw_data.csvカラム：日付・店名・機種名・台番号・G数・差枚�
 data.jsonトップキー：updated_at・stores・specialByStore・byStore・predictionAccuracy
 byStore[店名]キー：special・dayStats・modelStats・nextStats・heatmap・weekMatrix・dayWdayMatrix・taiDetail・dateSummary・weekdayStats・todayAnalysis
 
-## 朝イチ用MVP方針
-- 分析の主役はホールの配分傾向（店×日条件×機種×台番号/末尾）。
-- 朝イチ用MVPは `morning_compute.py` で集計して `morning_data.json` に出力する。
-- `candidate_compute.py` は `morning_data.json` を再利用して候補表示用JSONを作る。
-- 席配置タブは分析ロジックの入力ではなく、候補台のヒートマップ表示用。
+## 変遷ビューア方針
+- 分析の主役は過去データの変化（店×期間×機種×台番号/位置）。
+- `compute.py` は `data.json.byStore[store].trendView` に店舗推移・機種推移・台履歴を出力する。
+- `morning_data.json` / `candidate_data.json` は互換維持するが、メインUIでは朝候補の断定表示には使わない。
+- ホール図は現行スタイルを維持し、当日差枚・直近推移・過去根拠・スマスロ扱いを見るビューとして扱う。
+- 外部情報（旧イベ・取材・入替など）はv1では自動取得せず、将来重ねるための枠だけ用意する。
 
 ## 仮ラベル定義
 - 強上候補：G数5000以上・RB設定4相当以上・合算設定4相当以上
