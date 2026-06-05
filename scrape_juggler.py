@@ -15,6 +15,7 @@ RAW_CSV  = os.path.join(REPO_DIR, "raw_data.csv")
 STORE_MODEL_SUMMARY_CSV = os.path.join(REPO_DIR, "store_model_summary.csv")
 STORE_FRESHNESS_JSON = os.path.join(REPO_DIR, "store_freshness.json")
 STORE_LIST_JSON = os.path.join(REPO_DIR, "store_list.json")
+ACCESS_BLOCK_JSON = os.path.join(REPO_DIR, ".ana_slo_access_block.json")
 JST = timezone(timedelta(hours=9))
 
 HARDCODED_STORES = [
@@ -165,6 +166,29 @@ def update_store_freshness(store_name, data_date):
         json.dump(freshness, f, ensure_ascii=False, indent=2)
     return True
 
+def mark_access_block(status, url, store_name, target_date, headers=None):
+    payload = {
+        'blocked_at': datetime.now(JST).isoformat(timespec='seconds'),
+        'status': int(status) if str(status).isdigit() else str(status),
+        'url': url,
+        'store': store_name,
+        'target_date': target_date,
+        'cf_ray': str((headers or {}).get('cf-ray') or ''),
+        'server': str((headers or {}).get('server') or ''),
+    }
+    try:
+        with open(ACCESS_BLOCK_JSON, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f'    ↳ アクセス制限メモ保存失敗: {e}')
+
+def clear_access_block():
+    try:
+        if os.path.exists(ACCESS_BLOCK_JSON):
+            os.remove(ACCESS_BLOCK_JSON)
+    except Exception as e:
+        print(f'    ↳ アクセス制限メモ削除失敗: {e}')
+
 def scrape(target_date, store_name, slug, target_models=None):
     url = f'https://ana-slo.com/{target_date}-{slug}/'
     res = None
@@ -179,6 +203,7 @@ def scrape(target_date, store_name, slug, target_models=None):
                 solve_cloudflare=True,
             )
             if res.status == 200:
+                clear_access_block()
                 break
             print(f'  ❌ {store_name} {target_date}: HTTP {res.status}')
             print(f'    request headers: {dict(res.request_headers)}')
@@ -186,7 +211,9 @@ def scrape(target_date, store_name, slug, target_models=None):
             print(f'    response body (first 500 chars): {str(res.html_content)[:500]}')
             last_err = f'HTTP {res.status}'
             if res.status in (403, 429):
-                retry_after = (dict(res.headers).get('retry-after') or '').strip()
+                response_headers = dict(res.headers)
+                mark_access_block(res.status, url, store_name, target_date, response_headers)
+                retry_after = (response_headers.get('retry-after') or '').strip()
                 if retry_after:
                     print(f'    ↳ retry-after: {retry_after}s / クールダウン推奨のため再試行を止めます')
                 else:

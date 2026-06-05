@@ -6,14 +6,17 @@ REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="$REPO_DIR/run_daily.log"
 LOCK_DIR="$REPO_DIR/.run_daily.lock"
 STATUS_FILE="$REPO_DIR/run_daily_status.txt"
+ACCESS_BLOCK_FILE="$REPO_DIR/.ana_slo_access_block.json"
 MODE="${JUGGLER_DAILY_MODE:-run}"
 SMART_SLOT_BACKFILL_DAYS="${SMART_SLOT_BACKFILL_DAYS:-30}"
 SMART_SLOT_BACKFILL_TASKS="${SMART_SLOT_BACKFILL_TASKS:-4}"
 SMART_SLOT_BACKFILL_INTERVAL_SEC="${SMART_SLOT_BACKFILL_INTERVAL_SEC:-0.5}"
 DATA_SIZE_WARN_MB="${DATA_SIZE_WARN_MB:-50}"
+ANA_SLO_COOLDOWN_HOURS="${ANA_SLO_COOLDOWN_HOURS:-24}"
 case "$SMART_SLOT_BACKFILL_DAYS" in ''|*[!0-9]*) SMART_SLOT_BACKFILL_DAYS=30 ;; esac
 case "$SMART_SLOT_BACKFILL_TASKS" in ''|*[!0-9]*) SMART_SLOT_BACKFILL_TASKS=4 ;; esac
 case "$DATA_SIZE_WARN_MB" in ''|*[!0-9]*) DATA_SIZE_WARN_MB=50 ;; esac
+case "$ANA_SLO_COOLDOWN_HOURS" in ''|*[!0-9]*) ANA_SLO_COOLDOWN_HOURS=24 ;; esac
 
 cd "$REPO_DIR"
 
@@ -107,6 +110,31 @@ warn_large_file() {
   fi
 }
 
+access_block_age_sec() {
+  [ -f "$ACCESS_BLOCK_FILE" ] || return 1
+  local now
+  local mtime
+  now="$(date '+%s')"
+  mtime="$(stat -f '%m' "$ACCESS_BLOCK_FILE" 2>/dev/null || echo 0)"
+  [ "$mtime" -gt 0 ] || return 1
+  echo $((now - mtime))
+}
+
+is_access_cooldown_active() {
+  local age
+  local cooldown_sec
+  age="$(access_block_age_sec)" || return 1
+  cooldown_sec=$((ANA_SLO_COOLDOWN_HOURS * 3600))
+  [ "$age" -lt "$cooldown_sec" ]
+}
+
+log_access_block() {
+  if [ -f "$ACCESS_BLOCK_FILE" ]; then
+    log "ana-slo access block marker:"
+    sed 's/^/  /' "$ACCESS_BLOCK_FILE" >> "$LOG_FILE" 2>/dev/null || true
+  fi
+}
+
 fingerprint_scrape_inputs() {
   cksum raw_data.csv store_freshness.json store_model_summary.csv store_list.json hall_layouts.json 2>/dev/null || true
 }
@@ -121,11 +149,27 @@ fi
 
 abort_if_conflicts
 
+# Cloudflare 403/429 直後に再アクセスすると復旧が遅れるため、一定時間は完全停止する。
+if is_access_cooldown_active; then
+  log "ana-slo access cooldown active; skipping scrape/compute/push for ${ANA_SLO_COOLDOWN_HOURS}h window"
+  log_access_block
+  write_status "SKIPPED ana-slo cooldown"
+  log "=== DONE cooldown ==="
+  exit 0
+fi
+
 # Run pipeline
 SCRAPE_INPUTS_BEFORE="$(fingerprint_scrape_inputs)"
 log "scrape_juggler.py start"
-python3 scrape_juggler.py >> "$LOG_FILE" 2>&1
+python3 scrape_juggler.py --stop-on-consecutive-failures 1 >> "$LOG_FILE" 2>&1
 log "scrape_juggler.py done"
+if is_access_cooldown_active; then
+  log "ana-slo access block detected during scrape; skipping backfill/compute/push"
+  log_access_block
+  write_status "SKIPPED ana-slo blocked"
+  log "=== DONE blocked ==="
+  exit 0
+fi
 if [ "$SMART_SLOT_BACKFILL_TASKS" -gt 0 ]; then
   BACKFILL_START="$(date -v-"$SMART_SLOT_BACKFILL_DAYS"d '+%Y-%m-%d')"
   BACKFILL_END="$(date -v-1d '+%Y-%m-%d')"
@@ -136,8 +180,16 @@ if [ "$SMART_SLOT_BACKFILL_TASKS" -gt 0 ]; then
     --backfill-smart-slots \
     --backfill-latest-first \
     --max-backfill-tasks "$SMART_SLOT_BACKFILL_TASKS" \
+    --stop-on-consecutive-failures 1 \
     --store-interval-sec "$SMART_SLOT_BACKFILL_INTERVAL_SEC" >> "$LOG_FILE" 2>&1
   log "smart slot backfill done"
+fi
+if is_access_cooldown_active; then
+  log "ana-slo access block detected during backfill; skipping compute/push"
+  log_access_block
+  write_status "SKIPPED ana-slo blocked"
+  log "=== DONE blocked ==="
+  exit 0
 fi
 SCRAPE_INPUTS_AFTER="$(fingerprint_scrape_inputs)"
 if [ "$SCRAPE_INPUTS_BEFORE" = "$SCRAPE_INPUTS_AFTER" ] && [ "${ALLOW_EMPTY_DAILY_COMPUTE:-0}" != "1" ]; then

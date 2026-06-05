@@ -6,6 +6,7 @@ __pycache__/
 # ローカル定時実行ログ
 run_daily.log
 run_daily_status.txt
+.ana_slo_access_block.json
 
 # Claude Code 個人設定（コミット不要）
 .claude/settings.local.json
