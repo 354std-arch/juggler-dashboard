@@ -2701,6 +2701,12 @@ function formatModelTableCount(row) {
   return '—';
 }
 
+function formatThinSampleText(count, unit = '件') {
+  const n = Number(count);
+  if(!Number.isFinite(n) || n <= 0) return `データなし（0${unit}）`;
+  return `件数少（${Math.round(n)}${unit}）`;
+}
+
 function formatModelCoverageDate(value) {
   const text = String(value || '').slice(0, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : '';
@@ -7804,7 +7810,7 @@ function calcTaiConfigScore(tai, context) {
     if(fallbackProb !== null) {
       reasons.push({ label: '全期間ベイズ評価（参考）', val: `高設定確率${fallbackProb}%（${tai.count}件）`, pts: 0 });
     } else {
-      reasons.push({ label: `${isSpecial?'特定日':'通常日'}データ`, val: `サンプル不足（${condN}件）`, pts: 0 });
+      reasons.push({ label: `${isSpecial?'特定日':'通常日'}データ`, val: formatThinSampleText(condN), pts: 0 });
     }
   }
 
@@ -7895,7 +7901,7 @@ function calcTaiValueScore(tai, context) {
       rawPts: rbMeta.pts
     });
   } else {
-    reasons.push({ label: `RB確率（${rbSrc}）`, val: totalRB < 5 ? `サンプル不足(${totalRB}回)` : '—', pts: 0, rawPts: 0 });
+    reasons.push({ label: `RB確率（${rbSrc}）`, val: totalRB < 5 ? formatThinSampleText(totalRB, '回') : '—', pts: 0, rawPts: 0 });
   }
 
   if(synMeta.valid) {
@@ -8612,7 +8618,7 @@ function renderLayer2() {
     conclusions.push({
       icon:'🔢', label:'末尾傾向',
       verdict: '末尾による明確な傾向なし',
-      detail:  topSuef ? `最高は末尾${topSuef.suef}（lift${topSuef.lift>=0?'+':''}${topSuef.lift}枚・${topSuef.label}）` : 'サンプル不足',
+      detail:  topSuef ? `最高は末尾${topSuef.suef}（lift${topSuef.lift>=0?'+':''}${topSuef.lift}枚・${topSuef.label}）` : '件数少で参考',
       sub: null
     });
   }
@@ -8912,7 +8918,7 @@ function renderLayer3(model) {
               <div style="font-size:10px;color:var(--border)">${r.val}</div>
             </div>
           </div>`).join('')}
-        ${!t.valueReasons.length ? '<div style="font-size:11px;color:var(--muted)">RBデータ不足</div>' : ''}
+        ${!t.valueReasons.length ? '<div style="font-size:11px;color:var(--muted)">RB履歴なし</div>' : ''}
       </div>
 
       <!-- ③ 配分根拠点（補助） -->
@@ -9087,7 +9093,7 @@ function renderNextAnalysis() {
     sec.keys.forEach(k=>{
       const s = G.nextStats[k];
       if(!s||s.count<3){
-        html+=`<div class="cond-card"><div class="cond-header"><div class="cond-name">${s?.label||k}</div><div class="cond-sample" style="color:var(--minus)">サンプル不足（${s?.count||0}件）</div></div></div>`;
+        html+=`<div class="cond-card"><div class="cond-header"><div class="cond-name">${s?.label||k}</div><div class="cond-sample" style="color:var(--accent4)">${escapeHtml(formatThinSampleText(s?.count || 0))}</div></div></div>`;
         return;
       }
       const lift = s.avg!==null ? round1(s.avg - baseline.avg) : null;
@@ -9208,7 +9214,7 @@ function calcStoreStickinessSummary(rows) {
 }
 
 function getStickinessLabel(maintainRate, sample) {
-  if(maintainRate === null) return { label:'サンプル不足', color:'var(--muted)', note:'前日良台ペア不足' };
+  if(maintainRate === null) return { label:'件数少', color:'var(--muted)', note:'前日良台ペアが少ないため参考' };
   const stable = sample >= STICKINESS_CFG.minSampleForStable;
   if(maintainRate >= STICKINESS_CFG.strongRate) return { label: stable ? '強' : '強（参考）', color:'var(--plus)', note:'前日良台の翌日維持が高め' };
   if(maintainRate >= STICKINESS_CFG.midRate) return { label: stable ? '中' : '中（参考）', color:'var(--accent)', note:'維持傾向は中程度' };
@@ -10525,7 +10531,7 @@ function getStoreFreshnessMeta(storeName) {
   const yesterday = addDaysLocal(today, -1);
   const yesterdayStr = toYmdLocal(yesterday);
 
-  const title = `data_date: ${dataDate || 'N/A'}${scrapedAt ? ` / scraped_at: ${scrapedAt}` : ''}`;
+  const title = `データ日: ${dataDate || '不明'}${scrapedAt ? ` / 取得: ${scrapedAt}` : ''}`;
   if(dataDate === todayStr) return { color: 'green', icon: '🟢', ts: title };
   if(dataDate === yesterdayStr) return { color: 'yellow', icon: '🟡', ts: title };
   return { color: 'red', icon: '🔴', ts: title };
@@ -10805,7 +10811,7 @@ function getMorningModelFocusText(modelRanking) {
   const usable = (Array.isArray(modelRanking) ? modelRanking : [])
     .filter((m) => m && m.sample_usable !== false && Number(m.sample) >= 20)
     .slice(0, 3);
-  if(!usable.length) return '扱い機種: サンプル不足';
+  if(!usable.length) return '扱い機種: 件数少';
   const settingModels = usable.filter((m) => m.analysis_mode === 'setting');
   const diffModels = usable.filter((m) => m.analysis_mode === 'diff');
   const lead = diffModels.length > settingModels.length ? 'スマスロ/差枚寄り' : 'Aタイプ寄り';
