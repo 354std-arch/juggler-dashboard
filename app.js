@@ -6239,7 +6239,7 @@ function loadFromPrecomputed(json) {
   G.storeFreshness = (json.store_freshness && typeof json.store_freshness === 'object')
     ? json.store_freshness
     : ((json.storeFreshness && typeof json.storeFreshness === 'object') ? json.storeFreshness : {});
-  G.externalEvents = (json.externalEvents && typeof json.externalEvents === 'object') ? json.externalEvents : null;
+  G.externalEvents = getExternalEventsFrame(json.externalEvents || {}, { scope: 'global' });
   G.recommendations = Array.isArray(json.recommendations) ? json.recommendations : [];
   const stores = Array.isArray(json.stores) ? json.stores : storesFromByStore;
   G.stores = [...stores];
@@ -10934,11 +10934,7 @@ function buildFallbackTrendView(store, storeData = {}) {
     },
     modelTrends,
     taiTrends,
-    externalEvents: {
-      enabled: false,
-      items: [],
-      note: '旧イベ日・取材・入替などは将来ここへ重ねます。v1では外部情報を自動取得しません。',
-    },
+    externalEvents: getExternalEventsFrame({ scope: 'store', store }),
   };
 }
 
@@ -10968,7 +10964,7 @@ function buildMergedTrendView(stores, json) {
     storeTrend: { label: '全店舗', tone: 'flat' },
     modelTrends,
     taiTrends,
-    externalEvents: G.externalEvents || { enabled: false, items: [] },
+    externalEvents: getExternalEventsFrame(G.externalEvents, { scope: 'global' }),
   };
 }
 
@@ -11068,6 +11064,64 @@ function renderAutomationStatusPanel() {
   </div>`;
 }
 
+function getDefaultExternalEventLayers() {
+  return [
+    {
+      key: 'old_event',
+      label: '旧イベ',
+      description: '日付・曜日・店舗の旧イベント傾向を、概況や変遷へ重ねる枠です。',
+    },
+    {
+      key: 'media',
+      label: '取材',
+      description: '取材・媒体告知・来店などを、日付単位の注記として重ねる枠です。',
+    },
+    {
+      key: 'replacement',
+      label: '入替',
+      description: '新台入替・増台・撤去を、機種推移と台履歴へ重ねる枠です。',
+    },
+    {
+      key: 'memo',
+      label: 'SNS/メモ',
+      description: 'SNSや手入力メモを、確認材料としてあとから重ねる枠です。',
+    },
+  ];
+}
+
+function getExternalEventsFrame(source = {}, defaults = {}) {
+  const src = source && typeof source === 'object' ? source : {};
+  const hasLayerSchema = Array.isArray(src.layers) && src.layers.length;
+  const layers = hasLayerSchema ? src.layers : getDefaultExternalEventLayers();
+  const targets = Array.isArray(src.overlayTargets) && src.overlayTargets.length
+    ? src.overlayTargets
+    : ['overview', 'trends', 'combination', 'layout', 'models', 'tai'];
+  return {
+    version: Number(src.version) || 1,
+    enabled: !!src.enabled,
+    status: src.status || 'not_connected',
+    scope: src.scope || defaults.scope || 'global',
+    store: src.store || defaults.store || null,
+    items: Array.isArray(src.items) ? src.items : [],
+    sources: Array.isArray(src.sources) ? src.sources : [],
+    layers,
+    overlayTargets: targets,
+    note: hasLayerSchema && src.note ? src.note : '旧イベ日・取材・入替・SNS/メモなどは将来ここへ重ねます。v1では外部情報を自動取得しません。',
+  };
+}
+
+function formatExternalOverlayTarget(key) {
+  const labels = {
+    overview: '概況',
+    trends: '変遷',
+    layout: 'ホール図',
+    models: '機種',
+    tai: '台履歴',
+    combination: '組合せ',
+  };
+  return labels[key] || key;
+}
+
 function renderOverviewFreshness() {
   const wrap = document.getElementById('overviewFreshness');
   if(!wrap) return;
@@ -11112,19 +11166,37 @@ function renderOverviewFreshness() {
 function renderExternalEventsPanel() {
   const wrap = document.getElementById('overviewExternalEvents');
   if(!wrap) return;
-  const events = G.externalEvents || G._precomputed?.externalEvents || {};
-  const items = Array.isArray(events.items) ? events.items : [];
+  const events = getExternalEventsFrame(G.externalEvents || G._precomputed?.externalEvents || {});
+  const items = events.items;
+  const layers = events.layers;
+  const targets = events.overlayTargets;
   if(!items.length) {
-    wrap.innerHTML = `<div class="external-events-empty">
-      <strong>外部情報は未接続</strong>
-      <span>${escapeHtml(events.note || '旧イベ日・取材・入替などは将来ここへ重ねます。v1では自動取得しません。')}</span>
+    wrap.innerHTML = `<div class="external-events-board">
+      <div class="external-events-head">
+        <div>
+          <strong>外部情報は未接続</strong>
+          <span>${escapeHtml(events.note)}</span>
+        </div>
+        ${renderViewerQualityBadge({ label: 'v1空状態', tone: 'thin' }, { subtle: true })}
+      </div>
+      <div class="external-layer-grid">
+        ${layers.map(layer => `<div class="external-layer-card">
+          <span>${escapeHtml(layer.label || layer.key || '外部情報')}</span>
+          <strong>未接続</strong>
+          <small>${escapeHtml(layer.description || '将来このレイヤーを分析画面へ重ねます。')}</small>
+        </div>`).join('')}
+      </div>
+      <div class="external-overlay-targets">
+        <span>重ね先</span>
+        ${targets.map(target => `<b>${escapeHtml(formatExternalOverlayTarget(target))}</b>`).join('')}
+      </div>
     </div>`;
     return;
   }
   wrap.innerHTML = `<div class="external-events-list">${items.map(item => `
     <div class="external-event-row">
       <strong>${escapeHtml(item.title || item.label || '外部情報')}</strong>
-      <span>${escapeHtml(item.date || item.source || '')}</span>
+      <span>${escapeHtml([item.date, item.type, item.source].filter(Boolean).join(' / '))}</span>
     </div>`).join('')}</div>`;
 }
 

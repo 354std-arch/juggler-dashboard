@@ -1469,6 +1469,43 @@ def _format_model_trend_source(row):
         return "機種日別サマリー"
     return "台別データ"
 
+EXTERNAL_EVENT_LAYERS = [
+    {
+        "key": "old_event",
+        "label": "旧イベ",
+        "description": "日付・曜日・店舗の旧イベント傾向を、店/機種/ホール図の推移へ重ねる枠です。",
+    },
+    {
+        "key": "media",
+        "label": "取材",
+        "description": "取材・媒体告知・来店などを、日付単位の注記として重ねる枠です。",
+    },
+    {
+        "key": "replacement",
+        "label": "入替",
+        "description": "新台入替・増台・撤去を、機種推移と台履歴へ重ねる枠です。",
+    },
+    {
+        "key": "memo",
+        "label": "SNS/メモ",
+        "description": "SNSや手入力メモを、あとから確認材料として重ねる枠です。",
+    },
+]
+
+def build_external_events_frame(scope="global", store=None):
+    return {
+        "version": 1,
+        "enabled": False,
+        "status": "not_connected",
+        "scope": scope,
+        "store": store,
+        "items": [],
+        "sources": [],
+        "layers": EXTERNAL_EVENT_LAYERS,
+        "overlayTargets": ["overview", "trends", "combination", "layout", "models", "tai"],
+        "note": "旧イベ日・取材・入替・SNS/メモなどは将来ここへ重ねます。v1では外部情報を自動取得しません。",
+    }
+
 def build_trend_view(store, store_rows, special, model_stats, tai_detail, latest_data_date, data_quality=None):
     diff_rows = diff_valid_rows(store_rows)
     latest = max((r["date"].date() for r in diff_rows), default=latest_data_date)
@@ -1589,11 +1626,7 @@ def build_trend_view(store, store_rows, special, model_stats, tai_detail, latest
         },
         "modelTrends": model_trends,
         "taiTrends": tai_trends,
-        "externalEvents": {
-            "enabled": False,
-            "items": [],
-            "note": "旧イベ日・取材・入替などは将来ここへ重ねます。v1では外部情報を自動取得しません。",
-        },
+        "externalEvents": build_external_events_frame(scope="store", store=store),
     }
 
 def compute_next_day(rows, special):
@@ -2816,11 +2849,7 @@ if __name__ == "__main__":
             "note": "係数は暫定値です。店舗別の微調整は byStore[店名].store_coefficients と STORE_COEFFICIENTS による拡張を想定しています。",
         },
         "hallLayoutEvidence": hall_layout_meta,
-        "externalEvents": {
-            "enabled": False,
-            "items": [],
-            "note": "旧イベ日・取材・入替などは将来の重ね合わせ用。v1では外部情報を自動取得しません。",
-        },
+        "externalEvents": build_external_events_frame(scope="global"),
         "byStore": {},
         "recommendations": [],
         "predictionAccuracy": {"overall": None, "byStore": {}},

@@ -66,7 +66,7 @@ byStore[店名]キー：special・dayStats・modelStats・nextStats・heatmap・
 - `compute.py` は `data.json.byStore[store].trendView` に店舗推移・機種推移・台履歴を出力する。
 - `morning_data.json` / `candidate_data.json` は互換維持するが、メインUIでは朝候補の断定表示には使わない。
 - ホール図は現行スタイルを維持し、当日差枚・直近推移・過去根拠・スマスロ扱いを見るビューとして扱う。
-- 外部情報（旧イベ・取材・入替など）はv1では自動取得せず、将来重ねるための枠だけ用意する。
+- 外部情報（旧イベ・取材・入替・SNS/メモなど）はv1では自動取得せず、`externalEvents.layers/items/sources/overlayTargets` の枠だけ用意する。
 
 ## 仮ラベル定義
 - 強上候補：G数5000以上・RB設定4相当以上・合算設定4相当以上
