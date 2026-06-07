@@ -6,6 +6,7 @@ REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="$REPO_DIR/run_daily.log"
 LOCK_DIR="$REPO_DIR/.run_daily.lock"
 STATUS_FILE="$REPO_DIR/run_daily_status.txt"
+STATUS_JSON_FILE="$REPO_DIR/automation_status.json"
 ACCESS_BLOCK_FILE="$REPO_DIR/.ana_slo_access_block.json"
 MODE="${JUGGLER_DAILY_MODE:-run}"
 SMART_SLOT_BACKFILL_DAYS="${SMART_SLOT_BACKFILL_DAYS:-30}"
@@ -29,7 +30,77 @@ log() {
 }
 
 write_status() {
-  printf '%s\t%s\n' "$(now_jst)" "$*" > "$STATUS_FILE"
+  local ts
+  local msg
+  ts="$(now_jst)"
+  msg="$*"
+  printf '%s\t%s\n' "$ts" "$msg" > "$STATUS_FILE"
+  python3 - "$STATUS_JSON_FILE" "$ts" "$msg" "$MODE" "$ANA_SLO_COOLDOWN_HOURS" "$ACCESS_BLOCK_FILE" <<'PY'
+import json
+import os
+import sys
+
+out_path, ts, message, mode, cooldown_hours, block_path = sys.argv[1:7]
+lower = message.lower()
+if "blocked" in lower:
+    category = "blocked"
+elif "cooldown" in lower:
+    category = "cooldown"
+elif "failed" in lower:
+    category = "failed"
+elif "running" in lower:
+    category = "running"
+elif lower.startswith("ok"):
+    category = "ok"
+elif "skipped" in lower:
+    category = "skipped"
+else:
+    category = "unknown"
+
+access_block = None
+if os.path.exists(block_path):
+    try:
+        with open(block_path, encoding="utf-8") as fh:
+            access_block = json.load(fh)
+    except Exception as exc:
+        access_block = {"parse_error": str(exc)}
+
+payload = {
+    "updated_at": ts,
+    "status": message,
+    "category": category,
+    "mode": mode,
+    "schedule": "毎朝7:31 JST / Mac launchd",
+    "cooldown_hours": int(cooldown_hours) if str(cooldown_hours).isdigit() else cooldown_hours,
+    "access_block": access_block,
+    "source": "run_daily.sh",
+}
+with open(out_path, "w", encoding="utf-8") as fh:
+    json.dump(payload, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+}
+
+configure_git_identity() {
+  git config user.email "action@github.com"
+  git config user.name "local-cron"
+}
+
+publish_status_update() {
+  [ "${PUBLISH_DAILY_STATUS:-1}" = "1" ] || return 0
+  configure_git_identity
+  git add "$STATUS_JSON_FILE" >> "$LOG_FILE" 2>&1 || {
+    log "automation status git add failed"
+    return 0
+  }
+  if git diff --cached --quiet -- "$STATUS_JSON_FILE"; then
+    return 0
+  fi
+  if git commit -m "auto: update automation status $(date +'%Y-%m-%d')" -- "$STATUS_JSON_FILE" >> "$LOG_FILE" 2>&1; then
+    git push >> "$LOG_FILE" 2>&1 || log "automation status push failed"
+  else
+    log "automation status commit failed"
+  fi
 }
 
 cleanup_lock() {
@@ -40,6 +111,7 @@ fail() {
   local code="$?"
   log "FAILED exit=$code line=${BASH_LINENO[0]} command=${BASH_COMMAND}"
   write_status "FAILED exit=$code"
+  publish_status_update || true
   cleanup_lock
   exit "$code"
 }
@@ -61,6 +133,7 @@ if [ "$MODE" = "healthcheck" ]; then
   log "healthcheck bash=$BASH_VERSION python=$(command -v python3 || true) git=$(command -v git || true)"
   log "healthcheck git-status=$(git status --short | wc -l | tr -d ' ') changed paths"
   write_status "OK healthcheck"
+  publish_status_update
   log "=== DONE healthcheck ==="
   exit 0
 fi
@@ -154,6 +227,7 @@ if is_access_cooldown_active; then
   log "ana-slo access cooldown active; skipping scrape/compute/push for ${ANA_SLO_COOLDOWN_HOURS}h window"
   log_access_block
   write_status "SKIPPED ana-slo cooldown"
+  publish_status_update
   log "=== DONE cooldown ==="
   exit 0
 fi
@@ -167,6 +241,7 @@ if is_access_cooldown_active; then
   log "ana-slo access block detected during scrape; skipping backfill/compute/push"
   log_access_block
   write_status "SKIPPED ana-slo blocked"
+  publish_status_update
   log "=== DONE blocked ==="
   exit 0
 fi
@@ -188,6 +263,7 @@ if is_access_cooldown_active; then
   log "ana-slo access block detected during backfill; skipping compute/push"
   log_access_block
   write_status "SKIPPED ana-slo blocked"
+  publish_status_update
   log "=== DONE blocked ==="
   exit 0
 fi
@@ -195,6 +271,7 @@ SCRAPE_INPUTS_AFTER="$(fingerprint_scrape_inputs)"
 if [ "$SCRAPE_INPUTS_BEFORE" = "$SCRAPE_INPUTS_AFTER" ] && [ "${ALLOW_EMPTY_DAILY_COMPUTE:-0}" != "1" ]; then
   log "no scraped data changes detected; skipping compute, commit, and push"
   write_status "OK no scraped changes"
+  publish_status_update
   log "=== DONE no changes ==="
   exit 0
 fi
@@ -213,8 +290,7 @@ warn_large_file data.json
 warn_large_file seat_data.json
 
 # Commit and push
-git config user.email "action@github.com"
-git config user.name "local-cron"
+configure_git_identity
 git add data.json morning_data.json candidate_data.json raw_data.csv store_list.json
 [ -f store_model_summary.csv ] && git add store_model_summary.csv
 [ -f store_freshness.json ] && git add store_freshness.json
@@ -234,4 +310,5 @@ if ! git push >> "$LOG_FILE" 2>&1; then
 fi
 
 write_status "OK run"
+publish_status_update
 log "=== DONE ==="

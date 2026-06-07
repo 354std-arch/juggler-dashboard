@@ -2,7 +2,7 @@
 let G = {
   raw:[], dayStats:[], taiDetail:[], dateSummary:[], modelStats:[], nextStats:{}, heatmap:{}, autoSpecial:[], weekMatrix:{}, dayWdayMatrix:{},
   currentTargetContext: null, layer3Scored: [], layer3SelectionMeta: null, storeFreshness: {}, recommendations: [], dataUpdatedAt: null, dataDate: null,
-  trendView: null, externalEvents: null, morningData: null, morningDataError: ''
+  trendView: null, externalEvents: null, automationStatus: null, morningData: null, morningDataError: ''
 };
 let chartInst = null;
 let currentStore = 'all';
@@ -6123,6 +6123,16 @@ function resetSeatLayoutOrder() {
   seatLayoutState.selectedTai = null;
 }
 
+function loadAutomationStatusJSON() {
+  return fetch('./automation_status.json', { cache: 'no-store' })
+    .then(r => {
+      if(r.status === 404) return null;
+      if(!r.ok) return null;
+      return r.json();
+    })
+    .catch(() => null);
+}
+
 function loadFromJSON() {
   const status = document.getElementById('gasStatus');
   const emptyErrorCode = 'DATA_EMPTY';
@@ -6143,17 +6153,20 @@ function loadFromJSON() {
   setHeaderDataStatus('読込中...', 'loading');
   status.textContent = 'data.jsonを読み込んでいます...';
   status.style.color = 'var(--accent3)';
+  G.automationStatus = null;
 
   const dataPromise = fetch('./data.json', { cache: 'no-store' })
     .then(r => {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json();
     });
+  const automationPromise = loadAutomationStatusJSON();
 
-  return Promise.all([dataPromise, loadSeatLayoutAnalysisLayoutsJSON()])
-    .then(([json, hallLayoutsJson]) => {
+  return Promise.all([dataPromise, loadSeatLayoutAnalysisLayoutsJSON(), automationPromise])
+    .then(([json, hallLayoutsJson, automationStatus]) => {
       seatLayoutState.seatMonthlyDataCache = {};
       seatLayoutState.hallLayoutsBundle = hallLayoutsJson;
+      G.automationStatus = automationStatus && typeof automationStatus === 'object' ? automationStatus : null;
       if (json.byStore && typeof json.byStore === 'object') {
         loadFromPrecomputed(json);
         if(!hasDisplayableData()) {
@@ -10989,6 +11002,72 @@ function getStoreOverviewStatus(store, trendView) {
   };
 }
 
+function formatAutomationTimeText(value) {
+  const text = String(value || '').trim();
+  if(!text) return '不明';
+  return text
+    .replace('T', ' ')
+    .replace(/\+09:00$/, ' JST')
+    .replace(/:([0-9]{2}) JST$/, ' JST');
+}
+
+function getAutomationStatusMeta(status) {
+  if(!status || typeof status !== 'object') {
+    return { label: '状態不明', tone: 'missing', note: 'automation_status.json を確認できません。' };
+  }
+  const category = String(status.category || '').toLowerCase();
+  const message = String(status.status || '').toLowerCase();
+  if(category === 'blocked' || message.includes('blocked')) {
+    return { label: '取得ブロック', tone: 'stale', note: 'Cloudflare等で取得が止まっています。クールダウン後に再試行します。' };
+  }
+  if(category === 'cooldown' || message.includes('cooldown')) {
+    return { label: 'クールダウン中', tone: 'stale', note: '連続アクセスを避けるため、自動取得を一時停止しています。' };
+  }
+  if(category === 'failed' || message.includes('failed')) {
+    return { label: '取得失敗', tone: 'missing', note: '自動取得処理が失敗しました。ログ確認が必要です。' };
+  }
+  if(category === 'running' || message.includes('running')) {
+    return { label: '取得中', tone: 'flat', note: 'Macローカルの自動取得が実行中です。' };
+  }
+  if(category === 'ok' || message.startsWith('ok')) {
+    return { label: '正常終了', tone: 'ok', note: '直近の自動取得処理は正常に完了しています。' };
+  }
+  if(category === 'skipped' || message.includes('skipped')) {
+    return { label: 'スキップ', tone: 'thin', note: '取得処理は実行されましたが、更新対象がないか停止条件に当たりました。' };
+  }
+  return { label: '状態不明', tone: 'missing', note: status.status || '自動取得状態を判定できません。' };
+}
+
+function renderAutomationStatusPanel() {
+  const status = G.automationStatus;
+  const meta = getAutomationStatusMeta(status);
+  const block = status?.access_block && typeof status.access_block === 'object' ? status.access_block : null;
+  const rows = [
+    { label: '最終実行', value: formatAutomationTimeText(status?.updated_at) },
+    { label: '方式', value: status?.schedule || 'Mac launchd / run_daily.sh' },
+    { label: '状態', value: status?.status || '未取得' },
+  ];
+  const blockHtml = block ? `<div class="automation-block-detail">
+    <strong>取得停止の詳細</strong>
+    <span>${escapeHtml(block.server || 'server不明')} ${escapeHtml(String(block.status || ''))} / ${escapeHtml(block.store || '店舗不明')} / 対象 ${escapeHtml(block.target_date || '日付不明')}</span>
+    ${block.cf_ray ? `<small>cf-ray ${escapeHtml(block.cf_ray)}</small>` : ''}
+  </div>` : '';
+  return `<div class="automation-status-panel is-${escapeHtml(normalizeViewerQualityTone(meta.tone))}">
+    <div class="automation-status-head">
+      <div>
+        <span>自動取得</span>
+        <strong>${escapeHtml(meta.label)}</strong>
+      </div>
+      ${renderViewerQualityBadge({ label: meta.label, tone: meta.tone })}
+    </div>
+    <div class="automation-status-grid">
+      ${rows.map(row => `<div><span>${escapeHtml(row.label)}</span><strong>${escapeHtml(row.value)}</strong></div>`).join('')}
+    </div>
+    ${blockHtml}
+    <p>${escapeHtml(meta.note)}</p>
+  </div>`;
+}
+
 function renderOverviewFreshness() {
   const wrap = document.getElementById('overviewFreshness');
   if(!wrap) return;
@@ -11027,7 +11106,7 @@ function renderOverviewFreshness() {
       <strong>${escapeHtml(quality.label)}</strong>
       <small>${escapeHtml(quality.detail || blockText)}</small>
     </div>
-  </div>${renderFreshnessWarningPanel(freshness, 'データ鮮度')}`;
+  </div>${renderAutomationStatusPanel()}${renderFreshnessWarningPanel(freshness, 'データ鮮度')}`;
 }
 
 function renderExternalEventsPanel() {
