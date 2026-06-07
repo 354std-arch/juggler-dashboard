@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SLOT 変遷ビューア</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=combination-ui-1">
+<link rel="stylesheet" href="style.css?v=flow-ui-1">
 </head>
 <body>
 
@@ -64,6 +64,7 @@
     <button class="btn viewer-load-btn" onclick="loadFromJSON()">データ読込</button>
   </div>
   <div id="overviewFreshness"><div class="empty-msg">データを読み込んでください</div></div>
+  <div id="overviewFlowActions"></div>
   <div class="card">
     <div class="card-title">店舗の状態</div>
     <p class="section-note">直近30日と前30日を比べ、店全体の推移を表示します。座る台ではなく、見る価値のある店を探すための入口です。</p>
@@ -81,6 +82,7 @@
     <div class="card-title">店舗変遷</div>
     <p class="section-note">平均差枚、勝率、平均G、件数を直近/過去期間で比較します。データが古い場合は参考扱いです。</p>
     <div id="trendStorePanel"><div class="empty-msg">店舗を選択してください</div></div>
+    <div id="trendFlowActions"></div>
   </div>
   <div class="card">
     <div class="card-title">機種の扱い変化</div>
@@ -886,6 +888,6 @@
   <button id="withdrawJudgeBannerClose" class="withdraw-judge-banner-close" type="button" aria-label="閉じる">✕</button>
 </div>
 
-<script src="app.js?v=combination-ui-1"></script>
+<script src="app.js?v=flow-ui-1"></script>
 </body>
 </html>

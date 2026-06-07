@@ -2311,6 +2311,7 @@ function detectAutoSpecial(rows) {
 
 // ====== タブ ======
 const DETAIL_TABS = new Set(['tab-data','tab-settings','tab-setsuteii','tab-next']);
+const VIEWER_MAIN_TABS = new Set(['tab-overview','tab-trends','tab-heat','tab-layout']);
 
 function updateRecommendationSectionVisibility(activeTabId) {
   const el = document.getElementById('recommendationSection');
@@ -2357,6 +2358,7 @@ function showTab(id, btn) {
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('is-seat-layout-active', id === 'tab-layout');
   document.body.classList.toggle('is-combination-active', id === 'tab-heat');
+  document.body.classList.toggle('is-viewer-main-active', VIEWER_MAIN_TABS.has(id));
   updateRecommendationSectionVisibility(id);
   const navBtn = btn || document.querySelector(`#mainNav button[data-tab="${id}"]`);
   if(navBtn) navBtn.classList.add('active');
@@ -10974,6 +10976,48 @@ function renderExternalEventsPanel() {
     </div>`).join('')}</div>`;
 }
 
+function openViewerFlowTab(tabId) {
+  if(!G._precomputed) {
+    showTab('tab-data');
+    return;
+  }
+  showTab(tabId);
+}
+
+function renderViewerFlowActions(targetId, { compact = false } = {}) {
+  const wrap = document.getElementById(targetId);
+  if(!wrap) return;
+  if(!G._precomputed) {
+    wrap.innerHTML = '';
+    return;
+  }
+  const hasStore = currentStore && currentStore !== 'all';
+  const storeLabel = hasStore ? currentStore : '店舗未選択';
+  const activeTab = document.querySelector('.tab-content.active')?.id || '';
+  const actions = [
+    { tab: 'tab-trends', label: '変遷', meta: '店/機種' },
+    { tab: 'tab-heat', label: '組合せ', meta: '日付/末尾' },
+    { tab: 'tab-layout', label: 'ホール図', meta: '配置' },
+    { tab: 'tab-tai', label: '台履歴', meta: '台番' },
+  ];
+  wrap.innerHTML = `<div class="viewer-flow-panel ${compact ? 'is-compact' : ''}">
+    <div class="viewer-flow-head">
+      <div>
+        <strong>次に見る</strong>
+        <span>選択中: ${escapeHtml(storeLabel)}</span>
+      </div>
+      <small>店 → 機種 → 組合せ → 配置</small>
+    </div>
+    <div class="viewer-flow-actions">
+      ${actions.map(action => `
+        <button type="button" class="${activeTab === action.tab ? 'is-current' : ''}" onclick="openViewerFlowTab('${escapeHtml(action.tab)}')">
+          <b>${escapeHtml(action.label)}</b>
+          <span>${escapeHtml(action.meta)}</span>
+        </button>`).join('')}
+    </div>
+  </div>`;
+}
+
 function openStoreTrendFromButton(btn) {
   const store = btn?.dataset?.store;
   if(!store) return;
@@ -11025,6 +11069,7 @@ function renderOverviewStoreList() {
 
 function renderOverview() {
   renderOverviewFreshness();
+  renderViewerFlowActions('overviewFlowActions');
   renderOverviewStoreList();
   renderExternalEventsPanel();
 }
@@ -11113,6 +11158,7 @@ function renderTrendTaiPanel() {
 
 function renderTrends() {
   renderTrendStorePanel();
+  renderViewerFlowActions('trendFlowActions', { compact: true });
   renderTrendModelPanel();
   renderTrendTaiPanel();
 }
@@ -11138,6 +11184,7 @@ function renderAll() {
   const activeTab = document.querySelector('.tab-content.active');
   document.body.classList.toggle('is-seat-layout-active', activeTab?.id === 'tab-layout');
   document.body.classList.toggle('is-combination-active', activeTab?.id === 'tab-heat');
+  document.body.classList.toggle('is-viewer-main-active', VIEWER_MAIN_TABS.has(activeTab?.id || ''));
   updateRecommendationSectionVisibility(activeTab?.id || '');
   renderRecommendations();
   // アクティブタブのみ描画（タブ切り替え時に初めて描画）

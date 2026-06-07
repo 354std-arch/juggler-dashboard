@@ -170,6 +170,78 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .external-events-empty span{font-size:11px;color:var(--muted);line-height:1.55;}
 .external-event-row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(255,255,255,.07);padding:7px 0;font-size:11px;}
 .external-event-row:last-child{border-bottom:0;}
+.viewer-flow-panel{
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:8px;
+  padding:10px;
+  margin:0 0 11px;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.015));
+}
+.viewer-flow-panel.is-compact{margin:10px 0 0;}
+.viewer-flow-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:8px;
+}
+.viewer-flow-head strong{
+  display:block;
+  color:var(--text);
+  font-size:13px;
+  line-height:1.35;
+}
+.viewer-flow-head span,
+.viewer-flow-head small{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+}
+.viewer-flow-head small{
+  flex:0 0 auto;
+  color:var(--accent3);
+  text-align:right;
+}
+.viewer-flow-actions{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
+}
+.viewer-flow-actions button{
+  appearance:none;
+  min-width:0;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:8px;
+  padding:8px 7px;
+  background:#151821;
+  color:var(--text);
+  text-align:left;
+  cursor:pointer;
+  font-family:'Zen Kaku Gothic New',sans-serif;
+}
+.viewer-flow-actions button.is-current{
+  border-color:rgba(232,255,0,.38);
+  background:rgba(232,255,0,.08);
+}
+.viewer-flow-actions b{
+  display:block;
+  font-size:12px;
+  line-height:1.25;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.viewer-flow-actions span{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.25;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 .trend-store-summary{
   border:1px solid rgba(255,255,255,.1);
   border-left:3px solid var(--muted);
@@ -219,6 +291,10 @@ main{padding:12px;max-width:760px;margin:0 auto;}
   .viewer-hero h1{font-size:18px;}
   .viewer-load-btn{width:100%;min-height:42px;}
   .viewer-status-grid{grid-template-columns:1fr;}
+  .viewer-flow-head{display:block;}
+  .viewer-flow-head small{text-align:left;margin-top:3px;}
+  .viewer-flow-actions{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .viewer-flow-actions button{padding:9px 8px;}
   .overview-store-grid{grid-template-columns:1fr;}
   .overview-store-metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
   .overview-store-metrics div{padding:6px 5px;}
@@ -1758,6 +1834,7 @@ button.seat-heatmap-cell{
   cursor:pointer;
 }
 body.is-combination-active .withdraw-judge-fab{display:none;}
+body.is-viewer-main-active .withdraw-judge-fab{display:none;}
 
 .withdraw-judge-overlay{
   position:fixed;
