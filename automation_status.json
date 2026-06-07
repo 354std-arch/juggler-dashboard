@@ -1,17 +1,17 @@
 {
-  "updated_at": "2026-06-07 07:50:40 JST",
+  "updated_at": "2026-06-08 08:02:50 JST",
   "status": "SKIPPED ana-slo blocked",
   "category": "blocked",
   "mode": "run",
   "schedule": "毎朝7:31 JST / Mac launchd",
   "cooldown_hours": 24,
   "access_block": {
-    "blocked_at": "2026-06-07T07:50:40+09:00",
+    "blocked_at": "2026-06-08T08:02:49+09:00",
     "status": 403,
-    "url": "https://ana-slo.com/2026-06-06-%e9%b6%b4%e8%a6%8buno-data/",
+    "url": "https://ana-slo.com/2026-06-07-%e9%b6%b4%e8%a6%8buno-data/",
     "store": "鶴見UNO",
-    "target_date": "2026-06-06",
-    "cf_ray": "a07afa2c4ec37966-NRT",
+    "target_date": "2026-06-07",
+    "cf_ray": "a083495a9804e3af-NRT",
     "server": "cloudflare"
   },
   "source": "run_daily.sh"
