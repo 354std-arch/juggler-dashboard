@@ -9528,7 +9528,7 @@ function renderCombinationOverview() {
             <b>${escapeHtml(label)}</b>
             ${item ? `${escapeHtml(formatCombinationDiff(item.avg))} / ${escapeHtml(item.count)}件 / 勝率${escapeHtml(formatCombinationRate(item.win))}` : 'データなし'}
           </span>
-          <small>信頼度 ${escapeHtml(conf.label)}</small>
+          <small class="combination-quality">${renderViewerQualityBadge(conf, { subtle: true })}</small>
         </button>
       `).join('')}
     </div>`;
@@ -9563,7 +9563,7 @@ function renderCombinationRanking() {
       </span>
       <span class="combination-rank-score">
         <b>${escapeHtml(formatCombinationDiff(x.avg))}</b>
-        <small>${escapeHtml(x.strengthLabel)} / ${escapeHtml(x.confidence.label)}</small>
+        <small>${escapeHtml(x.strengthLabel)} / ${renderViewerQualityBadge(x.confidence, { subtle: true })}</small>
       </span>
     </button>
   `).join('')}</div>`;
@@ -10735,7 +10735,67 @@ function getTrendToneClass(tone) {
   if(key === 'down') return 'is-down';
   if(key === 'thin') return 'is-thin';
   if(key === 'stale') return 'is-stale';
+  if(key === 'missing' || key === 'none') return 'is-missing';
   return 'is-flat';
+}
+
+function normalizeViewerQualityTone(tone) {
+  const key = String(tone || 'ok');
+  if(['ok','up','flat','down','thin','stale','missing','none','strong','mid'].includes(key)) return key;
+  return 'ok';
+}
+
+function getViewerDataQuality({
+  count = null,
+  minCount = 10,
+  ymd = null,
+  lagDays = null,
+  missing = false,
+  requiresDate = false,
+  okLabel = '通常',
+} = {}) {
+  const n = Number(count);
+  const hasCount = Number.isFinite(n);
+  const roundedCount = hasCount ? Math.max(0, Math.round(n)) : null;
+  const normalizedYmd = normalizeDataDateValue(ymd);
+  const lag = Number(lagDays);
+  const dateText = normalizedYmd ? `データ ${normalizedYmd}` : 'データ日不明';
+  const countText = hasCount ? `件数 ${roundedCount}件` : '';
+  const detail = [countText, dateText].filter(Boolean).join(' / ');
+  if(missing || (requiresDate && !normalizedYmd) || (hasCount && roundedCount <= 0)) {
+    return { label: '未取得', tone: 'missing', detail, count: roundedCount, ymd: normalizedYmd, lagDays: Number.isFinite(lag) ? lag : null };
+  }
+  if(Number.isFinite(lag) && lag >= 2) {
+    return {
+      label: 'データ古い',
+      tone: 'stale',
+      detail: `${detail}${normalizedYmd ? ` / ${Math.round(lag)}日前` : ''}`,
+      count: roundedCount,
+      ymd: normalizedYmd,
+      lagDays: lag,
+    };
+  }
+  const threshold = Number(minCount);
+  if(hasCount && Number.isFinite(threshold) && roundedCount < threshold) {
+    return { label: '件数少', tone: 'thin', detail, count: roundedCount, ymd: normalizedYmd, lagDays: Number.isFinite(lag) ? lag : null };
+  }
+  return { label: okLabel, tone: 'ok', detail, count: roundedCount, ymd: normalizedYmd, lagDays: Number.isFinite(lag) ? lag : null };
+}
+
+function renderViewerQualityBadge(meta, { subtle = false } = {}) {
+  if(!meta) return '';
+  const tone = normalizeViewerQualityTone(meta.tone);
+  return `<span class="viewer-quality-badge is-${escapeHtml(tone)}${subtle ? ' is-subtle' : ''}">${escapeHtml(meta.label || '通常')}</span>`;
+}
+
+function renderViewerQualityLine(meta) {
+  if(!meta) return '';
+  const tone = normalizeViewerQualityTone(meta.tone);
+  const detail = meta.detail || meta.label || '';
+  return `<div class="viewer-quality-line is-${escapeHtml(tone)}">
+    <span>${escapeHtml(meta.label || '通常')}</span>
+    <small>${escapeHtml(detail)}</small>
+  </div>`;
 }
 
 function classifyTrendFromValues(avgDiff, delta, count) {
@@ -10911,13 +10971,21 @@ function getTrendFreshnessForStore(store, trendView) {
 
 function getStoreOverviewStatus(store, trendView) {
   const freshness = getTrendFreshnessForStore(store, trendView);
-  if(Number.isFinite(freshness.lagDays) && freshness.lagDays >= 2) {
-    return { label: 'データ古い', tone: 'stale', freshness };
+  const quality = getViewerDataQuality({
+    count: trendView?.storeTrend?.recent30?.count,
+    minCount: 20,
+    ymd: freshness.ymd,
+    lagDays: freshness.lagDays,
+    requiresDate: true,
+  });
+  if(['stale','thin','missing'].includes(quality.tone)) {
+    return { label: quality.label, tone: quality.tone, freshness, quality };
   }
   return {
     label: trendView?.storeTrend?.label || '横ばい',
     tone: trendView?.storeTrend?.tone || 'flat',
     freshness,
+    quality,
   };
 }
 
@@ -10934,6 +11002,11 @@ function renderOverviewFreshness() {
   }
   const freshness = getAnalysisFreshnessMeta();
   const sourceText = freshness.sourceYmd || G.dataDate || '不明';
+  const quality = getViewerDataQuality({
+    ymd: freshness.sourceYmd || G.dataDate || G._precomputed?.data_date,
+    lagDays: freshness.lagDays,
+    requiresDate: true,
+  });
   const lagText = Number.isFinite(freshness.lagDays) ? `${freshness.lagDays}日前` : '不明';
   const blockText = Number.isFinite(freshness.lagDays) && freshness.lagDays >= 2
     ? '取得停止/接続ブロックの可能性あり。自動取得は失敗時に再試行を抑制します。'
@@ -10949,10 +11022,10 @@ function renderOverviewFreshness() {
       <strong>${escapeHtml(G.dataUpdatedAt || G._precomputed?.updated_at || '不明')}</strong>
       <small>生成済みJSON</small>
     </div>
-    <div class="viewer-status-card ${freshness.alertText ? 'is-stale' : ''}">
+    <div class="viewer-status-card is-${escapeHtml(normalizeViewerQualityTone(quality.tone))}">
       <span>取得状態</span>
-      <strong>${freshness.alertText ? '要注意' : '通常'}</strong>
-      <small>${escapeHtml(blockText)}</small>
+      <strong>${escapeHtml(quality.label)}</strong>
+      <small>${escapeHtml(quality.detail || blockText)}</small>
     </div>
   </div>${renderFreshnessWarningPanel(freshness, 'データ鮮度')}`;
 }
@@ -11043,7 +11116,7 @@ function renderOverviewStoreList() {
     const topModel = (view?.modelTrends || []).find(m => m.tone === 'up') || (view?.modelTrends || [])[0] || null;
     return { store, view, status, recent, delta, topModel };
   }).sort((a, b) => {
-    const priority = { up: 0, flat: 1, thin: 2, stale: 3, down: 4 };
+    const priority = { up: 0, flat: 1, thin: 2, stale: 3, missing: 4, down: 5 };
     const pa = priority[a.status.tone] ?? 5;
     const pb = priority[b.status.tone] ?? 5;
     if(pa !== pb) return pa - pb;
@@ -11053,7 +11126,7 @@ function renderOverviewStoreList() {
     <button type="button" class="overview-store-card ${getTrendToneClass(row.status.tone)}" data-store="${escapeHtml(row.store)}" onclick="openStoreTrendFromButton(this)">
       <div class="overview-store-head">
         <strong>${escapeHtml(row.store)}</strong>
-        <span>${escapeHtml(row.status.label)}</span>
+        ${renderViewerQualityBadge({ label: row.status.label, tone: row.status.tone })}
       </div>
       <div class="overview-store-metrics">
         <div><span>直近30日</span><b>${formatTrendDiff(row.recent.avgDiff)}</b></div>
@@ -11063,7 +11136,7 @@ function renderOverviewStoreList() {
       <div class="overview-store-note">
         ${escapeHtml(row.topModel ? `注目: ${row.topModel.model} ${row.topModel.deltaMonth !== null && row.topModel.deltaMonth !== undefined ? formatTrendDiff(row.topModel.deltaMonth) : row.topModel.label}` : '機種変化データなし')}
       </div>
-      <div class="overview-store-freshness">${escapeHtml(row.status.freshness.ymd ? `データ ${row.status.freshness.ymd}` : 'データ日不明')}</div>
+      ${renderViewerQualityLine(row.status.quality)}
     </button>`).join('')}</div>`;
 }
 
@@ -11101,8 +11174,12 @@ function renderTrendStorePanel() {
         <strong>${escapeHtml(store)}</strong>
         <span>${escapeHtml(status.freshness.ymd ? `データ ${status.freshness.ymd}` : 'データ日不明')}</span>
       </div>
-      <b>${escapeHtml(status.label)}</b>
+      <div class="trend-store-badges">
+        ${renderViewerQualityBadge({ label: status.label, tone: status.tone })}
+        ${status.quality && status.quality.label !== status.label ? renderViewerQualityBadge(status.quality, { subtle: true }) : ''}
+      </div>
     </div>
+    ${renderViewerQualityLine(status.quality)}
     ${renderTrendMetricCards(view.storeTrend || {})}
     <div class="trend-store-note">この画面は「行く/座る」の断定ではなく、店全体の扱いが上がっているか落ちているかを確認するための入口です。</div>
   </div>`;
@@ -11119,15 +11196,26 @@ function renderTrendModelPanel() {
   }
   wrap.innerHTML = `<div class="trend-list">${models.map((m) => {
     const category = m.category === 'smart_slot' ? 'スマスロ扱い' : (m.analysisMode === 'setting' ? 'Aタイプ参考' : '差枚推移');
+    const freshness = getTrendFreshnessForStore(m.store || currentStore, view);
+    const quality = getViewerDataQuality({
+      count: m.thisMonthCount ?? m.count,
+      minCount: 10,
+      ymd: freshness.ymd,
+      lagDays: freshness.lagDays,
+      requiresDate: true,
+    });
     return `<div class="trend-row ${getTrendToneClass(m.tone)}">
       <div class="trend-row-main">
         <strong>${escapeHtml(m.model || '不明')}</strong>
         <span>${escapeHtml(category)} / ${escapeHtml(m.source || '集計')}</span>
       </div>
       <div class="trend-row-metrics">
-        <span>${escapeHtml(m.label || '横ばい')}</span>
+        <div class="trend-row-badges">
+          <span class="trend-result-badge">${escapeHtml(m.label || '横ばい')}</span>
+          ${quality.label !== (m.label || '横ばい') ? renderViewerQualityBadge(quality, { subtle: quality.tone === 'ok' }) : ''}
+        </div>
         <b>${formatTrendDiff(m.deltaMonth)}</b>
-        <small>今月 ${formatTrendDiff(m.thisMonthAvg)} / ${formatTrendNumber(m.thisMonthCount, '件')}</small>
+        <small>今月 ${formatTrendDiff(m.thisMonthAvg)} / ${formatTrendNumber(m.thisMonthCount, '件')} / ${escapeHtml(quality.detail || '')}</small>
       </div>
     </div>`;
   }).join('')}</div>`;
@@ -11142,18 +11230,31 @@ function renderTrendTaiPanel() {
     wrap.innerHTML = '<div class="empty-msg">台履歴データなし</div>';
     return;
   }
-  wrap.innerHTML = `<div class="trend-list">${rows.map((t) => `
+  wrap.innerHTML = `<div class="trend-list">${rows.map((t) => {
+    const freshness = getTrendFreshnessForStore(t.store || currentStore, view);
+    const quality = getViewerDataQuality({
+      count: t.count,
+      minCount: 10,
+      ymd: freshness.ymd,
+      lagDays: freshness.lagDays,
+      requiresDate: true,
+    });
+    return `
     <div class="trend-row ${getTrendToneClass(t.tone)}">
       <div class="trend-row-main">
         <strong>${escapeHtml(t.tai || t.taiNum || '-')}番 ${escapeHtml(t.model || '機種不明')}</strong>
         <span>${escapeHtml((t.features || []).length ? t.features.join(' / ') : '位置特徴なし')}</span>
       </div>
       <div class="trend-row-metrics">
-        <span>${escapeHtml(t.label || '横ばい')}</span>
+        <div class="trend-row-badges">
+          <span class="trend-result-badge">${escapeHtml(t.label || '横ばい')}</span>
+          ${quality.label !== (t.label || '横ばい') ? renderViewerQualityBadge(quality, { subtle: quality.tone === 'ok' }) : ''}
+        </div>
         <b>${formatTrendDiff(t.avgDiff)}</b>
-        <small>${formatTrendNumber(t.count, '件')} / 勝率${formatTrendRate(t.plusRate)} / 平均G ${formatTrendNumber(t.avgG)}</small>
+        <small>${formatTrendNumber(t.count, '件')} / 勝率${formatTrendRate(t.plusRate)} / 平均G ${formatTrendNumber(t.avgG)} / ${escapeHtml(quality.detail || '')}</small>
       </div>
-    </div>`).join('')}</div>`;
+    </div>`;
+  }).join('')}</div>`;
 }
 
 function renderTrends() {
