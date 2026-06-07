@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SLOT 変遷ビューア</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=trend-viewer-1">
+<link rel="stylesheet" href="style.css?v=combination-ui-1">
 </head>
 <body>
 
@@ -26,15 +26,16 @@
 <nav id="mainNav">
   <button class="active" data-tab="tab-overview" onclick="showTab('tab-overview',this)">概況</button>
   <button data-tab="tab-trends" onclick="showTab('tab-trends',this)">変遷</button>
+  <button data-tab="tab-heat" onclick="showTab('tab-heat',this)">組合せ</button>
   <button data-tab="tab-layout" onclick="showTab('tab-layout',this)">ホール図</button>
   <button data-tab="tab-model" onclick="showTab('tab-model',this)">機種</button>
   <button data-tab="tab-tai" onclick="showTab('tab-tai',this)">台履歴</button>
-  <button data-tab="tab-data" onclick="showTab('tab-data',this)">データ</button>
   <button id="detailMenuBtn" onclick="toggleDetailMenu(this)">🔍 詳細 ▾</button>
 </nav>
 
 <!-- ドロップダウンメニュー：body直下に配置してnavのoverflowに隠されない -->
 <div id="detailMenu" style="display:none;position:fixed;background:var(--bg3);border:1px solid var(--border);border-radius:8px;min-width:150px;box-shadow:0 8px 24px rgba(0,0,0,.7);z-index:9999;">
+  <button onclick="showTabFromMenu('tab-data',this)">📦 データ</button>
   <button onclick="showTabFromMenu('tab-setsuteii',this)">🔬 設定推測</button>
   <button onclick="showTabFromMenu('tab-next',this)">🔮 前日条件</button>
   <button onclick="showTabFromMenu('tab-settings',this)">⚙️ 設定</button>
@@ -221,29 +222,41 @@
   </div>
 </div>
 
-<!-- ====== 組合せヒートマップ ====== -->
+<!-- ====== 組合せ ====== -->
 <div id="tab-heat" class="tab-content">
+  <div class="combination-hero">
+    <div class="combination-kicker">組合せ分析</div>
+    <h2>この店で見える規則性</h2>
+    <p>過去データから、日付・曜日・台番末尾の組合せを読みます。件数が薄いものは分けて表示します。</p>
+  </div>
 
-  <!-- ① 日にち末尾 × 台番号末尾 -->
-  <div class="card">
-    <div class="card-title">🗺️ 日にち末尾 × 台番号末尾</div>
-    <p class="section-note">緑＝強い／赤＝弱い。セルをタップすると詳細表示。サンプル5件未満は「-」。</p>
+  <div id="combinationOverview"><div class="empty-msg">データを読み込んでください</div></div>
+
+  <div class="card combination-card">
+    <div class="combination-section-head">
+      <div>
+        <div class="card-title">強めの組合せ</div>
+        <p class="section-note">平均差枚順。信頼度は件数をもとに表示します。</p>
+      </div>
+      <span class="combination-sort-label">差枚順</span>
+    </div>
+    <div id="heatRanking"><div class="empty-msg">データを読み込んでください</div></div>
+  </div>
+
+  <div class="card combination-card">
+    <div class="card-title">日付末尾 × 台番末尾</div>
+    <p class="section-note">緑＝強め、赤＝弱め。セルをタップすると平均差枚・勝率・件数を確認できます。</p>
     <div class="filter-btns" id="heatMetricBtns" style="margin-bottom:8px">
       <button class="filter-btn active" onclick="selectHeatMetric('avg',this)">差枚</button>
       <button class="filter-btn" onclick="selectHeatMetric('ritu',this)">推定出率%</button>
       <button class="filter-btn" onclick="selectHeatMetric('win',this)">勝率%</button>
       <button class="filter-btn" onclick="selectHeatMetric('set456',this)">設定456率%</button>
     </div>
-    <div id="heatmapWrap" style="overflow-x:auto"><div class="empty-msg">データを読み込んでください</div></div>
-  </div>
-  <div class="card">
-    <div class="card-title">🏆 強い組み合わせ TOP10</div>
-    <div id="heatRanking"><div class="empty-msg">データを読み込んでください</div></div>
+    <div id="heatmapWrap" class="heatmap-scroll"><div class="empty-msg">データを読み込んでください</div></div>
   </div>
 
-  <!-- ② 第○週 × 曜日 -->
-  <div class="card">
-    <div class="card-title">📅 第○週 × 曜日</div>
+  <div class="card combination-card">
+    <div class="card-title">第○週 × 曜日</div>
     <p class="section-note">「第2月曜が強い」「第5木曜が強い」など週×曜日の傾向を把握。</p>
     <div class="filter-btns" id="weekMatrixMetricBtns" style="margin-bottom:8px">
       <button class="filter-btn active" onclick="selectWeekMetric('avg',this)">差枚</button>
@@ -251,12 +264,11 @@
       <button class="filter-btn" onclick="selectWeekMetric('win',this)">勝率%</button>
       <button class="filter-btn" onclick="selectWeekMetric('set456',this)">設定456率%</button>
     </div>
-    <div id="weekMatrixWrap" style="overflow-x:auto"><div class="empty-msg">データを読み込んでください</div></div>
+    <div id="weekMatrixWrap" class="heatmap-scroll"><div class="empty-msg">データを読み込んでください</div></div>
   </div>
 
-  <!-- ③ 日付末尾 × 曜日 -->
-  <div class="card">
-    <div class="card-title">📆 日付末尾 × 曜日</div>
+  <div class="card combination-card">
+    <div class="card-title">日付末尾 × 曜日</div>
     <p class="section-note">「5の付く月曜が強い」「ゾロ目の木曜が強い」など日付末尾と曜日の掛け合わせ。</p>
     <div class="filter-btns" id="dayWdayMetricBtns" style="margin-bottom:8px">
       <button class="filter-btn active" onclick="selectDayWdayMetric('avg',this)">差枚</button>
@@ -264,7 +276,7 @@
       <button class="filter-btn" onclick="selectDayWdayMetric('win',this)">勝率%</button>
       <button class="filter-btn" onclick="selectDayWdayMetric('set456',this)">設定456率%</button>
     </div>
-    <div id="dayWdayWrap" style="overflow-x:auto"><div class="empty-msg">データを読み込んでください</div></div>
+    <div id="dayWdayWrap" class="heatmap-scroll"><div class="empty-msg">データを読み込んでください</div></div>
   </div>
 
 </div>
@@ -874,6 +886,6 @@
   <button id="withdrawJudgeBannerClose" class="withdraw-judge-banner-close" type="button" aria-label="閉じる">✕</button>
 </div>
 
-<script src="app.js?v=withdraw-diff-1"></script>
+<script src="app.js?v=combination-ui-1"></script>
 </body>
 </html>

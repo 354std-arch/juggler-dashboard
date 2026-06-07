@@ -2310,7 +2310,7 @@ function detectAutoSpecial(rows) {
 }
 
 // ====== タブ ======
-const DETAIL_TABS = new Set(['tab-settings','tab-setsuteii','tab-next']);
+const DETAIL_TABS = new Set(['tab-data','tab-settings','tab-setsuteii','tab-next']);
 
 function updateRecommendationSectionVisibility(activeTabId) {
   const el = document.getElementById('recommendationSection');
@@ -2356,6 +2356,7 @@ function showTab(id, btn) {
   closeDetailMenu();
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('is-seat-layout-active', id === 'tab-layout');
+  document.body.classList.toggle('is-combination-active', id === 'tab-heat');
   updateRecommendationSectionVisibility(id);
   const navBtn = btn || document.querySelector(`#mainNav button[data-tab="${id}"]`);
   if(navBtn) navBtn.classList.add('active');
@@ -9358,8 +9359,216 @@ function cellColorForMetric(val, maxAbs, metric) {
   }
 }
 
+function getCombinationLabelSets() {
+  const digits = [0,1,2,3,4,5,6,7,8,9];
+  const wdays = [0,1,2,3,4,5,6];
+  const wdayLabels = ['日','月','火','水','木','金','土'];
+  return {
+    suffixTai: {
+      title: '日付末尾 × 台番末尾',
+      shortTitle: '末尾',
+      minCount: 5,
+      mapName: 'heatmap',
+      rowDefs: [
+        ...digits.map(d=>({key:d, label:`${d}の日`})),
+        {key:'zoro', label:'ゾロ目'},
+        {key:'tsuki', label:'月=日'},
+        {key:'end', label:'月末'},
+      ],
+      colDefs: digits.map(t=>({key:t, label:`${t}番台`})),
+    },
+    weekWday: {
+      title: '第○週 × 曜日',
+      shortTitle: '週曜日',
+      minCount: 3,
+      mapName: 'weekMatrix',
+      rowDefs: [1,2,3,4,5].map(w=>({key:w, label:`第${w}週`})),
+      colDefs: wdays.map((w,i)=>({key:w, label:wdayLabels[i]})),
+    },
+    dayWday: {
+      title: '日付末尾 × 曜日',
+      shortTitle: '日付曜日',
+      minCount: 3,
+      mapName: 'dayWdayMatrix',
+      rowDefs: [
+        ...digits.map(d=>({key:d, label:`${d}の付く日`})),
+        {key:'zoro', label:'ゾロ目'},
+        {key:'tsuki', label:'月=日'},
+        {key:'end', label:'月末'},
+      ],
+      colDefs: wdays.map((w,i)=>({key:w, label:wdayLabels[i]})),
+    },
+  };
+}
+
+function hasCombinationData() {
+  return Boolean(
+    Object.keys(G.heatmap || {}).length ||
+    Object.keys(G.weekMatrix || {}).length ||
+    Object.keys(G.dayWdayMatrix || {}).length
+  );
+}
+
+function combinationConfidence(count, minCount = 5) {
+  const n = Number(count) || 0;
+  if(n <= 0) return { label:'データなし', tone:'none' };
+  if(n < minCount) return { label:'件数少', tone:'thin' };
+  if(n >= Math.max(15, minCount * 3)) return { label:'厚い', tone:'strong' };
+  if(n >= Math.max(8, minCount * 2)) return { label:'中', tone:'mid' };
+  return { label:'件数少', tone:'thin' };
+}
+
+function combinationStrengthLabel(item, minCount = 5) {
+  const conf = combinationConfidence(item?.count, minCount);
+  if(conf.label === 'データなし') return 'データなし';
+  if(conf.label === '件数少') return '件数少';
+  const avgValue = Number(item?.avg);
+  const winValue = Number(item?.win);
+  if(Number.isFinite(avgValue) && avgValue >= 180) return '強め';
+  if(Number.isFinite(avgValue) && avgValue >= 60) return '注目';
+  if(Number.isFinite(winValue) && winValue >= 58) return '注目';
+  return '横ばい';
+}
+
+function formatCombinationDiff(value) {
+  const n = Number(value);
+  if(!Number.isFinite(n)) return '—';
+  return `${n >= 0 ? '+' : ''}${round1(n)}枚`;
+}
+
+function formatCombinationRate(value) {
+  const n = Number(value);
+  if(!Number.isFinite(n)) return '—';
+  return `${round1(n)}%`;
+}
+
+function collectCombinationItems(def, { includeThin = false } = {}) {
+  const map = G[def.mapName] || {};
+  const items = [];
+  def.rowDefs.forEach(r=>{
+    def.colDefs.forEach(c=>{
+      const key = `${r.key}_${c.key}`;
+      const d = map[key];
+      if(!d || !Number.isFinite(Number(d.count))) return;
+      if(!includeThin && d.count < def.minCount) return;
+      items.push({
+        key,
+        type: def.shortTitle,
+        title: def.title,
+        label: `${r.label} × ${c.label}`,
+        rowLabel: r.label,
+        colLabel: c.label,
+        minCount: def.minCount,
+        mapName: def.mapName,
+        ...d,
+      });
+    });
+  });
+  return items;
+}
+
+function getBestCombinationItem(def) {
+  const strong = collectCombinationItems(def).sort((a,b)=>(Number(b.avg)||0)-(Number(a.avg)||0));
+  if(strong.length) return strong[0];
+  const thin = collectCombinationItems(def, { includeThin:true })
+    .filter(x => (Number(x.count)||0) > 0)
+    .sort((a,b)=>(Number(b.avg)||0)-(Number(a.avg)||0));
+  return thin[0] || null;
+}
+
+function renderCombinationEmptyState() {
+  const html = `
+    <div class="combination-empty">
+      <strong>組合せデータなし</strong>
+      <span>この店舗では、日付末尾・曜日・台番末尾の組合せ集計がまだありません。取得済みデータが増えると表示されます。</span>
+    </div>`;
+  ['combinationOverview','heatRanking','heatmapWrap','weekMatrixWrap','dayWdayWrap'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = html;
+  });
+}
+
+function renderCombinationStoreSelectState() {
+  const html = `
+    <div class="combination-empty">
+      <strong>店舗を選択してください</strong>
+      <span>組合せは店ごとの癖を見る画面です。上の店舗ボタンから確認したい店舗を選ぶと表示されます。</span>
+    </div>`;
+  ['combinationOverview','heatRanking','heatmapWrap','weekMatrixWrap','dayWdayWrap'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = html;
+  });
+}
+
+function renderCombinationOverview() {
+  const wrap = document.getElementById('combinationOverview');
+  if(!wrap) return;
+  if(!hasCombinationData()) {
+    renderCombinationEmptyState();
+    return;
+  }
+  const defs = getCombinationLabelSets();
+  const rows = [defs.suffixTai, defs.weekWday, defs.dayWday].map((def)=>{
+    const item = getBestCombinationItem(def);
+    if(!item) {
+      return { def, item:null, label:'データなし', conf:{label:'データなし', tone:'none'} };
+    }
+    const conf = combinationConfidence(item.count, def.minCount);
+    return { def, item, label: combinationStrengthLabel(item, def.minCount), conf };
+  });
+  wrap.innerHTML = `
+    <div class="combination-overview">
+      ${rows.map(({def,item,label,conf}) => `
+        <button type="button" class="combination-insight is-${escapeHtml(conf.tone)}" onclick="document.getElementById('${escapeHtml(def.mapName === 'heatmap' ? 'heatmapWrap' : def.mapName === 'weekMatrix' ? 'weekMatrixWrap' : 'dayWdayWrap')}')?.scrollIntoView({behavior:'smooth',block:'start'})">
+          <span class="combination-insight-type">${escapeHtml(def.title)}</span>
+          <strong>${item ? escapeHtml(item.label) : '組合せデータなし'}</strong>
+          <span class="combination-insight-meta">
+            <b>${escapeHtml(label)}</b>
+            ${item ? `${escapeHtml(formatCombinationDiff(item.avg))} / ${escapeHtml(item.count)}件 / 勝率${escapeHtml(formatCombinationRate(item.win))}` : 'データなし'}
+          </span>
+          <small>信頼度 ${escapeHtml(conf.label)}</small>
+        </button>
+      `).join('')}
+    </div>`;
+}
+
+function renderCombinationRanking() {
+  const wrap = document.getElementById('heatRanking');
+  if(!wrap) return;
+  if(!hasCombinationData()) {
+    renderCombinationEmptyState();
+    return;
+  }
+  const defs = Object.values(getCombinationLabelSets());
+  const ranked = defs
+    .flatMap(def => collectCombinationItems(def).map(item => ({
+      ...item,
+      strengthLabel: combinationStrengthLabel(item, def.minCount),
+      confidence: combinationConfidence(item.count, def.minCount),
+    })))
+    .filter(item => item.strengthLabel !== '横ばい')
+    .sort((a,b)=>(Number(b.avg)||0)-(Number(a.avg)||0));
+  if(!ranked.length) {
+    wrap.innerHTML = '<div class="empty-msg">強めの組合せはまだ検出されていません</div>';
+    return;
+  }
+  wrap.innerHTML = `<div class="combination-ranking-list">${ranked.slice(0,10).map((x,i)=>`
+    <button type="button" class="combination-rank-row is-${escapeHtml(x.confidence.tone)}" onclick="showHeatPopup('${escapeHtml(x.label)}',G.${escapeHtml(x.mapName)}['${escapeHtml(x.key)}'],'avg')">
+      <span class="combination-rank-index">${String(i+1).padStart(2,'0')}</span>
+      <span class="combination-rank-main">
+        <strong>${escapeHtml(x.label)}</strong>
+        <small>${escapeHtml(x.type)} / ${escapeHtml(x.count)}件 / 勝率${escapeHtml(formatCombinationRate(x.win))}</small>
+      </span>
+      <span class="combination-rank-score">
+        <b>${escapeHtml(formatCombinationDiff(x.avg))}</b>
+        <small>${escapeHtml(x.strengthLabel)} / ${escapeHtml(x.confidence.label)}</small>
+      </span>
+    </button>
+  `).join('')}</div>`;
+}
+
 function showHeatPopup(title, data, metric) {
-  if(!data || data.count < 5) return;
+  if(!data) return;
   document.getElementById('popupTitle').textContent = title;
   document.getElementById('popupBody').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
@@ -9380,7 +9589,7 @@ function showHeatPopup(title, data, metric) {
         <div style="font-size:16px;font-weight:700;color:${(data.set456||0)>=40?'var(--plus)':'var(--muted)'}">${data.set456!==undefined?data.set456+'%':'—'}</div>
       </div>
       <div style="background:var(--bg3);border-radius:6px;padding:8px;text-align:center;grid-column:1/-1">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">サンプル数</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">件数</div>
         <div style="font-size:16px;font-weight:700;color:var(--accent3)">${data.count}件</div>
       </div>
     </div>`;
@@ -9429,66 +9638,54 @@ function buildHeatTable(rowDefs, colDefs, dataMap, metric, minCount) {
 
 // ====== ヒートマップ ======
 function renderHeatmap() {
-  if(!Object.keys(G.heatmap).length) return;
-  const digits = [0,1,2,3,4,5,6,7,8,9];
-  const rowDefs = [
-    ...digits.map(d=>({key:d, label:`${d}の日`})),
-    {key:'zoro', label:'ゾロ目'},
-    {key:'tsuki', label:'月=日'},
-    {key:'end', label:'月末'},
-  ];
-  const colDefs = digits.map(t=>({key:t, label:`${t}番台`}));
-  document.getElementById('heatmapWrap').innerHTML = buildHeatTable(rowDefs, colDefs, G.heatmap, currentHeatMetric, 5);
-
-  // TOP10（常に差枚でランキング）
-  const ranked = [];
-  rowDefs.forEach(r=>{
-    colDefs.forEach(c=>{
-      const key=`${r.key}_${c.key}`;
-      const d=G.heatmap[key];
-      if(d&&d.count>=5) ranked.push({rLabel:r.label, cLabel:c.label, rKey:r.key, cKey:c.key, ...d});
-    });
-  });
-  ranked.sort((a,b)=>b.avg-a.avg);
-  document.getElementById('heatRanking').innerHTML = ranked.slice(0,10).map((x,i)=>`
-    <div class="tai-row" style="border-left:3px solid ${x.avg>=0?'var(--plus)':'var(--minus)'}">
-      <div><div class="tai-num">${i+1}位</div><div class="tai-info">${x.count}件</div></div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:700">${x.rLabel} × ${x.cLabel}</div>
-        <div class="tai-info">出率${x.ritu!==null?x.ritu+'%':'—'} ｜ 勝率${x.win}%</div>
-      </div>
-      <div class="tai-diff" style="color:${x.avg>=0?'var(--plus)':'var(--minus)'}">${x.avg>=0?'+':''}${x.avg}</div>
-    </div>`).join('');
+  const wrap = document.getElementById('heatmapWrap');
+  if(!wrap) return;
+  const def = getCombinationLabelSets().suffixTai;
+  if(!Object.keys(G.heatmap || {}).length) {
+    wrap.innerHTML = '<div class="combination-empty"><strong>日付末尾 × 台番末尾データなし</strong><span>この店舗では、台番末尾との組合せ集計がまだありません。</span></div>';
+    return;
+  }
+  wrap.innerHTML = buildHeatTable(def.rowDefs, def.colDefs, G.heatmap, currentHeatMetric, def.minCount);
 }
 
 // ====== 第○週×曜日マトリクス ======
 function renderWeekMatrix() {
-  if(!Object.keys(G.weekMatrix).length) return;
-  const weeks = [1,2,3,4,5];
-  const wdays = [0,1,2,3,4,5,6];
-  const wdayLabels = ['日','月','火','水','木','金','土'];
-  const rowDefs = weeks.map(w=>({key:w, label:`第${w}週`}));
-  const colDefs = wdays.map((w,i)=>({key:w, label:wdayLabels[i]}));
-
-  // セルクリックはweekMatrixから参照
-  const tableHtml = buildHeatTableCustom(rowDefs, colDefs, G.weekMatrix, currentWeekMetric, 3, 'weekMatrix');
-  document.getElementById('weekMatrixWrap').innerHTML = tableHtml;
+  const wrap = document.getElementById('weekMatrixWrap');
+  if(!wrap) return;
+  const def = getCombinationLabelSets().weekWday;
+  if(!Object.keys(G.weekMatrix || {}).length) {
+    wrap.innerHTML = '<div class="combination-empty"><strong>第○週 × 曜日データなし</strong><span>この店舗では、週と曜日の組合せ集計がまだありません。</span></div>';
+    return;
+  }
+  wrap.innerHTML = buildHeatTableCustom(def.rowDefs, def.colDefs, G.weekMatrix, currentWeekMetric, def.minCount, 'weekMatrix');
 }
 
 // ====== 日付末尾×曜日マトリクス ======
 function renderDayWdayMatrix() {
-  if(!Object.keys(G.dayWdayMatrix).length) return;
-  const digits = [0,1,2,3,4,5,6,7,8,9];
-  const wdays = [0,1,2,3,4,5,6];
-  const wdayLabels = ['日','月','火','水','木','金','土'];
-  const rowDefs = [
-    ...digits.map(d=>({key:d, label:`${d}の付く日`})),
-    {key:'zoro', label:'ゾロ目'},
-    {key:'tsuki', label:'月=日'},
-    {key:'end', label:'月末'},
-  ];
-  const colDefs = wdays.map((w,i)=>({key:w, label:wdayLabels[i]}));
-  document.getElementById('dayWdayWrap').innerHTML = buildHeatTableCustom(rowDefs, colDefs, G.dayWdayMatrix, currentDayWdayMetric, 3, 'dayWdayMatrix');
+  const wrap = document.getElementById('dayWdayWrap');
+  if(!wrap) return;
+  const def = getCombinationLabelSets().dayWday;
+  if(!Object.keys(G.dayWdayMatrix || {}).length) {
+    wrap.innerHTML = '<div class="combination-empty"><strong>日付末尾 × 曜日データなし</strong><span>この店舗では、日付末尾と曜日の組合せ集計がまだありません。</span></div>';
+    return;
+  }
+  wrap.innerHTML = buildHeatTableCustom(def.rowDefs, def.colDefs, G.dayWdayMatrix, currentDayWdayMetric, def.minCount, 'dayWdayMatrix');
+}
+
+function renderCombinationTab() {
+  if(currentStore === 'all') {
+    renderCombinationStoreSelectState();
+    return;
+  }
+  if(!hasCombinationData()) {
+    renderCombinationEmptyState();
+    return;
+  }
+  renderCombinationOverview();
+  renderCombinationRanking();
+  renderHeatmap();
+  renderWeekMatrix();
+  renderDayWdayMatrix();
 }
 
 function buildHeatTableCustom(rowDefs, colDefs, dataMap, metric, minCount, mapName) {
@@ -10929,7 +11126,7 @@ const TAB_RENDER_MAP = {
   'tab-tai':      () => { renderTaiFilter(); renderTaiList(); },
   'tab-settings': () => { renderStoreSettings(); },
   'tab-target':   () => { renderTarget(); },
-  'tab-heat':     () => { renderHeatmap(); renderWeekMatrix(); renderDayWdayMatrix(); },
+  'tab-heat':     () => { renderCombinationTab(); },
   'tab-calendar': () => { renderCalendar(); },
   'tab-period':   () => { renderPeriod(); },
   'tab-next':     () => { renderNextAnalysis(); },
@@ -10940,6 +11137,7 @@ const TAB_RENDER_MAP = {
 function renderAll() {
   const activeTab = document.querySelector('.tab-content.active');
   document.body.classList.toggle('is-seat-layout-active', activeTab?.id === 'tab-layout');
+  document.body.classList.toggle('is-combination-active', activeTab?.id === 'tab-heat');
   updateRecommendationSectionVisibility(activeTab?.id || '');
   renderRecommendations();
   // アクティブタブのみ描画（タブ切り替え時に初めて描画）
