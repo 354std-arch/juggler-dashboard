@@ -9532,6 +9532,7 @@ function renderCombinationOverview() {
     return { def, item, label: combinationStrengthLabel(item, def.minCount), conf };
   });
   wrap.innerHTML = `
+    ${renderFreshnessWarningPanel(getAnalysisFreshnessMeta(), '組合せのデータ鮮度')}
     <div class="combination-overview">
       ${rows.map(({def,item,label,conf}) => `
         <button type="button" class="combination-insight is-${escapeHtml(conf.tone)}" onclick="document.getElementById('${escapeHtml(def.mapName === 'heatmap' ? 'heatmapWrap' : def.mapName === 'weekMatrix' ? 'weekMatrixWrap' : 'dayWdayWrap')}')?.scrollIntoView({behavior:'smooth',block:'start'})">
