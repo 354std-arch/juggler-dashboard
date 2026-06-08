@@ -9751,6 +9751,7 @@ function renderDayBar() {
     if(summaryEl) summaryEl.innerHTML = `<div class="combination-empty"><strong>日にち別データなし</strong><span>この店舗では、日付ごとの平均差枚をまだ集計できていません。</span></div>`;
     if(chartEl) chartEl.innerHTML = emptyHtml;
     if(rankEl) rankEl.innerHTML = emptyHtml;
+    renderDayExternalEventsPanel();
     return;
   }
   const SP = getSpecial();
@@ -9768,6 +9769,7 @@ function renderDayBar() {
     if(summaryEl) summaryEl.innerHTML = `<div class="combination-empty"><strong>日にち別データなし</strong><span>この店舗では、日付ごとの平均差枚をまだ集計できていません。</span></div>`;
     if(chartEl) chartEl.innerHTML = emptyHtml;
     if(rankEl) rankEl.innerHTML = emptyHtml;
+    renderDayExternalEventsPanel();
     return;
   }
   const reliableRows = rows.filter(d => d.sample >= 100 || d.reliable === true);
@@ -9802,7 +9804,8 @@ function renderDayBar() {
         <small>${escapeHtml(card.sub)}</small>
       </div>`).join('')}
     </div>
-    ${renderViewerQualityLine(quality)}`;
+    ${renderViewerQualityLine(quality)}
+    ${renderFreshnessWarningPanel(getAnalysisFreshnessMeta(), '日にち別のデータ鮮度')}`;
   }
   const maxAbs = Math.max(...rows.map(d => Math.abs(d.avg)), 1);
   if(chartEl) {
@@ -9839,6 +9842,7 @@ function renderDayBar() {
       <div><div class="day-strength-list-title">弱い日</div>${weakHtml}</div>
     </div>`;
   }
+  renderDayExternalEventsPanel();
 }
 
 // ====== 機種比較 ======
@@ -11218,7 +11222,7 @@ function getExternalEventsFrame(source = {}, defaults = {}) {
   const layers = hasLayerSchema ? src.layers : getDefaultExternalEventLayers();
   const targets = Array.isArray(src.overlayTargets) && src.overlayTargets.length
     ? src.overlayTargets
-    : ['overview', 'trends', 'combination', 'layout', 'models', 'tai'];
+    : ['overview', 'trends', 'days', 'combination', 'layout', 'models', 'tai'];
   return {
     version: Number(src.version) || 1,
     enabled: !!src.enabled,
@@ -11237,6 +11241,7 @@ function formatExternalOverlayTarget(key) {
   const labels = {
     overview: '概況',
     trends: '変遷',
+    days: '日にち',
     layout: 'ホール図',
     models: '機種',
     tai: '台履歴',
@@ -11312,6 +11317,40 @@ function renderExternalEventsPanel() {
       <div class="external-overlay-targets">
         <span>重ね先</span>
         ${targets.map(target => `<b>${escapeHtml(formatExternalOverlayTarget(target))}</b>`).join('')}
+      </div>
+    </div>`;
+    return;
+  }
+  wrap.innerHTML = `<div class="external-events-list">${items.map(item => `
+    <div class="external-event-row">
+      <strong>${escapeHtml(item.title || item.label || '外部情報')}</strong>
+      <span>${escapeHtml([item.date, item.type, item.source].filter(Boolean).join(' / '))}</span>
+    </div>`).join('')}</div>`;
+}
+
+function renderDayExternalEventsPanel() {
+  const wrap = document.getElementById('dayExternalEvents');
+  if(!wrap) return;
+  const events = getExternalEventsFrame(G.externalEvents || G._precomputed?.externalEvents || {});
+  const items = events.items.filter(item => {
+    const scope = String(item.scope || item.target || item.layer || '').toLowerCase();
+    return !scope || scope.includes('day') || scope.includes('date') || scope.includes('event');
+  });
+  if(!items.length) {
+    const layers = events.layers.filter(layer => ['old_event','media','replacement','memo'].includes(String(layer.key || '')));
+    wrap.innerHTML = `<div class="external-events-board is-compact">
+      <div class="external-events-head">
+        <div>
+          <strong>旧イベ・取材は未接続</strong>
+          <span>将来、日にち別の強弱へ旧イベ日・取材・入替メモを重ねるための空枠です。v1では自動取得しません。</span>
+        </div>
+        ${renderViewerQualityBadge({ label: 'v1空状態', tone: 'thin' }, { subtle: true })}
+      </div>
+      <div class="external-layer-grid is-compact">
+        ${layers.map(layer => `<div class="external-layer-card">
+          <span>${escapeHtml(layer.label || layer.key || '外部情報')}</span>
+          <strong>未接続</strong>
+        </div>`).join('')}
       </div>
     </div>`;
     return;
