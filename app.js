@@ -11579,7 +11579,9 @@ function renderAll() {
 function getStoreFreshnessMeta(storeName) {
   const freshness = G.storeFreshness ? G.storeFreshness[storeName] : null;
   const record = (freshness && typeof freshness === 'object') ? freshness : {};
-  const dataDate = normalizeDataDateValue(record.data_date || record.dataDate) || null;
+  const dataDate = normalizeDataDateValue(record.data_date || record.dataDate)
+    || normalizeDataDateValue(G.dataDate || G._precomputed?.data_date)
+    || null;
   const scrapedAt = record.scraped_at || '';
 
   const today = getTodayLocalDate();
@@ -11588,9 +11590,10 @@ function getStoreFreshnessMeta(storeName) {
   const yesterdayStr = toYmdLocal(yesterday);
 
   const title = `データ日: ${dataDate || '不明'}${scrapedAt ? ` / 取得: ${scrapedAt}` : ''}`;
-  if(dataDate === todayStr) return { color: 'green', icon: '🟢', ts: title };
-  if(dataDate === yesterdayStr) return { color: 'yellow', icon: '🟡', ts: title };
-  return { color: 'red', icon: '🔴', ts: title };
+  const scrapedText = scrapedAt ? formatAutomationTimeText(scrapedAt) : '取得時刻不明';
+  if(dataDate === todayStr) return { color: 'green', icon: '🟢', label: '当日', dataDate, scrapedText, ts: title };
+  if(dataDate === yesterdayStr) return { color: 'yellow', icon: '🟡', label: '前日まで', dataDate, scrapedText, ts: title };
+  return { color: 'red', icon: '🔴', label: dataDate ? 'データ古い' : '日付不明', dataDate, scrapedText, ts: title };
 }
 
 function renderStoreFreshnessBadge(storeName) {
@@ -11600,9 +11603,21 @@ function renderStoreFreshnessBadge(storeName) {
 }
 
 function renderStoreBar() {
-  document.getElementById('storeBar').innerHTML=
-    '<span class="store-label">店舗：</span>'+
-    G.stores.map(s=>`<button type="button" class="store-btn ${s===currentStore?'active':''}" data-store="${escapeHtml(s)}"><span>${s}</span>${renderStoreFreshnessBadge(s)}</button>`).join('');
+  const bar = document.getElementById('storeBar');
+  if(!bar) return;
+  const activeStore = currentStore === 'all' ? (G.stores?.[0] || 'all') : currentStore;
+  const meta = activeStore && activeStore !== 'all' ? getStoreFreshnessMeta(activeStore) : null;
+  const freshnessLine = meta
+    ? `<div class="store-current-freshness is-${escapeHtml(meta.color)}">
+        <span>${escapeHtml(activeStore)}</span>
+        <b>${escapeHtml(meta.label)}</b>
+        <small>データ ${escapeHtml(meta.dataDate || '不明')} / 取得 ${escapeHtml(meta.scrapedText)}</small>
+      </div>`
+    : `<div class="store-current-freshness is-red"><span>店舗未選択</span><b>日付不明</b><small>データ読込後に表示</small></div>`;
+  bar.innerHTML = `<div class="store-scroll">
+    <span class="store-label">店舗：</span>
+    ${G.stores.map(s=>`<button type="button" class="store-btn ${s===currentStore?'active':''}" data-store="${escapeHtml(s)}"><span>${escapeHtml(s)}</span>${renderStoreFreshnessBadge(s)}</button>`).join('')}
+  </div>${freshnessLine}`;
 }
 
 function initStoreBarEvents() {
@@ -11628,6 +11643,7 @@ function switchStore(store,btn) {
     } else {
       compute();
     }
+    renderStoreBar();
     renderAll();
   }, 0);
 }
