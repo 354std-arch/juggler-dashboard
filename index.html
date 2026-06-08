@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SLOT 変遷ビューア</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=external-events-ui-1">
+<link rel="stylesheet" href="style.css?v=days-tai-ui-1">
 </head>
 <body>
 
@@ -26,6 +26,7 @@
 <nav id="mainNav">
   <button class="active" data-tab="tab-overview" onclick="showTab('tab-overview',this)">概況</button>
   <button data-tab="tab-trends" onclick="showTab('tab-trends',this)">変遷</button>
+  <button data-tab="tab-days" onclick="showTab('tab-days',this)">日にち</button>
   <button data-tab="tab-heat" onclick="showTab('tab-heat',this)">組合せ</button>
   <button data-tab="tab-layout" onclick="showTab('tab-layout',this)">ホール図</button>
   <button data-tab="tab-model" onclick="showTab('tab-model',this)">機種</button>
@@ -177,11 +178,16 @@
 <!-- ====== 日にち別 ====== -->
 <div id="tab-days" class="tab-content">
   <div class="card">
-    <div class="card-title">📊 日にち別 平均差枚（★=特定日）</div>
+    <div class="card-title">日にち別の強弱</div>
+    <p class="section-note">店ごとに、何日が強く出やすいかを平均差枚・勝率・件数で見ます。★は設定した特定日です。</p>
+    <div id="dayStrengthSummary"><div class="empty-msg">データを読み込んでください</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">日にち別 平均差枚</div>
     <div class="bar-chart" id="dayBarChart"><div class="empty-msg">データを読み込んでください</div></div>
   </div>
   <div class="card">
-    <div class="card-title">🏆 強い日 TOP10</div>
+    <div class="card-title">強い日 / 弱い日</div>
     <div class="tai-list" id="dayRanking"></div>
   </div>
 </div>
@@ -888,6 +894,6 @@
   <button id="withdrawJudgeBannerClose" class="withdraw-judge-banner-close" type="button" aria-label="閉じる">✕</button>
 </div>
 
-<script src="app.js?v=external-events-ui-1"></script>
+<script src="app.js?v=days-tai-ui-1"></script>
 </body>
 </html>

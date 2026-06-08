@@ -9743,23 +9743,102 @@ function buildHeatTableCustom(rowDefs, colDefs, dataMap, metric, minCount, mapNa
 
 // ====== 日にち別 ======
 function renderDayBar() {
-  if(!G.dayStats.length) return;
+  const summaryEl = document.getElementById('dayStrengthSummary');
+  const chartEl = document.getElementById('dayBarChart');
+  const rankEl = document.getElementById('dayRanking');
+  if(!G.dayStats.length) {
+    const emptyHtml = '<div class="empty-msg">日にち別データなし</div>';
+    if(summaryEl) summaryEl.innerHTML = `<div class="combination-empty"><strong>日にち別データなし</strong><span>この店舗では、日付ごとの平均差枚をまだ集計できていません。</span></div>`;
+    if(chartEl) chartEl.innerHTML = emptyHtml;
+    if(rankEl) rankEl.innerHTML = emptyHtml;
+    return;
+  }
   const SP = getSpecial();
-  const maxAbs=Math.max(...G.dayStats.map(d=>Math.abs(d.avg)),1);
-  document.getElementById('dayBarChart').innerHTML=G.dayStats.map(d=>{
-    const pct=Math.abs(d.avg)/maxAbs*100;
-    return`<div class="bar-row">
-      <div class="bar-label">${d.day}${SP.includes(d.day)?'<span style="color:var(--accent3)">★</span>':''}</div>
-      <div class="bar-bg"><div class="bar-fill ${d.avg>=0?'pos':'neg'}" style="width:${pct}%"></div></div>
-      <div class="bar-val" style="color:${d.avg>=0?'var(--plus)':'var(--minus)'}">${d.avg>=0?'+':''}${d.avg}</div>
-    </div>`;}).join('');
-  document.getElementById('dayRanking').innerHTML=[...G.dayStats].sort((a,b)=>b.avg-a.avg).slice(0,10).map((d,i)=>`
-    <div class="tai-row">
-      <div class="tai-num">${i+1}. ${d.day}日</div>
-      <div>${SP.includes(d.day)?'<span class="badge badge-special">⭐特定日</span>':'<span style="font-size:10px;color:var(--muted)">通常日</span>'}
-        <div class="tai-info">プラス率${d.plusRate}% / ${d.total}台分</div></div>
-      <div class="tai-diff" style="color:${d.avg>=0?'var(--plus)':'var(--minus)'}">${d.avg>=0?'+':''}${d.avg}</div>
-    </div>`).join('');
+  const rows = [...G.dayStats]
+    .map(d => ({
+      ...d,
+      avg: Number(d.avg),
+      total: Number(d.total),
+      plusRate: Number(d.plusRate),
+      sample: Number(d.total) || Number(d.count) || 0,
+    }))
+    .filter(d => Number.isInteger(Number(d.day)) && Number.isFinite(d.avg));
+  if(!rows.length) {
+    const emptyHtml = '<div class="empty-msg">日にち別データなし</div>';
+    if(summaryEl) summaryEl.innerHTML = `<div class="combination-empty"><strong>日にち別データなし</strong><span>この店舗では、日付ごとの平均差枚をまだ集計できていません。</span></div>`;
+    if(chartEl) chartEl.innerHTML = emptyHtml;
+    if(rankEl) rankEl.innerHTML = emptyHtml;
+    return;
+  }
+  const reliableRows = rows.filter(d => d.sample >= 100 || d.reliable === true);
+  const avgDay = round1(avg(rows.map(d => d.avg)));
+  const plusDayRate = round1(rows.filter(d => d.avg > 0).length / rows.length * 100);
+  const topDay = rows.reduce((a,b) => b.avg > a.avg ? b : a);
+  const weakDay = rows.reduce((a,b) => b.avg < a.avg ? b : a);
+  const specialRows = rows.filter(d => SP.includes(Number(d.day)));
+  const normalRows = rows.filter(d => !SP.includes(Number(d.day)));
+  const specialAvg = specialRows.length ? round1(avg(specialRows.map(d => d.avg))) : null;
+  const normalAvg = normalRows.length ? round1(avg(normalRows.map(d => d.avg))) : null;
+  const freshness = getTrendFreshnessForStore(currentStore === 'all' ? '' : currentStore, G.trendView);
+  const quality = getViewerDataQuality({
+    count: reliableRows.length,
+    minCount: 8,
+    ymd: freshness.ymd,
+    lagDays: freshness.lagDays,
+    requiresDate: true,
+    okLabel: '集計あり',
+  });
+  const summaryCards = [
+    { label: '平均', value: formatTrendDiff(avgDay), tone: avgDay >= 0 ? 'is-plus' : 'is-minus', sub: `${rows.length}日分 / プラス日 ${plusDayRate}%` },
+    { label: '強い日', value: `${topDay.day}日`, tone: 'is-plus', sub: `${formatTrendDiff(topDay.avg)} / 勝率 ${formatTrendRate(topDay.plusRate)}` },
+    { label: '弱い日', value: `${weakDay.day}日`, tone: 'is-minus', sub: `${formatTrendDiff(weakDay.avg)} / 勝率 ${formatTrendRate(weakDay.plusRate)}` },
+    { label: '特定日差', value: specialAvg !== null && normalAvg !== null ? formatTrendDiff(specialAvg - normalAvg) : '—', tone: specialAvg !== null && normalAvg !== null && specialAvg >= normalAvg ? 'is-plus' : 'is-minus', sub: specialAvg !== null ? `特定 ${formatTrendDiff(specialAvg)} / 通常 ${normalAvg !== null ? formatTrendDiff(normalAvg) : '—'}` : '特定日設定なし' },
+  ];
+  if(summaryEl) {
+    summaryEl.innerHTML = `<div class="day-strength-summary">
+      ${summaryCards.map(card => `<div>
+        <span>${escapeHtml(card.label)}</span>
+        <strong class="${escapeHtml(card.tone)}">${escapeHtml(card.value)}</strong>
+        <small>${escapeHtml(card.sub)}</small>
+      </div>`).join('')}
+    </div>
+    ${renderViewerQualityLine(quality)}`;
+  }
+  const maxAbs = Math.max(...rows.map(d => Math.abs(d.avg)), 1);
+  if(chartEl) {
+    chartEl.innerHTML = rows.map(d => {
+      const pct = Math.abs(d.avg) / maxAbs * 100;
+      const q = getViewerDataQuality({ count: d.sample, minCount: 80, ymd: freshness.ymd, lagDays: freshness.lagDays, requiresDate: true });
+      return `<div class="bar-row day-bar-row ${q.tone !== 'ok' ? `is-${q.tone}` : ''}">
+        <div class="bar-label">${escapeHtml(d.day)}${SP.includes(Number(d.day)) ? '<span style="color:var(--accent3)">★</span>' : ''}</div>
+        <div class="bar-bg"><div class="bar-fill ${d.avg >= 0 ? 'pos' : 'neg'}" style="width:${pct}%"></div></div>
+        <div class="bar-val" style="color:${d.avg >= 0 ? 'var(--plus)' : 'var(--minus)'}">${escapeHtml(formatTrendDiff(d.avg))}<small>${escapeHtml(formatTrendRate(d.plusRate))} / ${escapeHtml(formatTrendNumber(d.sample, '件'))}</small></div>
+      </div>`;
+    }).join('');
+  }
+  const renderDayCard = (d, i, tone) => {
+    const q = getViewerDataQuality({ count: d.sample, minCount: 80, ymd: freshness.ymd, lagDays: freshness.lagDays, requiresDate: true });
+    const label = q.tone !== 'ok' ? q.label : (tone === 'up' ? '強め' : '弱め');
+    return `<div class="day-strength-card ${tone === 'up' ? 'is-up' : 'is-down'}">
+      <div class="day-strength-rank">${escapeHtml(i + 1)}</div>
+      <div>
+        <strong>${escapeHtml(d.day)}日 ${SP.includes(Number(d.day)) ? '<span>★特定日</span>' : '<small>通常日</small>'}</strong>
+        <p>勝率 ${escapeHtml(formatTrendRate(d.plusRate))} / 件数 ${escapeHtml(formatTrendNumber(d.sample))}</p>
+      </div>
+      <div class="day-strength-score">
+        ${renderViewerQualityBadge({ label, tone: q.tone !== 'ok' ? q.tone : tone })}
+        <b class="${d.avg >= 0 ? 'is-plus' : 'is-minus'}">${escapeHtml(formatTrendDiff(d.avg))}</b>
+      </div>
+    </div>`;
+  };
+  if(rankEl) {
+    const strongHtml = [...rows].sort((a,b) => b.avg - a.avg).slice(0, 6).map((d,i) => renderDayCard(d, i, 'up')).join('');
+    const weakHtml = [...rows].sort((a,b) => a.avg - b.avg).slice(0, 4).map((d,i) => renderDayCard(d, i, 'down')).join('');
+    rankEl.innerHTML = `<div class="day-strength-list">
+      <div><div class="day-strength-list-title">強い日</div>${strongHtml}</div>
+      <div><div class="day-strength-list-title">弱い日</div>${weakHtml}</div>
+    </div>`;
+  }
 }
 
 // ====== 機種比較 ======
@@ -10495,6 +10574,100 @@ function filterTai(model,btn) {
   renderTaiList();
 }
 
+function getTaiHistoryTone(t) {
+  const count = Number(t?.count);
+  const avgDiff = Number(t?.avg);
+  if(!Number.isFinite(count) || count < 10) return 'thin';
+  if(!Number.isFinite(avgDiff)) return 'missing';
+  if(avgDiff >= 150) return 'up';
+  if(avgDiff <= -150) return 'down';
+  return 'flat';
+}
+
+function formatTaiHistoryFeatures(t) {
+  const raw = Array.isArray(t?.features) && t.features.length
+    ? t.features
+    : (Array.isArray(t?.hallFeatures) ? t.hallFeatures : []);
+  const labels = raw.map(feature => {
+    if(typeof feature === 'string') return feature;
+    return feature?.label || feature?.key || feature?.type || '';
+  }).filter(Boolean);
+  return labels.length ? labels.slice(0, 3).join(' / ') : '位置特徴なし';
+}
+
+function renderTaiHistoryOverview(rows) {
+  const count = Array.isArray(rows) ? rows.length : 0;
+  if(!count) return '';
+  const avgValues = rows.map(row => Number(row?.avg)).filter(Number.isFinite);
+  const avgDiff = avgValues.length ? round1(avg(avgValues)) : null;
+  const strongCount = rows.filter(row => Number(row?.avg) >= 150 && Number(row?.count) >= 10).length;
+  const thinCount = rows.filter(row => Number(row?.count) < 10).length;
+  return `<div class="tai-history-summary">
+    <div>
+      <span>表示中</span>
+      <strong>${escapeHtml(count)}台</strong>
+    </div>
+    <div>
+      <span>平均</span>
+      <strong class="${avgDiff !== null && avgDiff >= 0 ? 'is-plus' : 'is-minus'}">${escapeHtml(formatTrendDiff(avgDiff))}</strong>
+    </div>
+    <div>
+      <span>強め推移</span>
+      <strong>${escapeHtml(strongCount)}台</strong>
+    </div>
+    <div>
+      <span>件数少</span>
+      <strong>${escapeHtml(thinCount)}台</strong>
+    </div>
+  </div>`;
+}
+
+function renderTaiHistoryCard(t) {
+  const tone = getTaiHistoryTone(t);
+  const avgDiff = Number(t?.avg);
+  const spAvg = Number(t?.spAvg);
+  const nmAvg = Number(t?.nmAvg);
+  const plusRate = Number(t?.plusRate);
+  const avgG = Number(t?.avgG);
+  const store = t?.store || (currentStore === 'all' ? '' : currentStore);
+  const freshness = getTrendFreshnessForStore(store, G.trendView);
+  const quality = getViewerDataQuality({
+    count: t?.count,
+    minCount: 10,
+    ymd: freshness.ymd,
+    lagDays: freshness.lagDays,
+    requiresDate: true,
+  });
+  const isSmart = t?.modelCategory === 'smart_slot' || isSmartSlotModel(t?.model || '');
+  const supportsSetting = !isSmart && t?.supportsSettingAnalysis !== false && isSettingAnalysisModel(t?.model || '');
+  const spBayes = toFiniteTrendNumber(t?.bayesProbSp);
+  const allBayes = toFiniteTrendNumber(t?.bayesProbAll);
+  const bayesProb = supportsSetting ? (spBayes !== null ? spBayes : allBayes) : null;
+  const rbText = supportsSetting && t?.rbRate ? `RB 1/${Math.round(Number(t.rbRate))}` : '';
+  const synText = supportsSetting && t?.synRate ? `合算 1/${Math.round(Number(t.synRate))}` : '';
+  const treatmentText = isSmart ? 'スマスロ: 差枚/勝率/G数で扱いを見る' : (supportsSetting ? [rbText, synText].filter(Boolean).join(' / ') : '差枚/勝率/G数で扱いを見る');
+  const label = quality.tone !== 'ok' ? quality.label : (tone === 'up' ? '強め推移' : tone === 'down' ? '落ち気味' : '要観察');
+  return `<div class="tai-history-card ${getTrendToneClass(tone)}">
+    <div class="tai-history-head">
+      <div>
+        <strong>${escapeHtml(t?.tai || t?.taiNum || '-')}番</strong>
+        <span>${escapeHtml(t?.model || '機種不明')}</span>
+      </div>
+      ${renderViewerQualityBadge({ label, tone: quality.tone !== 'ok' ? quality.tone : tone })}
+    </div>
+    <div class="tai-history-metrics">
+      <div><span>全体平均</span><b class="${avgDiff >= 0 ? 'is-plus' : 'is-minus'}">${escapeHtml(formatTrendDiff(avgDiff))}</b><small>${escapeHtml(formatTrendNumber(t?.count, '件'))}</small></div>
+      <div><span>特定日</span><b class="${spAvg >= 0 ? 'is-plus' : 'is-minus'}">${escapeHtml(Number.isFinite(spAvg) ? formatTrendDiff(spAvg) : '—')}</b><small>通常 ${escapeHtml(Number.isFinite(nmAvg) ? formatTrendDiff(nmAvg) : '—')}</small></div>
+      <div><span>勝率</span><b>${escapeHtml(formatTrendRate(plusRate))}</b><small>平均G ${escapeHtml(formatTrendNumber(avgG))}</small></div>
+      <div><span>特徴</span><b>${escapeHtml(formatTaiHistoryFeatures(t))}</b><small>${escapeHtml(treatmentText || '扱い確認')}</small></div>
+    </div>
+    <div class="tai-history-footer">
+      ${renderViewerQualityLine(quality)}
+      ${bayesProb !== null ? `<span>P(設定4+) ${escapeHtml(String(round1(bayesProb)))}%</span>` : ''}
+    </div>
+  </div>`;
+}
+
 function renderTaiList() {
   // 集計済みモード：G.taiDetailを直接使う
   if (G._precomputed) {
@@ -10502,30 +10675,8 @@ function renderTaiList() {
     let taiData = G.taiDetail.filter(t => currentStore === 'all' || t.store === currentStore);
     if (currentTaiFilter !== 'all') taiData = taiData.filter(t => t.model === currentTaiFilter);
     if (!taiData.length) { document.getElementById('taiList').innerHTML='<div class="empty-msg">該当データなし</div>'; return; }
-
-    const SP = getSpecial();
-    const html = taiData.map(t => {
-      const isPlus = t.avg >= 0;
-      const ref = t.spAvg !== null ? t.spAvg : t.avg;
-      const supportsSetting = t.supportsSettingAnalysis !== false && isSettingAnalysisModel(t.model);
-      const bayesProb = supportsSetting ? (t.bayesProbSp !== null ? t.bayesProbSp : t.bayesProbAll) : null;
-      return `
-      <div class="tai-row" style="border-color:${isPlus?'rgba(57,255,20,.2)':'rgba(255,77,109,.1)'}">
-        <div>
-          <div class="tai-num">${t.tai}</div>
-          <div class="tai-info">${t.model.slice(0,6)} / ${t.count}件</div>
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--muted)">特定日平均</div>
-          <div style="font-size:12px;font-weight:700;color:${t.spAvg!==null&&t.spAvg>=0?'var(--plus)':'var(--minus)'}">${t.spAvg!==null?(t.spAvg>=0?'+':'')+t.spAvg+'枚':'—'}</div>
-          <div style="font-size:10px;color:var(--muted)">全体平均 ${t.avg>=0?'+':''}${t.avg}枚</div>
-          ${bayesProb!==null?`<div style="font-size:10px;color:var(--accent3)">P(設定4+) ${bayesProb}%</div>`:`<div style="font-size:10px;color:var(--muted)">差枚/G数で評価</div>`}
-          ${t.prevRow?`<div style="font-size:10px;color:var(--muted)">前日:${t.prevRow.diff>=0?'+':''}${t.prevRow.diff}枚 BB${t.prevRow.bb} RB${t.prevRow.rb}</div>`:''}
-        </div>
-        <div class="tai-diff" style="color:${isPlus?'var(--plus)':'var(--minus)'}">${t.avg>=0?'+':''}${t.avg}</div>
-      </div>`;
-    }).join('');
-    document.getElementById('taiList').innerHTML = html;
+    taiData = taiData.slice().sort((a, b) => (Number(a.taiNum || a.tai) || 0) - (Number(b.taiNum || b.tai) || 0));
+    document.getElementById('taiList').innerHTML = renderTaiHistoryOverview(taiData) + taiData.map(renderTaiHistoryCard).join('');
     return;
   }
 
@@ -10572,35 +10723,7 @@ function renderTaiList() {
     };
   }).sort((a,b)=>a.taiNum-b.taiNum);
 
-  const col = v => v>=0 ? 'var(--plus)' : 'var(--minus)';
-  document.getElementById('taiList').innerHTML=data.map(t=>{
-    const supportsSetting = isSettingAnalysisModel(t.model);
-    const rbScr  = supportsSetting ? scoreTaiRbRate(t.model, t.rbRate, t.totalRB) : { pts:0, setLevel:null, valid:false };
-    const rbColor = rbScr.pts >= 3 ? 'var(--plus)' : rbScr.pts >= 2 ? 'var(--accent)' :
-                    rbScr.pts <= 0 ? 'var(--muted)' : 'var(--muted)';
-    const rbLabel = t.rbRate ? `1/${t.rbRate}` : '—';
-    const synLabel = t.synRate ? `1/${t.synRate}` : '—';
-    return `
-    <div class="tai-row">
-      <div>
-        <div class="tai-num">${t.tai}番</div>
-        <div class="tai-info">${t.count}日分</div>
-      </div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:3px">${t.model}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px">
-          ${supportsSetting ? `<span>RB <span style="font-weight:700;color:${rbColor}">${rbLabel}</span>${rbScr.pts>0?' <span style="font-size:9px;color:var(--plus)">▲</span>':rbScr.pts<0?' <span style="font-size:9px;color:var(--minus)">▼</span>':''}</span>
-          <span style="color:var(--muted)">合算 <span style="color:var(--text)">${synLabel}</span></span>` : '<span style="color:var(--muted)">スマスロ: 差枚/G数評価</span>'}
-          <span style="color:var(--muted)">${t.avgG.toLocaleString()}G</span>
-        </div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">
-          ${t.spAvg!==null?`特定:<span style="color:${col(t.spAvg)}">${t.spAvg>=0?'+':''}${t.spAvg}</span> `:''}
-          ${t.nmAvg!==null?`通常:<span style="color:${col(t.nmAvg)}">${t.nmAvg>=0?'+':''}${t.nmAvg}</span>`:''}
-        </div>
-      </div>
-      <div class="tai-diff" style="color:${col(t.avg)}">${t.avg>=0?'+':''}${t.avg}</div>
-    </div>`;
-  }).join('');
+  document.getElementById('taiList').innerHTML = renderTaiHistoryOverview(data) + data.map(renderTaiHistoryCard).join('');
 }
 
 // ====== 期間分析 ======
@@ -11220,6 +11343,7 @@ function renderViewerFlowActions(targetId, { compact = false } = {}) {
   const activeTab = document.querySelector('.tab-content.active')?.id || '';
   const actions = [
     { tab: 'tab-trends', label: '変遷', meta: '店/機種' },
+    { tab: 'tab-days', label: '日にち', meta: '日別' },
     { tab: 'tab-heat', label: '組合せ', meta: '日付/末尾' },
     { tab: 'tab-layout', label: 'ホール図', meta: '配置' },
     { tab: 'tab-tai', label: '台履歴', meta: '台番' },
