@@ -2311,7 +2311,7 @@ function detectAutoSpecial(rows) {
 
 // ====== タブ ======
 const DETAIL_TABS = new Set(['tab-data','tab-settings','tab-setsuteii','tab-next']);
-const VIEWER_MAIN_TABS = new Set(['tab-overview','tab-trends','tab-heat','tab-layout']);
+const VIEWER_MAIN_TABS = new Set(['tab-overview','tab-trends','tab-days','tab-heat','tab-layout','tab-model','tab-tai']);
 
 function updateRecommendationSectionVisibility(activeTabId) {
   const el = document.getElementById('recommendationSection');
@@ -11344,6 +11344,7 @@ function renderViewerFlowActions(targetId, { compact = false } = {}) {
   const actions = [
     { tab: 'tab-trends', label: '変遷', meta: '店/機種' },
     { tab: 'tab-days', label: '日にち', meta: '日別' },
+    { tab: 'tab-model', label: '機種', meta: '扱い' },
     { tab: 'tab-heat', label: '組合せ', meta: '日付/末尾' },
     { tab: 'tab-layout', label: 'ホール図', meta: '配置' },
     { tab: 'tab-tai', label: '台履歴', meta: '台番' },
@@ -11354,7 +11355,7 @@ function renderViewerFlowActions(targetId, { compact = false } = {}) {
         <strong>次に見る</strong>
         <span>選択中: ${escapeHtml(storeLabel)}</span>
       </div>
-      <small>店 → 機種 → 組合せ → 配置</small>
+      <small>店 → 日にち → 機種 → 組合せ → 配置</small>
     </div>
     <div class="viewer-flow-actions">
       ${actions.map(action => `
