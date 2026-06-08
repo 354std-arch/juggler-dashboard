@@ -10891,7 +10891,7 @@ function getViewerDataQuality({
   okLabel = '通常',
 } = {}) {
   const n = Number(count);
-  const hasCount = Number.isFinite(n);
+  const hasCount = count !== null && count !== undefined && count !== '' && Number.isFinite(n);
   const roundedCount = hasCount ? Math.max(0, Math.round(n)) : null;
   const normalizedYmd = normalizeDataDateValue(ymd);
   const lag = Number(lagDays);
