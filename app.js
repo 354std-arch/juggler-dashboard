@@ -18,6 +18,10 @@ let targetDayMode = 'today';
 let SPECIAL_BY_STORE = {};
 const DEFAULT_SPECIAL = [1,6,7,11,16,17,22,26,27];
 const RECOMMENDATION_EXPANDED_STORAGE_KEY = 'juggler_recommendation_expanded';
+const VIEWER_DEPTH_STORAGE_KEY = 'juggler_viewer_depth_mode';
+const FAVORITE_STORES_STORAGE_KEY = 'juggler_favorite_stores';
+const STORE_MEMOS_STORAGE_KEY = 'juggler_store_memos';
+let viewerDepthMode = loadViewerDepthMode();
 const SEAT_LAYOUT_STORAGE_PREFIX = 'juggler_seat_layout_';
 const SEAT_LAYOUT_CONFIG_PREFIX = 'juggler_seat_layout_config_';
 const SEAT_LAYOUT_UI_STORAGE_KEY = 'juggler_seat_layout_ui';
@@ -9532,6 +9536,7 @@ function renderCombinationOverview() {
     return { def, item, label: combinationStrengthLabel(item, def.minCount), conf };
   });
   wrap.innerHTML = `
+    ${renderViewerDepthSwitch()}
     ${renderFreshnessWarningPanel(getAnalysisFreshnessMeta(), '組合せのデータ鮮度')}
     <div class="combination-overview">
       ${rows.map(({def,item,label,conf}) => `
@@ -9699,6 +9704,18 @@ function renderCombinationTab() {
   }
   renderCombinationOverview();
   renderCombinationRanking();
+  if(viewerDepthMode === 'quick') {
+    const html = `<div class="combination-detail-gate">
+      <strong>ヒートマップは詳細モードで表示</strong>
+      <span>まず上の「この店で見える規則性」と「強めの組合せ」を見て、必要な時だけ詳細に切り替えてください。</span>
+      <button type="button" onclick="setViewerDepthMode('detail')">詳細で見る</button>
+    </div>`;
+    ['heatmapWrap','weekMatrixWrap','dayWdayWrap'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.innerHTML = html;
+    });
+    return;
+  }
   renderHeatmap();
   renderWeekMatrix();
   renderDayWdayMatrix();
@@ -9798,7 +9815,7 @@ function renderDayBar() {
     { label: '特定日差', value: specialAvg !== null && normalAvg !== null ? formatTrendDiff(specialAvg - normalAvg) : '—', tone: specialAvg !== null && normalAvg !== null && specialAvg >= normalAvg ? 'is-plus' : 'is-minus', sub: specialAvg !== null ? `特定 ${formatTrendDiff(specialAvg)} / 通常 ${normalAvg !== null ? formatTrendDiff(normalAvg) : '—'}` : '特定日設定なし' },
   ];
   if(summaryEl) {
-    summaryEl.innerHTML = `<div class="day-strength-summary">
+    summaryEl.innerHTML = `${renderViewerDepthSwitch()}<div class="day-strength-summary">
       ${summaryCards.map(card => `<div>
         <span>${escapeHtml(card.label)}</span>
         <strong class="${escapeHtml(card.tone)}">${escapeHtml(card.value)}</strong>
@@ -9810,7 +9827,36 @@ function renderDayBar() {
   }
   const maxAbs = Math.max(...rows.map(d => Math.abs(d.avg)), 1);
   if(chartEl) {
-    chartEl.innerHTML = rows.map(d => {
+    if(viewerDepthMode === 'quick') {
+      const suffixRows = Array.from({length:10}, (_, digit) => {
+        const matched = rows.filter(d => Number(d.day) % 10 === digit);
+        const sample = matched.reduce((sum, d) => sum + (Number(d.sample) || 0), 0);
+        const weighted = matched.reduce((sum, d) => sum + (Number(d.avg) || 0) * (Number(d.sample) || 0), 0);
+        const plus = matched.length ? round1(avg(matched.map(d => d.plusRate).filter(Number.isFinite))) : null;
+        return { digit, count: matched.length, sample, avg: sample ? round1(weighted / sample) : null, plusRate: plus };
+      }).filter(d => d.avg !== null).sort((a,b) => b.avg - a.avg);
+      const topDays = [...rows].sort((a,b) => b.avg - a.avg).slice(0, 5);
+      chartEl.innerHTML = `<div class="day-pattern-board">
+        <div class="day-pattern-head">
+          <strong>ざっくり見る</strong>
+          <span>日付末尾と上位日だけ先に確認</span>
+        </div>
+        <div class="day-pattern-grid">
+          ${suffixRows.slice(0, 4).map(d => `<div class="day-pattern-tile ${d.avg >= 0 ? 'is-up' : 'is-down'}">
+            <span>${escapeHtml(d.digit)}の付く日</span>
+            <strong>${escapeHtml(formatTrendDiff(d.avg))}</strong>
+            <small>${escapeHtml(formatTrendNumber(d.sample, '件'))} / 勝率${escapeHtml(formatTrendRate(d.plusRate))}</small>
+          </div>`).join('')}
+        </div>
+        <div class="day-pattern-list">
+          ${topDays.map((d, i) => `<div>
+            <b>${escapeHtml(i + 1)}. ${escapeHtml(d.day)}日</b>
+            <span>${escapeHtml(formatTrendDiff(d.avg))} / ${escapeHtml(formatTrendNumber(d.sample, '件'))}</span>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    } else {
+      chartEl.innerHTML = rows.map(d => {
       const pct = Math.abs(d.avg) / maxAbs * 100;
       const q = getViewerDataQuality({ count: d.sample, minCount: 80, ymd: freshness.ymd, lagDays: freshness.lagDays, requiresDate: true });
       return `<div class="bar-row day-bar-row ${q.tone !== 'ok' ? `is-${q.tone}` : ''}">
@@ -9818,7 +9864,8 @@ function renderDayBar() {
         <div class="bar-bg"><div class="bar-fill ${d.avg >= 0 ? 'pos' : 'neg'}" style="width:${pct}%"></div></div>
         <div class="bar-val" style="color:${d.avg >= 0 ? 'var(--plus)' : 'var(--minus)'}">${escapeHtml(formatTrendDiff(d.avg))}<small>${escapeHtml(formatTrendRate(d.plusRate))} / ${escapeHtml(formatTrendNumber(d.sample, '件'))}</small></div>
       </div>`;
-    }).join('');
+      }).join('');
+    }
   }
   const renderDayCard = (d, i, tone) => {
     const q = getViewerDataQuality({ count: d.sample, minCount: 80, ymd: freshness.ymd, lagDays: freshness.lagDays, requiresDate: true });
@@ -10846,6 +10893,81 @@ function saveDataHTML() {
   URL.revokeObjectURL(a.href);
 }
 
+function loadViewerDepthMode() {
+  try {
+    const value = localStorage.getItem(VIEWER_DEPTH_STORAGE_KEY);
+    return value === 'detail' ? 'detail' : 'quick';
+  } catch(_) {
+    return 'quick';
+  }
+}
+
+function setViewerDepthMode(mode) {
+  viewerDepthMode = mode === 'detail' ? 'detail' : 'quick';
+  try { localStorage.setItem(VIEWER_DEPTH_STORAGE_KEY, viewerDepthMode); } catch(_) {}
+  renderActiveTabContent();
+}
+
+function loadFavoriteStores() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(FAVORITE_STORES_STORAGE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+  } catch(_) {
+    return [];
+  }
+}
+
+function saveFavoriteStores(stores) {
+  try {
+    localStorage.setItem(FAVORITE_STORES_STORAGE_KEY, JSON.stringify(Array.from(new Set(stores || [])).filter(Boolean)));
+  } catch(_) {}
+}
+
+function isFavoriteStore(store) {
+  return loadFavoriteStores().includes(store);
+}
+
+function toggleFavoriteStore(store = currentStore) {
+  const target = String(store || '').trim();
+  if(!target || target === 'all') return;
+  const stores = loadFavoriteStores();
+  const next = stores.includes(target) ? stores.filter(s => s !== target) : [...stores, target];
+  saveFavoriteStores(next);
+  renderActiveTabContent();
+}
+
+function loadStoreMemos() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORE_MEMOS_STORAGE_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch(_) {
+    return {};
+  }
+}
+
+function saveStoreMemo(store = currentStore) {
+  const target = String(store || '').trim();
+  if(!target || target === 'all') return;
+  const textarea = document.getElementById('storeMemoInput');
+  const memos = loadStoreMemos();
+  const value = String(textarea?.value || '').trim();
+  if(value) memos[target] = value;
+  else delete memos[target];
+  try { localStorage.setItem(STORE_MEMOS_STORAGE_KEY, JSON.stringify(memos)); } catch(_) {}
+  renderActiveTabContent();
+}
+
+function renderViewerDepthSwitch() {
+  return `<div class="viewer-depth-switch" role="group" aria-label="表示量">
+    <button type="button" class="${viewerDepthMode === 'quick' ? 'active' : ''}" onclick="setViewerDepthMode('quick')">
+      <span>ざっくり</span><small>要点だけ</small>
+    </button>
+    <button type="button" class="${viewerDepthMode === 'detail' ? 'active' : ''}" onclick="setViewerDepthMode('detail')">
+      <span>詳細</span><small>表まで見る</small>
+    </button>
+  </div>`;
+}
+
 // ====== 過去データ変遷ビューア ======
 function toFiniteTrendNumber(value) {
   const n = Number(value);
@@ -11214,6 +11336,11 @@ function getDefaultExternalEventLayers() {
       label: 'SNS/メモ',
       description: 'SNSや手入力メモを、確認材料としてあとから重ねる枠です。',
     },
+    {
+      key: 'manual_capture',
+      label: '手動取り込み',
+      description: 'Cloudflare等で自動取得できない時に、スクショ/CSV/手入力で補完する枠です。',
+    },
   ];
 }
 
@@ -11256,7 +11383,7 @@ function renderOverviewFreshness() {
   if(!wrap) return;
   if(!G._precomputed) {
     wrap.innerHTML = `<div class="card viewer-empty-card">
-      <div class="card-title">データ未読込</div>
+      <div class="card-title">ホール概要</div>
       <p class="section-note">まず生成済み data.json を読み込むと、概況・変遷・ホール図を確認できます。</p>
       <button class="btn" onclick="loadFromJSON()">データを読み込む</button>
     </div>`;
@@ -11273,7 +11400,7 @@ function renderOverviewFreshness() {
   const blockText = Number.isFinite(freshness.lagDays) && freshness.lagDays >= 2
     ? '取得停止/接続ブロックの可能性あり。自動取得は失敗時に再試行を抑制します。'
     : '取得データは概況表示に使えます。';
-  wrap.innerHTML = `<div class="viewer-status-grid">
+  wrap.innerHTML = `${renderViewerDepthSwitch()}<div class="viewer-status-grid">
     <div class="viewer-status-card ${freshness.alertText ? 'is-stale' : 'is-ok'}">
       <span>最終データ</span>
       <strong>${escapeHtml(sourceText)}</strong>
@@ -11290,6 +11417,92 @@ function renderOverviewFreshness() {
       <small>${escapeHtml(quality.detail || blockText)}</small>
     </div>
   </div>${renderAutomationStatusPanel()}${renderFreshnessWarningPanel(freshness, 'データ鮮度')}`;
+}
+
+function renderOverviewQuickRead() {
+  const wrap = document.getElementById('overviewQuickRead');
+  if(!wrap) return;
+  if(!G._precomputed) {
+    wrap.innerHTML = '';
+    return;
+  }
+  const store = currentStore && currentStore !== 'all' ? currentStore : (G.stores || []).find(s => s !== 'all') || '';
+  const view = store ? getStoreTrendView(store) : G.trendView;
+  const status = store ? getStoreOverviewStatus(store, view) : null;
+  const topModel = (view?.modelTrends || []).find(m => m.tone === 'up') || (view?.modelTrends || [])[0] || null;
+  const freshness = getAnalysisFreshnessMeta();
+  const readRows = [
+    {
+      label: 'データ鮮度',
+      value: freshness.sourceYmd || G.dataDate || '不明',
+      detail: freshness.alertText || '表示には使えます',
+      tone: freshness.alertText ? 'stale' : 'ok',
+    },
+    {
+      label: '店の最近',
+      value: status?.label || '店舗を選択',
+      detail: store ? `${store} / 直近30日 ${formatTrendDiff(view?.storeTrend?.recent30?.avgDiff)}` : '店舗ボタンから確認',
+      tone: status?.tone || 'flat',
+    },
+    {
+      label: '見る切り口',
+      value: topModel ? '機種変化あり' : '日にち/組合せ',
+      detail: topModel ? `${topModel.model} ${topModel.deltaMonth !== null && topModel.deltaMonth !== undefined ? formatTrendDiff(topModel.deltaMonth) : topModel.label}` : '日にち、末尾、台履歴へ掘る',
+      tone: topModel?.tone || 'thin',
+    },
+  ];
+  wrap.innerHTML = `<div class="overview-read-board">
+    <div class="overview-read-head">
+      <div>
+        <span>ホール概要</span>
+        <strong>まずここだけ読む</strong>
+      </div>
+      ${store ? `<button type="button" class="overview-favorite-btn ${isFavoriteStore(store) ? 'active' : ''}" onclick="toggleFavoriteStore('${escapeHtml(store)}')">${isFavoriteStore(store) ? 'お気に入り中' : 'お気に入り'}</button>` : ''}
+    </div>
+    <div class="overview-read-rows">
+      ${readRows.map(row => `<div class="overview-read-row is-${escapeHtml(normalizeViewerQualityTone(row.tone))}">
+        <span>${escapeHtml(row.label)}</span>
+        <strong>${escapeHtml(row.value)}</strong>
+        <small>${escapeHtml(row.detail)}</small>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderOverviewPersonalPanel() {
+  const wrap = document.getElementById('overviewPersonalPanel');
+  if(!wrap) return;
+  if(!G._precomputed) {
+    wrap.innerHTML = '';
+    return;
+  }
+  const favorites = loadFavoriteStores();
+  const memos = loadStoreMemos();
+  const store = currentStore && currentStore !== 'all' ? currentStore : '';
+  if(!store) {
+    wrap.innerHTML = `<div class="external-events-board is-compact">
+      <div class="external-events-head">
+        <div>
+          <strong>お気に入り店舗</strong>
+          <span>${favorites.length ? favorites.join(' / ') : '店舗を選択すると、お気に入りとメモを保存できます。'}</span>
+        </div>
+        ${renderViewerQualityBadge({ label: favorites.length ? `${favorites.length}店舗` : '未設定', tone: favorites.length ? 'ok' : 'thin' }, { subtle: true })}
+      </div>
+    </div>`;
+    return;
+  }
+  const memo = memos[store] || '';
+  wrap.innerHTML = `<div class="overview-personal-panel">
+    <div class="overview-personal-head">
+      <div>
+        <strong>自分用メモ</strong>
+        <span>${escapeHtml(store)} の旧イベ・気になる癖・現地メモを残せます。</span>
+      </div>
+      <button type="button" class="overview-favorite-btn ${isFavoriteStore(store) ? 'active' : ''}" onclick="toggleFavoriteStore('${escapeHtml(store)}')">${isFavoriteStore(store) ? 'お気に入り中' : 'お気に入り'}</button>
+    </div>
+    <textarea id="storeMemoInput" class="overview-memo-input" placeholder="例: 1の付く日、末尾7、ジャグラー島の扱いなど">${escapeHtml(memo)}</textarea>
+    <button type="button" class="btn-secondary overview-memo-save" onclick="saveStoreMemo('${escapeHtml(store)}')">メモ保存</button>
+  </div>`;
 }
 
 function renderExternalEventsPanel() {
@@ -11457,9 +11670,11 @@ function renderOverviewStoreList() {
 }
 
 function renderOverview() {
+  renderOverviewQuickRead();
   renderOverviewFreshness();
   renderViewerFlowActions('overviewFlowActions');
   renderOverviewStoreList();
+  renderOverviewPersonalPanel();
   renderExternalEventsPanel();
 }
 
@@ -11596,6 +11811,10 @@ const TAB_RENDER_MAP = {
   'tab-setsuteii':() => { renderCurrentTargetContextComparison(); },
   'tab-layout':   () => { initSeatLayoutTab(); },
 };
+
+function renderActiveTabContent() {
+  renderAll();
+}
 
 function renderAll() {
   const activeTab = document.querySelector('.tab-content.active');
