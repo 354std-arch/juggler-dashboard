@@ -10,14 +10,20 @@ STATUS_JSON_FILE="$REPO_DIR/automation_status.json"
 ACCESS_BLOCK_FILE="$REPO_DIR/.ana_slo_access_block.json"
 MODE="${JUGGLER_DAILY_MODE:-run}"
 SMART_SLOT_BACKFILL_DAYS="${SMART_SLOT_BACKFILL_DAYS:-30}"
-SMART_SLOT_BACKFILL_TASKS="${SMART_SLOT_BACKFILL_TASKS:-4}"
+SMART_SLOT_BACKFILL_TASKS="${SMART_SLOT_BACKFILL_TASKS:-0}"
 SMART_SLOT_BACKFILL_INTERVAL_SEC="${SMART_SLOT_BACKFILL_INTERVAL_SEC:-0.5}"
 DATA_SIZE_WARN_MB="${DATA_SIZE_WARN_MB:-50}"
 ANA_SLO_COOLDOWN_HOURS="${ANA_SLO_COOLDOWN_HOURS:-24}"
+GIT_PULL_TIMEOUT_SEC="${GIT_PULL_TIMEOUT_SEC:-120}"
+SCRAPE_TIMEOUT_SEC="${SCRAPE_TIMEOUT_SEC:-900}"
+BACKFILL_TIMEOUT_SEC="${BACKFILL_TIMEOUT_SEC:-1200}"
 case "$SMART_SLOT_BACKFILL_DAYS" in ''|*[!0-9]*) SMART_SLOT_BACKFILL_DAYS=30 ;; esac
-case "$SMART_SLOT_BACKFILL_TASKS" in ''|*[!0-9]*) SMART_SLOT_BACKFILL_TASKS=4 ;; esac
+case "$SMART_SLOT_BACKFILL_TASKS" in ''|*[!0-9]*) SMART_SLOT_BACKFILL_TASKS=0 ;; esac
 case "$DATA_SIZE_WARN_MB" in ''|*[!0-9]*) DATA_SIZE_WARN_MB=50 ;; esac
 case "$ANA_SLO_COOLDOWN_HOURS" in ''|*[!0-9]*) ANA_SLO_COOLDOWN_HOURS=24 ;; esac
+case "$GIT_PULL_TIMEOUT_SEC" in ''|*[!0-9]*) GIT_PULL_TIMEOUT_SEC=120 ;; esac
+case "$SCRAPE_TIMEOUT_SEC" in ''|*[!0-9]*) SCRAPE_TIMEOUT_SEC=900 ;; esac
+case "$BACKFILL_TIMEOUT_SEC" in ''|*[!0-9]*) BACKFILL_TIMEOUT_SEC=1200 ;; esac
 
 cd "$REPO_DIR"
 
@@ -27,6 +33,24 @@ now_jst() {
 
 log() {
   echo "[$(now_jst)] $*" >> "$LOG_FILE"
+}
+
+run_with_timeout() {
+  local timeout_sec="$1"
+  shift
+  python3 - "$timeout_sec" "$@" <<'PY'
+import subprocess
+import sys
+
+timeout_sec = int(sys.argv[1])
+cmd = sys.argv[2:]
+try:
+    result = subprocess.run(cmd, timeout=timeout_sec)
+except subprocess.TimeoutExpired:
+    print(f"command timed out after {timeout_sec}s: {' '.join(cmd)}", file=sys.stderr)
+    sys.exit(124)
+sys.exit(result.returncode)
+PY
 }
 
 write_status() {
@@ -159,8 +183,8 @@ git_pull_latest() {
   local label="$1"
   local attempt
   for attempt in 1 2 3; do
-    log "$label git pull --rebase --autostash attempt $attempt/3"
-    if git pull --rebase --autostash >> "$LOG_FILE" 2>&1; then
+    log "$label git pull --rebase --autostash attempt $attempt/3 timeout=${GIT_PULL_TIMEOUT_SEC}s"
+    if run_with_timeout "$GIT_PULL_TIMEOUT_SEC" git pull --rebase --autostash >> "$LOG_FILE" 2>&1; then
       log "$label git pull succeeded"
       return 0
     fi
@@ -234,8 +258,8 @@ fi
 
 # Run pipeline
 SCRAPE_INPUTS_BEFORE="$(fingerprint_scrape_inputs)"
-log "scrape_juggler.py start"
-python3 scrape_juggler.py --stop-on-consecutive-failures 1 >> "$LOG_FILE" 2>&1
+log "scrape_juggler.py start timeout=${SCRAPE_TIMEOUT_SEC}s"
+run_with_timeout "$SCRAPE_TIMEOUT_SEC" python3 scrape_juggler.py --stop-on-consecutive-failures 1 >> "$LOG_FILE" 2>&1
 log "scrape_juggler.py done"
 if is_access_cooldown_active; then
   log "ana-slo access block detected during scrape; skipping backfill/compute/push"
@@ -248,8 +272,8 @@ fi
 if [ "$SMART_SLOT_BACKFILL_TASKS" -gt 0 ]; then
   BACKFILL_START="$(date -v-"$SMART_SLOT_BACKFILL_DAYS"d '+%Y-%m-%d')"
   BACKFILL_END="$(date -v-1d '+%Y-%m-%d')"
-  log "smart slot backfill: $BACKFILL_START to $BACKFILL_END / max $SMART_SLOT_BACKFILL_TASKS tasks"
-  python3 scrape_juggler.py \
+  log "smart slot backfill: $BACKFILL_START to $BACKFILL_END / max $SMART_SLOT_BACKFILL_TASKS tasks timeout=${BACKFILL_TIMEOUT_SEC}s"
+  run_with_timeout "$BACKFILL_TIMEOUT_SEC" python3 scrape_juggler.py \
     --start-date "$BACKFILL_START" \
     --end-date "$BACKFILL_END" \
     --backfill-smart-slots \
