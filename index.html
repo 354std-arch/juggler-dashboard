@@ -136,7 +136,7 @@
   </div>
 </div>
 
-<!-- ====== 今日の狙い台 ====== -->
+<!-- ====== 来店判断メモ ====== -->
 <div id="tab-target" class="tab-content">
 
   <!-- サマリーバナー -->
@@ -144,7 +144,7 @@
 
   <!-- 第1段階：日付選択 -->
   <div class="card">
-    <div class="card-title">📅 第1段階：今日は狙える日か</div>
+    <div class="card-title">📅 第1段階：今日は見る日か</div>
     <div class="target-day-switch" id="targetDaySwitch">
       <button type="button" class="target-day-btn active" id="targetTodayBtn" onclick="setTargetDayMode('today')">📅 今日</button>
       <button type="button" class="target-day-btn" id="targetTomorrowBtn" onclick="setTargetDayMode('tomorrow')">📅 明日</button>
@@ -159,13 +159,13 @@
 
   <!-- 第2段階：配分傾向 -->
   <div class="card" id="layer2Card" style="display:none">
-    <div class="card-title">🎰 第2段階：どの機種・どの狙い方か</div>
+    <div class="card-title">🎰 第2段階：どの機種の扱いを見るか</div>
     <div id="layer2Result"></div>
   </div>
 
-  <!-- 第3段階：候補台 -->
+  <!-- 第3段階：確認台 -->
   <div class="card" id="layer3Card" style="display:none">
-    <div class="card-title">🎯 第3段階：候補台と現地確認ポイント</div>
+    <div class="card-title">🎯 第3段階：確認台と現地確認ポイント</div>
     <div id="layer3Filter" style="margin-bottom:10px"></div>
     <div id="layer3Result"></div>
   </div>
@@ -313,21 +313,21 @@
 </div>
 <div id="heatPopupOverlay" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.5)" onclick="document.getElementById('heatPopup').style.display='none';this.style.display='none'"></div>
 
-<!-- ====== カレンダー予報 ====== -->
+<!-- ====== タイミング確認 ====== -->
 <div id="tab-calendar" class="tab-content">
   <div class="card">
-    <div class="card-title">🧭 来店時点候補の要約</div>
-    <p class="section-note">morning_data.json から朝イチ判断を表示。店判定・機種・末尾・候補台を上から確認できます。</p>
+    <div class="card-title">🧭 来店時点の根拠要約</div>
+    <p class="section-note">morning_data.json から日・店・機種・末尾の根拠を表示します。台番号は最後の確認材料として扱います。</p>
     <div id="calMorningSummaryWrap"><div class="empty-msg">データを読み込んでください</div></div>
   </div>
   <div class="card">
-    <div class="card-title">📅 日程カレンダー予報</div>
+    <div class="card-title">📅 日程カレンダー</div>
     <p class="section-note">第○週×曜日・日付末尾×曜日の統計平均から各日の強さを色表示。タップで根拠確認。</p>
     <div id="calMonthWrap"><div class="empty-msg">データを読み込んでください</div></div>
   </div>
   <div class="card">
-    <div class="card-title">🔥 近日中おすすめ日 TOP8</div>
-    <p class="section-note">今日以降35日でスコアが高い日順。ここを狙い打ちの参考に。</p>
+    <div class="card-title">🔥 近日中の注目日 TOP8</div>
+    <p class="section-note">今日以降35日でスコアが高い日順。断定ではなく、タイミング比較の材料として見ます。</p>
     <div id="calUpcomingWrap"><div class="empty-msg">データを読み込んでください</div></div>
   </div>
 </div>
@@ -718,7 +718,7 @@
     <div style="font-size:12px;color:var(--muted);line-height:1.9;">
       ホールが高設定を多く使う日のこと。店によって異なります。<br>
       例：末尾が同じ日（6・16・26日）、ゾロ目日（11・22日）、月の節目など。<br><br>
-      <strong style="color:var(--accent)">おすすめの設定方法：</strong><br>
+      <strong style="color:var(--accent)">設定の考え方：</strong><br>
       「日にち」タブで平均差枚がプラスになっている日を特定日に設定すると、診断・翌日分析の精度が上がります。
     </div>
   </div>

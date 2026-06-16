@@ -21,6 +21,7 @@ const RECOMMENDATION_EXPANDED_STORAGE_KEY = 'juggler_recommendation_expanded';
 const VIEWER_DEPTH_STORAGE_KEY = 'juggler_viewer_depth_mode';
 const FAVORITE_STORES_STORAGE_KEY = 'juggler_favorite_stores';
 const STORE_MEMOS_STORAGE_KEY = 'juggler_store_memos';
+const LINE_GRAPH_OVERRIDES_STORAGE_KEY = 'juggler_line_graph_overrides';
 let viewerDepthMode = loadViewerDepthMode();
 const SEAT_LAYOUT_STORAGE_PREFIX = 'juggler_seat_layout_';
 const SEAT_LAYOUT_CONFIG_PREFIX = 'juggler_seat_layout_config_';
@@ -1861,7 +1862,7 @@ function getMorningFreshnessMeta() {
     badgeClass: 'red',
     badgeText: `${lagDays}日前データ`,
     subText: `${targetText} / ${sourceText}`,
-    alertText: `元データが${lagDays}日前です。${missingText ? `${missingText}のため、` : ''}候補は本命ではなく参考扱いで見てください。`,
+    alertText: `元データが${lagDays}日前です。${missingText ? `${missingText}のため、` : ''}台番号は断定ではなく参考扱いで見てください。`,
     targetYmd,
     sourceYmd,
     lagDays,
@@ -2051,7 +2052,7 @@ function renderTargetEvidenceChip(item, index = 0) {
 
 function renderTargetCandidateDigest(targets) {
   if(!Array.isArray(targets) || !targets.length) {
-    return '<div class="target-empty-note">この日・この店舗では、検証を通った候補台はまだ出ていません。</div>';
+    return '<div class="target-empty-note">この日・この店舗では、検証を通った確認台はまだ出ていません。</div>';
   }
   return targets.slice(0, 4).map((t) => {
     const evidenceCount = Array.isArray(t.evidence) ? t.evidence.length : 0;
@@ -2205,7 +2206,7 @@ function renderTargetJudgmentBoard({ val, isSpecial, dayInfo, wday, wdayAvg, wda
           </div>
           ${cautionNotes.length
             ? `<ul class="target-caution-list">${cautionNotes.map(note => `<li>${escapeHtml(note)}</li>`).join('')}</ul>`
-            : '<div class="target-empty-note">強い断定は避けつつ、候補台の個別根拠を確認してください。</div>'}
+            : '<div class="target-empty-note">強い断定は避けつつ、台番ごとの個別根拠を確認してください。</div>'}
           ${failed.length ? `<div class="target-failed-evidence">除外された強そうな集計: ${failed.map(item => escapeHtml(item.label)).join(' / ')}</div>` : ''}
         </div>
       </div>
@@ -2845,6 +2846,74 @@ function renderModelCompMobileCards(data) {
       </div>
     </div>`;
   }).join('')}</div>`;
+}
+
+function classifyModelTreatmentCard(m) {
+  const avg = Number(m?.avg);
+  const lift = Number(m?.lift);
+  const count = Number(m?.count);
+  const winRate = Number(m?.winRate);
+  if(!Number.isFinite(count) || count < 10) return { label: '件数少', tone: 'thin', note: `${formatTrendNumber(count || 0, '件')}のため参考` };
+  if((Number.isFinite(avg) && avg >= 120) || (Number.isFinite(lift) && lift >= 120)) {
+    return { label: '強め推移', tone: 'up', note: '平均差枚またはベース比が強い' };
+  }
+  if((Number.isFinite(avg) && avg <= -120) || (Number.isFinite(lift) && lift <= -120)) {
+    return { label: '落ち気味', tone: 'down', note: '前提より弱く出ている' };
+  }
+  if(Number.isFinite(winRate) && winRate >= 48 && Number.isFinite(avg) && avg >= 0) {
+    return { label: '注目変化', tone: 'flat', note: '勝率と平均が崩れていない' };
+  }
+  return { label: '要観察', tone: 'flat', note: '大きな偏りはまだ薄い' };
+}
+
+function renderModelTreatmentOverview(data, allAvgDiff) {
+  const rows = Array.isArray(data) ? data.slice() : [];
+  if(!rows.length) return '';
+  const enriched = rows.map((m) => ({ ...m, treatment: classifyModelTreatmentCard(m) }));
+  const strong = enriched.filter(m => m.treatment.tone === 'up').length;
+  const thin = enriched.filter(m => m.treatment.tone === 'thin').length;
+  const top = enriched
+    .slice()
+    .sort((a, b) => {
+      const order = { up: 3, flat: 2, thin: 1, down: 0 };
+      const toneDiff = (order[b.treatment.tone] || 0) - (order[a.treatment.tone] || 0);
+      if(toneDiff) return toneDiff;
+      return (Number(b.lift) || Number(b.avg) || -9999) - (Number(a.lift) || Number(a.avg) || -9999);
+    })
+    .slice(0, 4);
+  return `<section class="model-treatment-board">
+    <div class="model-treatment-head">
+      <div>
+        <span>機種の扱い要約</span>
+        <strong>まず変化だけ見る</strong>
+      </div>
+      <small>全体平均 ${formatTrendDiff(allAvgDiff)}</small>
+    </div>
+    <div class="model-treatment-stats">
+      <div><span>表示機種</span><b>${formatTrendNumber(rows.length, '機種')}</b></div>
+      <div><span>強め推移</span><b>${formatTrendNumber(strong, '機種')}</b></div>
+      <div><span>件数少</span><b>${formatTrendNumber(thin, '機種')}</b></div>
+    </div>
+    <div class="model-treatment-grid">
+      ${top.map((m) => {
+        const t = m.treatment;
+        const avg = Number(m.avg);
+        const lift = Number(m.lift);
+        return `<div class="model-treatment-card is-${escapeHtml(getTrendToneClass(t.tone).replace('is-', ''))}">
+          <div class="model-treatment-card-head">
+            <strong>${escapeHtml(m.model || '-')}</strong>
+            ${renderViewerQualityBadge({ label: t.label, tone: t.tone })}
+          </div>
+          <div class="model-treatment-main" style="color:${Number.isFinite(avg) && avg >= 0 ? 'var(--plus)' : 'var(--minus)'}">${escapeHtml(Number.isFinite(avg) ? `${avg >= 0 ? '+' : ''}${avg}枚` : '—')}</div>
+          <div class="model-treatment-meta">
+            <span>ベース比 ${escapeHtml(Number.isFinite(lift) ? `${lift >= 0 ? '+' : ''}${lift}` : '—')}</span>
+            <span>${escapeHtml(formatTrendNumber(m.count, '件'))}</span>
+            <span>${escapeHtml(t.note)}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </section>`;
 }
 
 function getSeatLayoutStorageKey(store) {
@@ -3856,6 +3925,58 @@ function getSeatLayoutRowsForStore(store) {
   return getSeatLayoutRowsForStoreAtDate(store, seatLayoutState.dateYmd);
 }
 
+function getLineGraphOverrideKey({ store, date, tai }) {
+  return [store || '', date || '', String(tai || '')].join('|');
+}
+
+function loadLineGraphOverrides() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LINE_GRAPH_OVERRIDES_STORAGE_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch(_) {
+    return {};
+  }
+}
+
+function saveLineGraphOverrides(overrides) {
+  try {
+    localStorage.setItem(LINE_GRAPH_OVERRIDES_STORAGE_KEY, JSON.stringify(overrides || {}));
+  } catch(_) {}
+}
+
+function applyLineGraphOverride(row, store, date) {
+  if(!row || !row.line) return row;
+  const key = getLineGraphOverrideKey({ store, date, tai: row.tai });
+  const override = loadLineGraphOverrides()[key];
+  if(!override || typeof override !== 'object') return row;
+  return {
+    ...row,
+    graphTrend: String(override.graphTrend ?? row.graphTrend ?? ''),
+    graphMovement: parseSeatLayoutNullableNumber(override.graphMovement) ?? row.graphMovement,
+    graphNote: String(override.graphNote ?? row.graphNote ?? ''),
+    graphOverride: true,
+  };
+}
+
+function saveSeatLineGraphMemo(tai) {
+  const t = Number(tai);
+  if(!Number.isFinite(t)) return;
+  const trendEl = document.getElementById('seatLineGraphTrendInput');
+  const movementEl = document.getElementById('seatLineGraphMovementInput');
+  const noteEl = document.getElementById('seatLineGraphNoteInput');
+  const key = getLineGraphOverrideKey({ store: seatLayoutState.store, date: seatLayoutState.dateYmd, tai: t });
+  const overrides = loadLineGraphOverrides();
+  overrides[key] = {
+    graphTrend: String(trendEl?.value || '').trim(),
+    graphMovement: String(movementEl?.value || '').trim(),
+    graphNote: String(noteEl?.value || '').trim(),
+    updatedAt: new Date().toISOString(),
+  };
+  saveLineGraphOverrides(overrides);
+  flashSeatLayoutNotice('LINEグラフメモを保存しました');
+  renderSeatLayoutTab();
+}
+
 function parseSeatLayoutNullableNumber(value) {
   if(value === null || value === undefined || value === '') return null;
   const n = Number(value);
@@ -3870,7 +3991,7 @@ function getSeatLayoutRowsForStoreAtDate(store, ymd) {
       const tai = Number(row?.machine_no);
       if(!Number.isFinite(tai)) return null;
       const diff = parseSeatLayoutNullableNumber(row?.diff);
-      return {
+      return applyLineGraphOverride({
         tai,
         model: String(row?.model || '').trim() || '不明',
         diff,
@@ -3897,7 +4018,7 @@ function getSeatLayoutRowsForStoreAtDate(store, ymd) {
         lineStrengthLabel: row?.treatmentLabel || row?.lineStrengthLabel || '',
         lineSignals: Array.isArray(row?.treatmentSignals) ? row.treatmentSignals : (Array.isArray(row?.lineSignals) ? row.lineSignals : []),
         note: row?.note || '',
-      };
+      }, store, ymd || '');
     }).filter(Boolean);
   }
   return Object.entries((seatRows && typeof seatRows === 'object') ? seatRows : {}).map(([taiRaw, diffRaw]) => {
@@ -4916,6 +5037,31 @@ function renderSeatHeatmapSelection(row) {
   const graphMovementText = parseSeatLayoutNullableNumber(row.graphMovement) !== null
     ? `${row.graphMovement >= 0 ? '+' : ''}${Math.round(row.graphMovement).toLocaleString()}`
     : '未入力';
+  const graphOptions = ['未入力', '上げ', '下げ', 'V字', '山型', '荒い', '不明'];
+  const currentGraphTrend = row.graphTrend || '未入力';
+  const graphEditorHtml = row.line ? `<div class="seat-line-graph-editor">
+    <div class="seat-line-graph-editor-title">
+      <span>グラフ傾向メモ</span>
+      ${row.graphOverride ? '<b>手入力保存済み</b>' : '<b>手入力</b>'}
+    </div>
+    <div class="seat-line-graph-editor-grid">
+      <label>
+        <span>傾向</span>
+        <select id="seatLineGraphTrendInput">
+          ${graphOptions.map(option => `<option value="${escapeHtml(option === '未入力' ? '' : option)}" ${currentGraphTrend === option || (!row.graphTrend && option === '未入力') ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('')}
+        </select>
+      </label>
+      <label>
+        <span>上げ下げ幅</span>
+        <input id="seatLineGraphMovementInput" type="number" inputmode="numeric" placeholder="例 1200" value="${escapeHtml(parseSeatLayoutNullableNumber(row.graphMovement) !== null ? String(Math.round(row.graphMovement)) : '')}">
+      </label>
+    </div>
+    <label class="seat-line-graph-note-input">
+      <span>メモ</span>
+      <input id="seatLineGraphNoteInput" type="text" placeholder="例: 後半伸び / 荒い右肩上がり" value="${escapeHtml(row.graphNote || '')}">
+    </label>
+    <button type="button" class="btn-secondary seat-line-graph-save" onclick="saveSeatLineGraphMemo('${escapeHtml(String(row.tai))}')">保存</button>
+  </div>` : '';
   const lineHtml = row.line ? `
     <div class="seat-selection-evidence">
       <div class="seat-selection-evidence-title">扱い判定</div>
@@ -4944,6 +5090,7 @@ function renderSeatHeatmapSelection(row) {
           <strong>${escapeHtml(value)}</strong>
         </div>
       `).join('')}
+      ${graphEditorHtml}
       <div class="seat-selection-position-note">BONUS/AT回数は参考値です。扱い判定は主にグラフ傾向・稼働感・配置の継続性で見ます。</div>
     </div>` : '';
   const evidenceHtml = evidenceCandidate ? `
@@ -8586,7 +8733,7 @@ function calcScore(tai, targetDate) {
   return {score, reasons};
 }
 
-// ====== 今日の狙い台 3層絞り込み ======
+// ====== 来店判断メモ 3層確認 ======
 
 let targetDate = null;
 let selectedModel = null;
@@ -8811,7 +8958,7 @@ function renderLayer2() {
               <span style="font-size:11px;font-weight:700;color:${m.label==='有力'?'var(--plus)':m.label==='対抗'?'var(--accent)':'var(--muted)'}">${m.label}</span>
             </div>
           </div>`).join('')}
-        <div style="font-size:11px;color:var(--muted);margin-top:8px">👆 機種をタップすると候補台を表示します</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">機種を選ぶと確認台を表示します</div>
       </div>` : '<div class="empty-msg">データ不足</div>'}
     `;
     return;
@@ -9009,7 +9156,7 @@ function renderLayer2() {
       }).join('')}
     </div>
 
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">狙う機種を選んでください：</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">扱いを見たい機種を選んでください：</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px">
       ${modelStrength.map(m=>`
         <button onclick="selectModel('${m.model}')" id="modelBtn_${m.model.replace(/[^\w]/g,'_')}" class="model-chip ${selectedModel===m.model?'active':''}">
@@ -9048,7 +9195,7 @@ function renderLayer3(model) {
       const text = ta.suppressionReason || getEvidenceSuppressionText() || '検証上、候補を出す根拠が弱いです。';
       document.getElementById('layer3Result').innerHTML = `
         <div class="empty-msg">
-          この店は現時点の検証では狙い台候補を出しません。<br>
+          この店は現時点の検証では強い確認台を出しません。<br>
           ${escapeHtml(text)}
         </div>`;
       return;
@@ -9060,7 +9207,8 @@ function renderLayer3(model) {
     }
 
     const rankColor = r => r.rank==='本命'?'var(--plus)':r.rank==='対抗'?'var(--accent)':r.rank==='保留'?'var(--muted)':'var(--minus)';
-    const rankIcon  = r => r.rank==='本命'?'🎯':r.rank==='対抗'?'★':r.rank==='保留'?'△':'⚠️';
+    const rankIcon  = r => r.rank==='本命'?'強':r.rank==='対抗'?'注':r.rank==='保留'?'観':'注';
+    const rankLabel = r => r.rank==='本命'?'強め推移':r.rank==='対抗'?'注目変化':r.rank==='保留'?'要観察':'注意';
     const supportsSelectedModelSetting = isSettingAnalysisModel(model);
 
     const html = targets.map((t, idx) => {
@@ -9075,7 +9223,7 @@ function renderLayer3(model) {
             <span style="font-size:10px;color:var(--muted);margin-left:6px">${t.count}件 / 平均${t.avgG}G/日</span>
           </div>
           <div style="text-align:right">
-            <div style="font-size:14px;font-weight:900;color:${rc}">${ri} ${t.rank}</div>
+            <div style="font-size:14px;font-weight:900;color:${rc}">${ri} ${rankLabel(t)}</div>
             <div style="font-size:10px;color:var(--muted)">スコア ${t.totalScore}pt</div>
             <button class="btn" onclick="selectLayer3CandidatePrecomputed(${idx},'${model}')" style="margin-top:6px;padding:4px 8px;font-size:10px">${supportsSelectedModelSetting ? 'この台で設定推測' : 'この台で実戦判定'}</button>
           </div>
@@ -9095,7 +9243,7 @@ function renderLayer3(model) {
       </div>`;
     }).join('');
 
-    document.getElementById('layer3Result').innerHTML = html || '<div class="empty-msg">候補台がありません</div>';
+    document.getElementById('layer3Result').innerHTML = html || '<div class="empty-msg">確認台がありません</div>';
     document.getElementById('layer3Card').scrollIntoView({behavior:'smooth', block:'start'});
     return;
   }
@@ -9110,7 +9258,7 @@ function renderLayer3(model) {
   const allRows   = filteredRows();
   if(!allRows.length && G._precomputed) {
     document.getElementById('layer3Card').style.display = 'block';
-    document.getElementById('layer3Result').innerHTML = '<div class="empty-msg">選択日の候補台データはありません（todayAnalysis日付のみ表示）</div>';
+    document.getElementById('layer3Result').innerHTML = '<div class="empty-msg">選択日の確認台データはありません（todayAnalysis日付のみ表示）</div>';
     return;
   }
   const condLabel = isSpecial ? '特定日' : '通常日';
@@ -9153,7 +9301,8 @@ function renderLayer3(model) {
 
   // ランク色・アイコン
   const rankColor = r => r.rank==='本命'?'var(--plus)':r.rank==='対抗'?'var(--accent)':r.rank==='保留'?'var(--muted)':'var(--minus)';
-  const rankIcon  = r => r.rank==='本命'?'🎯':r.rank==='対抗'?'★':r.rank==='保留'?'△':'⚠️';
+  const rankIcon  = r => r.rank==='本命'?'強':r.rank==='対抗'?'注':r.rank==='保留'?'観':'注';
+  const rankLabel = r => r.rank==='本命'?'強め推移':r.rank==='対抗'?'注目変化':r.rank==='保留'?'要観察':'注意';
 
   // warningフラグ色（levelベース）
   const warnColor = f => f.level==='strong' ? 'var(--minus)' : 'var(--muted)';
@@ -9194,7 +9343,7 @@ function renderLayer3(model) {
           <span style="font-size:10px;color:var(--muted);margin-left:6px">${t.count}件 / 平均${t.avgG}G/日</span>
         </div>
         <div style="text-align:right">
-          <div style="font-size:14px;font-weight:900;color:${rc}">${ri} ${t.rank}</div>
+          <div style="font-size:14px;font-weight:900;color:${rc}">${ri} ${rankLabel(t)}</div>
           <div style="font-size:10px;color:var(--muted)">数値${t.valueScore}pt + 配分${t.configScore}pt = 計${t.totalScore}pt</div>
           <button class="btn" onclick="selectLayer3Candidate(${idx})" style="margin-top:6px;padding:4px 8px;font-size:10px">${isSettingAnalysisModel(t.model) ? 'この台で設定推測' : 'この台で実戦判定'}</button>
         </div>
@@ -9262,7 +9411,7 @@ function renderLayer3(model) {
     </div>`;
   }).join('');
 
-  document.getElementById('layer3Result').innerHTML = coverageBanner + (html || '<div class="empty-msg">候補台がありません</div>');
+  document.getElementById('layer3Result').innerHTML = coverageBanner + (html || '<div class="empty-msg">確認台がありません</div>');
   document.getElementById('layer3Card').style.display = 'block';
   document.getElementById('layer3Card').scrollIntoView({behavior:'smooth', block:'start'});
 }
@@ -10464,9 +10613,11 @@ function renderModelComp() {
     const fmtR = v => v===null ? '—' : `${v.toFixed(1)}%`;
     const freshnessPanel = renderFreshnessWarningPanel(getAnalysisFreshnessMeta(), '機種分析のデータ鮮度');
     const smartCoveragePanel = renderSmartSlotCoverageOverview(G.modelStats);
+    const treatmentOverview = renderModelTreatmentOverview(data, allAvgDiff);
 
     document.getElementById('modelCompTable').innerHTML=`
       ${freshnessPanel}
+      ${treatmentOverview}
       ${smartCoveragePanel}
       <div style="font-size:10px;color:var(--muted);margin-bottom:8px">全体平均：${fmt(allAvgDiff)}枚</div>
       <table class="data-table">
@@ -10541,9 +10692,11 @@ function renderModelComp() {
   const fmtR = v => v===null ? '—' : `${v.toFixed(1)}%`;
   const freshnessPanel = renderFreshnessWarningPanel(getAnalysisFreshnessMeta(), '機種分析のデータ鮮度');
   const smartCoveragePanel = renderSmartSlotCoverageOverview(G.modelStats);
+  const treatmentOverview = renderModelTreatmentOverview(data, allAvgDiff);
 
   document.getElementById('modelCompTable').innerHTML=`
     ${freshnessPanel}
+    ${treatmentOverview}
     ${smartCoveragePanel}
     <div style="font-size:10px;color:var(--muted);margin-bottom:8px">全体平均：${fmt(allAvgDiff)}枚 | フィルター：${currentModelSpFilter==='all'?'全体':currentModelSpFilter==='sp'?'特定日':currentModelSpFilter==='nm'?'通常日':currentModelSpFilter==='zoro'?'ゾロ目':currentModelSpFilter.replace('digit_','')+'の付く日'}</div>
     <table class="data-table">
@@ -10815,7 +10968,7 @@ function renderTaiModelSummary(sourceRows) {
       ${visible.map((s, i) => {
         const barW = Math.min(Math.abs(s.avg) / maxAbsAvg * 100, 100);
         const isPlus = s.avg >= 0;
-        const rank = i === 0 ? '👑' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+        const rank = `${String(i + 1).padStart(2, '0')}`;
         return `
         <button data-model="${s.model}" onclick="filterTaiFromSummary(this.dataset.model)"
           style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:left;cursor:pointer;width:100%">
@@ -10885,7 +11038,7 @@ function renderTaiModelSummary(sourceRows) {
       ${visible.map((s, i) => {
         const barW = Math.min(Math.abs(s.avg) / maxAbsAvg * 100, 100);
         const isPlus = s.avg >= 0;
-        const rank = i === 0 ? '👑' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
+        const rank = `${String(i + 1).padStart(2, '0')}`;
         return `
         <button data-model="${s.model}" onclick="filterTaiFromSummary(this.dataset.model)"
           style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:left;cursor:pointer;width:100%">
@@ -12401,7 +12554,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   stRestoreInputs();
 });
 
-// ====== カレンダー予報 ======
+// ====== タイミング確認 ======
 let G_calYear = null, G_calMonth = null;
 const CAL_MIN_SAMPLE = 3;
 const WDAY_LABELS = ['日','月','火','水','木','金','土'];
@@ -12619,7 +12772,7 @@ function getMorningSmartCoverageRiskText(smartFocused, smartCoverage) {
   const thin = Number(counts.thin || 0);
   if(high > 0) return '';
   if(medium > 0) return 'スマスロは中期データ中心。候補は扱い傾向として見て、当日の外部根拠や島状況で補強してください。';
-  if(low > 0 || thin > 0) return 'スマスロ根拠が短期/薄め。強い狙い台根拠としては扱わず、観察優先です。';
+  if(low > 0 || thin > 0) return 'スマスロ根拠が短期/薄め。強い台番根拠としては扱わず、観察優先です。';
   return '';
 }
 
@@ -12748,7 +12901,7 @@ function getMorningPriorityDecisionText(priority) {
 }
 
 function formatMorningTopCandidateText(candidate) {
-  if(!candidate || !candidate.tai) return '候補台なし';
+  if(!candidate || !candidate.tai) return '確認台なし';
   return `${candidate.tai}番 ${candidate.model || '機種不明'}`;
 }
 
@@ -12859,7 +13012,7 @@ function renderMorningSummaryForCalendar() {
 
   const stores = getMorningStoreNames();
   if(!G.morningData || !G.morningData.stores || !stores.length) {
-    wrap.innerHTML = '<div class="empty-msg">本日の予報データがありません。Macローカルの自動更新後に再読み込みしてください。</div>';
+    wrap.innerHTML = '<div class="empty-msg">本日の来店判断データがありません。Macローカルの自動更新後に再読み込みしてください。</div>';
     return;
   }
 
@@ -13031,7 +13184,11 @@ function renderMorningSummaryForCalendar() {
             : '';
           const storeEvidenceBlocked = trustMeta.actionable === false && !isVerifiedTarget;
           let action = String(c?.action || 'watch');
-          let actionLabel = String(c?.action_label || (action === 'main' ? '本命' : action === 'candidate' ? '候補' : '観察'));
+          let actionLabel = String(c?.action_label || (action === 'main' ? '注目' : action === 'candidate' ? '確認' : '観察'));
+          actionLabel = actionLabel
+            .replace('本命', '注目')
+            .replace('対抗', '確認')
+            .replace('候補', '確認');
           if(storeEvidenceBlocked) {
             action = 'watch';
             actionLabel = '参考';
@@ -13088,7 +13245,7 @@ function renderMorningSummaryForCalendar() {
             </div>
           </div>`;
         }).join('')
-      : '<div class="morning-empty">候補台データなし</div>';
+      : '<div class="morning-empty">確認台データなし</div>';
 
     return `<section class="morning-store-card">
       <div class="morning-store-head">
