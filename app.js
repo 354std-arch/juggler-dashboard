@@ -11973,7 +11973,11 @@ function renderOverviewStoreList() {
       <div class="overview-store-note">
         ${escapeHtml(row.topModel ? `注目: ${row.topModel.model} ${row.topModel.deltaMonth !== null && row.topModel.deltaMonth !== undefined ? formatTrendDiff(row.topModel.deltaMonth) : row.topModel.label}` : '機種変化データなし')}
       </div>
-      ${renderViewerQualityLine(row.status.quality)}
+      <div class="overview-store-pills">
+        <span>${formatTrendNumber(row.status.quality?.count, '件')}</span>
+        <span>${escapeHtml(row.status.quality?.ymd || '日付なし')}</span>
+        ${Number.isFinite(row.status.quality?.lagDays) ? `<span>${escapeHtml(`${row.status.quality.lagDays}日前`)}</span>` : ''}
+      </div>
     </button>`).join('')}</div>`;
 }
 
