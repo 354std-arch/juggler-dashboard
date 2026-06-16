@@ -7,11 +7,27 @@ LOG_FILE="$REPO_DIR/run_daily.log"
 LOCK_DIR="$REPO_DIR/.run_daily.lock"
 STATUS_FILE="$REPO_DIR/run_daily_status.txt"
 STATUS_JSON_FILE="$REPO_DIR/automation_status.json"
-ACCESS_BLOCK_FILE="$REPO_DIR/.ana_slo_access_block.json"
+ANA_SLO_ACCESS_BLOCK_FILE="$REPO_DIR/.ana_slo_access_block.json"
+SLOREPO_ACCESS_BLOCK_FILE="$REPO_DIR/.slorepo_access_block.json"
+DAILY_SOURCE="${JUGGLER_DAILY_SOURCE:-slorepo}"
+SLOREPO_STORES="${SLOREPO_STORES:-エスパス日拓新宿歌舞伎町}"
+case "$DAILY_SOURCE" in
+  slorepo|ana-slo) ;;
+  *) DAILY_SOURCE="slorepo" ;;
+esac
+if [ "$DAILY_SOURCE" = "slorepo" ]; then
+  ACCESS_BLOCK_FILE="$SLOREPO_ACCESS_BLOCK_FILE"
+else
+  ACCESS_BLOCK_FILE="$ANA_SLO_ACCESS_BLOCK_FILE"
+fi
 MODE="${JUGGLER_DAILY_MODE:-run}"
 SMART_SLOT_BACKFILL_DAYS="${SMART_SLOT_BACKFILL_DAYS:-30}"
 SMART_SLOT_BACKFILL_TASKS="${SMART_SLOT_BACKFILL_TASKS:-0}"
 SMART_SLOT_BACKFILL_INTERVAL_SEC="${SMART_SLOT_BACKFILL_INTERVAL_SEC:-0.5}"
+SLOREPO_STORE_INTERVAL_SEC="${SLOREPO_STORE_INTERVAL_SEC:-300}"
+SLOREPO_PAGE_INTERVAL_SEC="${SLOREPO_PAGE_INTERVAL_SEC:-30}"
+SLOREPO_JITTER_SEC="${SLOREPO_JITTER_SEC:-15}"
+SLOREPO_MAX_DETAIL_PAGES="${SLOREPO_MAX_DETAIL_PAGES:-0}"
 DATA_SIZE_WARN_MB="${DATA_SIZE_WARN_MB:-50}"
 ANA_SLO_COOLDOWN_HOURS="${ANA_SLO_COOLDOWN_HOURS:-24}"
 GIT_PULL_TIMEOUT_SEC="${GIT_PULL_TIMEOUT_SEC:-120}"
@@ -59,12 +75,12 @@ write_status() {
   ts="$(now_jst)"
   msg="$*"
   printf '%s\t%s\n' "$ts" "$msg" > "$STATUS_FILE"
-  python3 - "$STATUS_JSON_FILE" "$ts" "$msg" "$MODE" "$ANA_SLO_COOLDOWN_HOURS" "$ACCESS_BLOCK_FILE" <<'PY'
+  python3 - "$STATUS_JSON_FILE" "$ts" "$msg" "$MODE" "$ANA_SLO_COOLDOWN_HOURS" "$ACCESS_BLOCK_FILE" "$DAILY_SOURCE" <<'PY'
 import json
 import os
 import sys
 
-out_path, ts, message, mode, cooldown_hours, block_path = sys.argv[1:7]
+out_path, ts, message, mode, cooldown_hours, block_path, data_source = sys.argv[1:8]
 lower = message.lower()
 if "blocked" in lower:
     category = "blocked"
@@ -94,10 +110,12 @@ payload = {
     "status": message,
     "category": category,
     "mode": mode,
+    "data_source": data_source,
     "schedule": "毎朝7:31 JST / Mac launchd",
     "cooldown_hours": int(cooldown_hours) if str(cooldown_hours).isdigit() else cooldown_hours,
     "access_block": access_block,
-    "source": "run_daily.sh",
+    "source": data_source,
+    "status_source": "run_daily.sh",
 }
 with open(out_path, "w", encoding="utf-8") as fh:
     json.dump(payload, fh, ensure_ascii=False, indent=2)
@@ -149,7 +167,7 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
 fi
 trap cleanup_lock EXIT
 
-log "=== START mode=$MODE pid=$$ ==="
+log "=== START mode=$MODE source=$DAILY_SOURCE pid=$$ ==="
 write_status "RUNNING mode=$MODE pid=$$"
 
 if [ "$MODE" = "healthcheck" ]; then
@@ -227,7 +245,7 @@ is_access_cooldown_active() {
 
 log_access_block() {
   if [ -f "$ACCESS_BLOCK_FILE" ]; then
-    log "ana-slo access block marker:"
+    log "$DAILY_SOURCE access block marker:"
     sed 's/^/  /' "$ACCESS_BLOCK_FILE" >> "$LOG_FILE" 2>/dev/null || true
   fi
 }
@@ -248,9 +266,9 @@ abort_if_conflicts
 
 # Cloudflare 403/429 直後に再アクセスすると復旧が遅れるため、一定時間は完全停止する。
 if is_access_cooldown_active; then
-  log "ana-slo access cooldown active; skipping scrape/compute/push for ${ANA_SLO_COOLDOWN_HOURS}h window"
+  log "$DAILY_SOURCE access cooldown active; skipping scrape/compute/push for ${ANA_SLO_COOLDOWN_HOURS}h window"
   log_access_block
-  write_status "SKIPPED ana-slo cooldown"
+  write_status "SKIPPED $DAILY_SOURCE cooldown"
   publish_status_update
   log "=== DONE cooldown ==="
   exit 0
@@ -258,18 +276,31 @@ fi
 
 # Run pipeline
 SCRAPE_INPUTS_BEFORE="$(fingerprint_scrape_inputs)"
-log "scrape_juggler.py start timeout=${SCRAPE_TIMEOUT_SEC}s"
-run_with_timeout "$SCRAPE_TIMEOUT_SEC" python3 scrape_juggler.py --stop-on-consecutive-failures 1 >> "$LOG_FILE" 2>&1
-log "scrape_juggler.py done"
+if [ "$DAILY_SOURCE" = "slorepo" ]; then
+  log "scrape_slorepo.py start timeout=${SCRAPE_TIMEOUT_SEC}s"
+  run_with_timeout "$SCRAPE_TIMEOUT_SEC" python3 scrape_slorepo.py \
+    --stores "$SLOREPO_STORES" \
+    --flush-every 1 \
+    --store-interval-sec "$SLOREPO_STORE_INTERVAL_SEC" \
+    --page-interval-sec "$SLOREPO_PAGE_INTERVAL_SEC" \
+    --jitter-sec "$SLOREPO_JITTER_SEC" \
+    --max-detail-pages "$SLOREPO_MAX_DETAIL_PAGES" \
+    --stop-on-consecutive-failures 1 >> "$LOG_FILE" 2>&1
+  log "scrape_slorepo.py done"
+else
+  log "scrape_juggler.py start timeout=${SCRAPE_TIMEOUT_SEC}s"
+  run_with_timeout "$SCRAPE_TIMEOUT_SEC" python3 scrape_juggler.py --stop-on-consecutive-failures 1 >> "$LOG_FILE" 2>&1
+  log "scrape_juggler.py done"
+fi
 if is_access_cooldown_active; then
-  log "ana-slo access block detected during scrape; skipping backfill/compute/push"
+  log "$DAILY_SOURCE access block detected during scrape; skipping backfill/compute/push"
   log_access_block
-  write_status "SKIPPED ana-slo blocked"
+  write_status "SKIPPED $DAILY_SOURCE blocked"
   publish_status_update
   log "=== DONE blocked ==="
   exit 0
 fi
-if [ "$SMART_SLOT_BACKFILL_TASKS" -gt 0 ]; then
+if [ "$DAILY_SOURCE" = "ana-slo" ] && [ "$SMART_SLOT_BACKFILL_TASKS" -gt 0 ]; then
   BACKFILL_START="$(date -v-"$SMART_SLOT_BACKFILL_DAYS"d '+%Y-%m-%d')"
   BACKFILL_END="$(date -v-1d '+%Y-%m-%d')"
   log "smart slot backfill: $BACKFILL_START to $BACKFILL_END / max $SMART_SLOT_BACKFILL_TASKS tasks timeout=${BACKFILL_TIMEOUT_SEC}s"
@@ -284,9 +315,9 @@ if [ "$SMART_SLOT_BACKFILL_TASKS" -gt 0 ]; then
   log "smart slot backfill done"
 fi
 if is_access_cooldown_active; then
-  log "ana-slo access block detected during backfill; skipping compute/push"
+  log "$DAILY_SOURCE access block detected during backfill; skipping compute/push"
   log_access_block
-  write_status "SKIPPED ana-slo blocked"
+  write_status "SKIPPED $DAILY_SOURCE blocked"
   publish_status_update
   log "=== DONE blocked ==="
   exit 0

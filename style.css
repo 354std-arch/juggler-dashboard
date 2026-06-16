@@ -684,6 +684,51 @@ main{padding:12px;max-width:760px;margin:0 auto;}
 .trend-row.is-down .trend-result-badge{color:var(--minus);border-color:rgba(255,77,109,.24);}
 .trend-row-metrics b{display:block;font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--text);}
 .trend-row-metrics small{display:block;font-size:10px;color:var(--muted);line-height:1.35;margin-top:2px;}
+.trend-day-board{display:grid;gap:9px;}
+.trend-spark-card{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 150px;
+  gap:10px;
+  align-items:center;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:8px;
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02));
+  padding:10px;
+}
+.trend-spark-card span,
+.trend-day-chip span{display:block;color:var(--muted);font-size:10px;font-weight:900;margin-bottom:4px;}
+.trend-spark-card strong{display:block;color:var(--text);font-size:13px;line-height:1.35;}
+.trend-sparkline{width:100%;height:48px;display:block;overflow:visible;}
+.trend-spark-zero{stroke:rgba(255,255,255,.18);stroke-width:1;stroke-dasharray:3 3;}
+.trend-spark-line{stroke:var(--plus);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;}
+.trend-sparkline.is-down .trend-spark-line{stroke:var(--minus);}
+.trend-spark-dot{fill:var(--accent);stroke:#101018;stroke-width:1.5;}
+.trend-spark-empty{color:var(--muted);font-size:11px;text-align:right;}
+.trend-day-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+.trend-day-chip,
+.trend-day-list button{
+  appearance:none;
+  width:100%;
+  border:1px solid rgba(255,255,255,.09);
+  border-left:3px solid var(--muted);
+  border-radius:8px;
+  background:#151821;
+  color:var(--text);
+  text-align:left;
+  font-family:'Zen Kaku Gothic New',sans-serif;
+  padding:9px;
+  cursor:pointer;
+}
+.trend-day-chip.is-up{border-left-color:var(--plus);background:rgba(57,255,20,.045);}
+.trend-day-chip.is-down{border-left-color:var(--minus);background:rgba(255,77,109,.035);}
+.trend-day-chip strong{display:block;font-family:'Share Tech Mono',monospace;font-size:14px;line-height:1.2;}
+.trend-day-chip.is-up strong{color:var(--plus);}
+.trend-day-chip.is-down strong{color:var(--minus);}
+.trend-day-chip small{display:block;color:var(--muted);font-size:10px;line-height:1.35;margin-top:4px;}
+.trend-day-list{display:grid;gap:6px;}
+.trend-day-list button{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 9px;}
+.trend-day-list b{font-size:12px;color:var(--text);}
+.trend-day-list span{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--accent3);white-space:nowrap;}
 @media(max-width:640px){
   .viewer-hero{grid-template-columns:1fr;gap:10px;padding:12px;}
   .viewer-hero h1{font-size:18px;}
@@ -713,6 +758,15 @@ main{padding:12px;max-width:760px;margin:0 auto;}
   .overview-store-metrics div{padding:6px 5px;}
   .overview-store-metrics b{font-size:12px;}
   .trend-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .trend-spark-card{grid-template-columns:1fr;}
+  .trend-day-strip{grid-template-columns:1fr;}
+  .trend-day-list button{display:grid;grid-template-columns:1fr;gap:3px;}
+  .trend-day-list span{white-space:normal;}
+  .seat-selection-evidence-line{
+    display:grid;
+    grid-template-columns:76px minmax(0,1fr);
+    gap:6px;
+  }
   .automation-status-grid{grid-template-columns:1fr;}
   .trend-row{grid-template-columns:1fr;gap:7px;}
   .trend-row-metrics{text-align:left;}
@@ -3287,11 +3341,19 @@ body.is-seat-layout-active main{
   font-size:10px;
   font-weight:900;
 }
+.seat-selection-source-title{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.08);
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+}
 
 .seat-selection-evidence-line{
   display:flex;
   justify-content:space-between;
-  align-items:center;
+  align-items:flex-start;
   gap:8px;
   border:1px solid rgba(255,255,255,.08);
   border-radius:6px;
@@ -3307,7 +3369,13 @@ body.is-seat-layout-active main{
   white-space:nowrap;
 }
 
-.seat-selection-evidence-line strong{font-size:11px;white-space:nowrap;}
+.seat-selection-evidence-line strong{
+  min-width:0;
+  font-size:11px;
+  white-space:normal;
+  text-align:right;
+  overflow-wrap:anywhere;
+}
 .seat-selection-evidence-line.is-positive strong{color:#facc15;}
 .seat-selection-evidence-line.is-caution strong{color:#f472b6;}
 

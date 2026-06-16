@@ -12,6 +12,7 @@ MORNING_DATA_JSON = os.path.join(REPO_DIR, "morning_data.json")
 STORE_MODEL_SUMMARY_CSV = os.path.join(REPO_DIR, "store_model_summary.csv")
 STORE_LIST_JSON = os.path.join(REPO_DIR, "store_list.json")
 RAW_DATA_CSV = os.path.join(REPO_DIR, "raw_data.csv")
+LINE_SLOT_DATA_CSV = os.path.join(REPO_DIR, "line_slot_data.csv")
 OUT_JSON = os.path.join(REPO_DIR, "candidate_data.json")
 SEAT_DATA_JSON = os.path.join(REPO_DIR, "seat_data.json")
 JST = timezone(timedelta(hours=9))
@@ -30,6 +31,115 @@ def parse_number(value):
         return None
 
 
+def parse_int(value):
+    n = parse_number(value)
+    if n is None:
+        return None
+    return int(round(n))
+
+
+def parse_line_note_values(note):
+    values = {}
+    for part in str(note or "").split(";"):
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        key = key.strip()
+        parsed = parse_int(value)
+        if key and parsed is not None:
+            values[key] = parsed
+    return values
+
+
+def build_line_treatment_payload(payload):
+    total_game = parse_int(payload.get("totalGame"))
+    max_payout = parse_int(payload.get("maxPayout"))
+    graph_trend = str(payload.get("graphTrend") or "").strip()
+    graph_movement = parse_int(payload.get("graphMovement"))
+
+    score = 0
+    signals = []
+
+    graph_score = {
+        "上げ": 38,
+        "V字": 32,
+        "山型": 18,
+        "荒い": 8,
+        "下げ": -22,
+    }.get(graph_trend, 0)
+    if graph_trend:
+        score += graph_score
+        signals.append(f"グラフ傾向 {graph_trend}")
+
+    if graph_movement is not None:
+        if graph_movement >= 3000:
+            score += 28
+            signals.append(f"グラフ上昇幅 +{graph_movement:,}")
+        elif graph_movement >= 1000:
+            score += 16
+            signals.append(f"グラフ上昇幅 +{graph_movement:,}")
+        elif graph_movement <= -2000:
+            score -= 16
+            signals.append(f"グラフ下落幅 {graph_movement:,}")
+
+    if total_game is not None:
+        if total_game >= 8000:
+            score += 15
+            signals.append(f"高稼働 {total_game:,}G")
+        elif total_game >= 6000:
+            score += 10
+            signals.append(f"稼働強め {total_game:,}G")
+        elif total_game >= 3000:
+            score += 4
+            signals.append(f"稼働あり {total_game:,}G")
+        elif total_game <= 1500:
+            score -= 5
+            signals.append(f"稼働浅め {total_game:,}G")
+
+    if max_payout is not None:
+        if max_payout >= 10000:
+            score += 10
+            signals.append(f"最大放出大 {max_payout:,}枚")
+        elif max_payout >= 5000:
+            score += 6
+            signals.append(f"最大放出注目 {max_payout:,}枚")
+        elif max_payout >= 2000:
+            score += 3
+            signals.append(f"最大放出あり {max_payout:,}枚")
+
+    has_graph = bool(graph_trend) or graph_movement is not None
+    has_context = total_game is not None or max_payout is not None
+    if not has_graph and not has_context:
+        label = "データ不足"
+        signals.append("グラフ/稼働の根拠が未入力")
+    elif not has_graph and score < 20:
+        label = "件数少"
+        signals.append("グラフ未入力のため参考")
+    elif score >= 55:
+        label = "強め推移"
+    elif score >= 25:
+        label = "注目変化"
+    elif score <= -10:
+        label = "弱め"
+    else:
+        label = "要観察"
+
+    if payload.get("graphNote"):
+        signals.append(f"グラフメモ {payload.get('graphNote')}")
+
+    score = max(0, min(100, int(round(score))))
+    return {
+        "treatmentScore": score,
+        "treatmentLabel": label,
+        "treatmentSignals": signals[:6],
+        "sourceQuality": "グラフ中心" if has_graph else "参考値",
+        # 旧UIとの互換。UI側は treatment* を優先して読む。
+        "lineStrengthScore": score,
+        "lineStrengthLabel": label,
+        "lineSignals": signals[:6],
+    }
+
+
 def parse_date(value):
     text = str(value or "").strip()
     if not text:
@@ -44,6 +154,88 @@ def parse_date(value):
         return datetime.fromisoformat(text.replace("Z", "+00:00")).astimezone(JST).replace(tzinfo=None)
     except Exception:
         return None
+
+
+def detect_latest_line_slot_date():
+    if not os.path.exists(LINE_SLOT_DATA_CSV):
+        return None
+    latest = None
+    with open(LINE_SLOT_DATA_CSV, "r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            dt = parse_date(row.get("date") or row.get("日付"))
+            if dt is not None and (latest is None or dt > latest):
+                latest = dt
+    return latest
+
+
+def merge_line_slot_rows(by_date, stores_with_data, start_date=None, end_date=None):
+    if not os.path.exists(LINE_SLOT_DATA_CSV):
+        return
+    with open(LINE_SLOT_DATA_CSV, "r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            dt = parse_date(row.get("date") or row.get("日付"))
+            if dt is None:
+                continue
+            d = dt.date()
+            if start_date is not None and d < start_date:
+                continue
+            if end_date is not None and d > end_date:
+                continue
+
+            store = str(row.get("store") or row.get("店名") or "").strip()
+            model = str(row.get("model") or row.get("機種名") or "").strip()
+            machine_no = parse_int(row.get("machine_no") or row.get("台番号"))
+            if not store or machine_no is None:
+                continue
+
+            payload = {
+                "machine_no": machine_no,
+                "model": model or "不明",
+                "diff": None,
+                "source": str(row.get("source") or "line").strip() or "line",
+                "line": True,
+            }
+            optional_fields = [
+                ("rate", "rate"),
+                ("total_game", "totalGame"),
+                ("big", "big"),
+                ("reg", "reg"),
+                ("at_art", "atArt"),
+                ("combined_rate", "combinedRate"),
+                ("at_art_rate", "atArtRate"),
+                ("last_game", "lastGame"),
+                ("max_payout", "maxPayout"),
+                ("graph_trend", "graphTrend"),
+                ("graph_movement", "graphMovement"),
+                ("graph_note", "graphNote"),
+                ("note", "note"),
+            ]
+            for src_key, out_key in optional_fields:
+                raw_value = row.get(src_key)
+                if raw_value is None:
+                    continue
+                text = str(raw_value).strip()
+                if not text:
+                    continue
+                if out_key in {"totalGame", "big", "reg", "atArt", "lastGame", "maxPayout"}:
+                    parsed = parse_int(text)
+                    if parsed is not None:
+                        payload[out_key] = parsed
+                else:
+                    payload[out_key] = text
+            payload.update(build_line_treatment_payload(payload))
+
+            ymd = d.strftime("%Y-%m-%d")
+            machine_map = by_date.setdefault(ymd, {}).setdefault(store, {})
+            existing = machine_map.get(machine_no) or {}
+            merged = {**payload, **existing}
+            merged["line"] = True
+            if existing.get("diff") is not None:
+                merged["diff"] = existing.get("diff")
+            machine_map[machine_no] = merged
+            stores_with_data.add(store)
 
 
 def load_store_model_condition_stats():
@@ -275,7 +467,8 @@ def build_recent_seat_data_payload(day_window=30):
     if not os.path.exists(RAW_DATA_CSV):
         return {"dates": [], "stores": store_order[:], "data": {}}
 
-    latest_dt = detect_latest_data_date()
+    latest_candidates = [dt for dt in [detect_latest_data_date(), detect_latest_line_slot_date()] if dt is not None]
+    latest_dt = max(latest_candidates) if latest_candidates else None
     if latest_dt is None:
         return {"dates": [], "stores": store_order[:], "data": {}}
 
@@ -312,6 +505,8 @@ def build_recent_seat_data_payload(day_window=30):
             }
             stores_with_data.add(store)
 
+    merge_line_slot_rows(by_date, stores_with_data, start_date, end_date)
+    available_dates.update(by_date.keys())
     return finalize_seat_data_payload(store_order, by_date, stores_with_data, available_dates)
 
 
@@ -344,6 +539,22 @@ def build_monthly_seat_data_payloads():
                 "model": model,
                 "diff": normalize_diff_value(diff),
             }
+            stores_by_month.setdefault(month_key, set()).add(store)
+
+    line_by_date = {}
+    line_stores = set()
+    merge_line_slot_rows(line_by_date, line_stores)
+    for ymd, store_map in line_by_date.items():
+        month_key = ymd[:7]
+        month_bucket = by_month_date.setdefault(month_key, {})
+        month_day = month_bucket.setdefault(ymd, {})
+        for store, machine_map in store_map.items():
+            target = month_day.setdefault(store, {})
+            for machine_no, payload in machine_map.items():
+                existing = target.get(machine_no) or {}
+                target[machine_no] = {**payload, **existing, "line": True}
+                if existing.get("diff") is not None:
+                    target[machine_no]["diff"] = existing.get("diff")
             stores_by_month.setdefault(month_key, set()).add(store)
 
     return {

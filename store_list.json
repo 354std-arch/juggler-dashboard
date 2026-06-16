@@ -19,14 +19,16 @@
       "area": "横浜",
       "source": "manual",
       "added_date": "2026-04-01",
-      "score": 0.0
+      "score": 0.0,
+      "slorepo_code": "e4b8ade5b1b1554e4fcode"
     },
     {
       "name": "エスパス日拓新宿歌舞伎町",
       "area": "新宿",
       "source": "manual",
       "added_date": "2026-04-01",
-      "score": 0.0
+      "score": 0.0,
+      "slorepo_code": "e382a8e382b9e38391e382b9e697a5e68b93e696b0e5aebfe6ad8ce8889ee4bc8ee794bae5ba97code"
     },
     {
       "name": "中山ZoRoN",
@@ -34,6 +36,7 @@
       "source": "minrepo",
       "added_date": "2026-04-04",
       "score": 0.0,
+      "slorepo_code": "e4b8ade5b1b15a6f526f4ecode",
       "exchange_rate": 5.0,
       "backfilled": true,
       "backfilled_date": "2026-04-04"
@@ -64,6 +67,7 @@
       "source": "minrepo",
       "added_date": "2026-05-13",
       "score": 0.0,
+      "slorepo_code": "e6a5bde59c92e892b2e794b0e5ba97code",
       "exchange_rate": 5.0
     },
     {
@@ -72,6 +76,7 @@
       "source": "minrepo",
       "added_date": "2026-05-13",
       "score": 0.0,
+      "slorepo_code": "e3839ee383abe3838fe383b3e383a1e382ace382b7e38386e382a332303030e892b2e794b037code",
       "exchange_rate": 5.0
     },
     {
@@ -80,6 +85,7 @@
       "source": "minrepo",
       "added_date": "2026-05-13",
       "score": 0.0,
+      "slorepo_code": "e3839ee383abe3838fe383b3e892b2e794b0e9a785e69db1e5ba97code",
       "exchange_rate": 5.0
     },
     {
@@ -88,6 +94,7 @@
       "source": "minrepo",
       "added_date": "2026-05-13",
       "score": 0.0,
+      "slorepo_code": "e38392e383ade382ade892b2e794b0e8a5bfe58fa3e5ba97code",
       "exchange_rate": 5.0
     },
     {
@@ -96,7 +103,19 @@
       "source": "minrepo",
       "added_date": "2026-05-13",
       "score": 0.0,
+      "slorepo_code": "e38392e383ade382ad33e58fb7e5ba97code",
       "exchange_rate": 5.0
+    },
+    {
+      "name": "メガフェイス座間",
+      "area": "座間",
+      "source": "line",
+      "added_date": "2026-06-15",
+      "score": 0.0,
+      "line_data": true,
+      "line_target_models": [
+        "L北斗 転生の章2"
+      ]
     }
   ]
 }

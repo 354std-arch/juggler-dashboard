@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SLOT 変遷ビューア</title>
+<title>SLOT 扱い変化ビューア</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="stylesheet" href="style.css?v=sloteye-ui-1">
 </head>
 <body>
 
 <header>
-  <div class="logo"><span>SLOT</span> 変遷</div>
+  <div class="logo"><span>SLOT</span> 扱い変化</div>
   <div class="header-right">
     <div class="data-status" id="dataStatus">未読込</div>
     <button class="save-btn" id="saveBtn" onclick="saveDataHTML()" disabled>💾 保存</button>
@@ -25,10 +25,9 @@
 
 <nav id="mainNav">
   <button class="active" data-tab="tab-overview" onclick="showTab('tab-overview',this)">概況</button>
-  <button data-tab="tab-trends" onclick="showTab('tab-trends',this)">変遷</button>
-  <button data-tab="tab-days" onclick="showTab('tab-days',this)">日にち</button>
-  <button data-tab="tab-heat" onclick="showTab('tab-heat',this)">組合せ</button>
   <button data-tab="tab-layout" onclick="showTab('tab-layout',this)">ホール図</button>
+  <button data-tab="tab-trends" onclick="showTab('tab-trends',this)">推移</button>
+  <button data-tab="tab-heat" onclick="showTab('tab-heat',this)">組合せ</button>
   <button data-tab="tab-model" onclick="showTab('tab-model',this)">機種</button>
   <button data-tab="tab-tai" onclick="showTab('tab-tai',this)">台履歴</button>
   <button id="detailMenuBtn" onclick="toggleDetailMenu(this)">🔍 詳細 ▾</button>
@@ -36,6 +35,7 @@
 
 <!-- ドロップダウンメニュー：body直下に配置してnavのoverflowに隠されない -->
 <div id="detailMenu" style="display:none;position:fixed;background:var(--bg3);border:1px solid var(--border);border-radius:8px;min-width:150px;box-shadow:0 8px 24px rgba(0,0,0,.7);z-index:9999;">
+  <button onclick="showTabFromMenu('tab-days',this)">📅 日にち</button>
   <button onclick="showTabFromMenu('tab-data',this)">📦 データ</button>
   <button onclick="showTabFromMenu('tab-setsuteii',this)">🔬 設定推測</button>
   <button onclick="showTabFromMenu('tab-next',this)">🔮 前日条件</button>
@@ -58,9 +58,9 @@
 <div id="tab-overview" class="tab-content active">
   <div class="viewer-hero">
     <div>
-      <div class="viewer-kicker">過去データ変遷ビューア</div>
-      <h1>ホール概要から癖を読む</h1>
-      <p>まず店の状態をざっくり確認し、日にち・機種・組合せ・台履歴へ掘ります。</p>
+      <div class="viewer-kicker">扱い変化ビューア</div>
+      <h1>いつ・どこに力が入るかを見る</h1>
+      <p>店の鮮度、強まったタイミング、寄っている場所を先に確認し、必要な所だけ掘ります。</p>
     </div>
     <button class="btn viewer-load-btn" onclick="loadFromJSON()">データ読込</button>
   </div>
@@ -82,13 +82,18 @@
   </div>
 </div>
 
-<!-- ====== 変遷 ====== -->
+<!-- ====== 推移 ====== -->
 <div id="tab-trends" class="tab-content">
   <div class="card">
-    <div class="card-title">店舗変遷</div>
+    <div class="card-title">店舗推移</div>
     <p class="section-note">平均差枚、勝率、平均G、件数を直近/過去期間で比較します。データが古い場合は参考扱いです。</p>
     <div id="trendStorePanel"><div class="empty-msg">店舗を選択してください</div></div>
     <div id="trendFlowActions"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">日にちの強弱</div>
+    <p class="section-note">詳細タブへ移した日にち別集計から、強く出やすい日付と日付末尾だけ先に見ます。</p>
+    <div id="trendDayPanel"><div class="empty-msg">データを読み込んでください</div></div>
   </div>
   <div class="card">
     <div class="card-title">機種の扱い変化</div>
@@ -741,11 +746,12 @@
           </div>
         </div>
         <div class="seat-layout-segment seat-layout-layer-control" aria-label="ホール図レイヤー">
-          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="diff" onclick="setSeatLayoutLayer('diff')">当日差枚</button>
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="diff" onclick="setSeatLayoutLayer('diff')">当日結果</button>
           <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="recent30" onclick="setSeatLayoutLayer('recent30')">直近推移</button>
-          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="evidence" onclick="setSeatLayoutLayer('evidence')">過去根拠</button>
-          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="target" onclick="setSeatLayoutLayer('target')">注目変化</button>
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="evidence" onclick="setSeatLayoutLayer('evidence')">扱い変化</button>
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="target" onclick="setSeatLayoutLayer('target')">組合せ反応</button>
           <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="smart" onclick="setSeatLayoutLayer('smart')">スマスロ扱い</button>
+          <button type="button" class="seat-layout-segment-btn" data-seat-layout-layer="line" onclick="setSeatLayoutLayer('line')">LINEグラフ</button>
         </div>
         <div class="seat-layout-day-filter" id="seatLayoutDayFilterBtns" aria-label="ホール図の日付フィルター"></div>
         <div class="seat-layout-segment" aria-label="ホール図モード">

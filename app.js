@@ -27,7 +27,7 @@ const SEAT_LAYOUT_CONFIG_PREFIX = 'juggler_seat_layout_config_';
 const SEAT_LAYOUT_UI_STORAGE_KEY = 'juggler_seat_layout_ui';
 const SEAT_LAYOUT_VIEW_MODES = new Set(['view', 'edit']);
 const SEAT_LAYOUT_DENSITIES = new Set(['normal', 'compact', 'tiny']);
-const SEAT_LAYOUT_LAYERS = new Set(['diff', 'recent30', 'evidence', 'target', 'smart']);
+const SEAT_LAYOUT_LAYERS = new Set(['diff', 'recent30', 'evidence', 'target', 'smart', 'line']);
 const SEAT_LAYOUT_COL_MIN = 4;
 const SEAT_LAYOUT_COL_MAX = 40;
 const SEAT_LAYOUT_ZOOM_MIN = 0.15;
@@ -2314,8 +2314,8 @@ function detectAutoSpecial(rows) {
 }
 
 // ====== タブ ======
-const DETAIL_TABS = new Set(['tab-data','tab-settings','tab-setsuteii','tab-next']);
-const VIEWER_MAIN_TABS = new Set(['tab-overview','tab-trends','tab-days','tab-heat','tab-layout','tab-model','tab-tai']);
+const DETAIL_TABS = new Set(['tab-data','tab-settings','tab-setsuteii','tab-next','tab-days']);
+const VIEWER_MAIN_TABS = new Set(['tab-overview','tab-layout','tab-trends','tab-heat','tab-model','tab-tai']);
 
 function updateRecommendationSectionVisibility(activeTabId) {
   const el = document.getElementById('recommendationSection');
@@ -3856,6 +3856,12 @@ function getSeatLayoutRowsForStore(store) {
   return getSeatLayoutRowsForStoreAtDate(store, seatLayoutState.dateYmd);
 }
 
+function parseSeatLayoutNullableNumber(value) {
+  if(value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 function getSeatLayoutRowsForStoreAtDate(store, ymd) {
   const byDate = ymd ? getSeatLayoutDataByDate(ymd) : seatLayoutState.seatData;
   const seatRows = byDate?.[store];
@@ -3863,21 +3869,43 @@ function getSeatLayoutRowsForStoreAtDate(store, ymd) {
     return seatRows.map((row) => {
       const tai = Number(row?.machine_no);
       if(!Number.isFinite(tai)) return null;
-      const diff = Number(row?.diff);
+      const diff = parseSeatLayoutNullableNumber(row?.diff);
       return {
         tai,
         model: String(row?.model || '').trim() || '不明',
-        diff: Number.isFinite(diff) ? diff : null,
+        diff,
         date: ymd || '',
+        line: !!row?.line,
+        source: row?.source || '',
+        rate: row?.rate || '',
+        totalGame: parseSeatLayoutNullableNumber(row?.totalGame),
+        big: parseSeatLayoutNullableNumber(row?.big),
+        reg: parseSeatLayoutNullableNumber(row?.reg),
+        atArt: parseSeatLayoutNullableNumber(row?.atArt),
+        combinedRate: row?.combinedRate || '',
+        atArtRate: row?.atArtRate || '',
+        lastGame: parseSeatLayoutNullableNumber(row?.lastGame),
+        maxPayout: parseSeatLayoutNullableNumber(row?.maxPayout),
+        graphTrend: row?.graphTrend || '',
+        graphMovement: parseSeatLayoutNullableNumber(row?.graphMovement),
+        graphNote: row?.graphNote || '',
+        treatmentScore: parseSeatLayoutNullableNumber(row?.treatmentScore ?? row?.lineStrengthScore),
+        treatmentLabel: row?.treatmentLabel || row?.lineStrengthLabel || '',
+        treatmentSignals: Array.isArray(row?.treatmentSignals) ? row.treatmentSignals : (Array.isArray(row?.lineSignals) ? row.lineSignals : []),
+        sourceQuality: row?.sourceQuality || '',
+        lineStrengthScore: parseSeatLayoutNullableNumber(row?.treatmentScore ?? row?.lineStrengthScore),
+        lineStrengthLabel: row?.treatmentLabel || row?.lineStrengthLabel || '',
+        lineSignals: Array.isArray(row?.treatmentSignals) ? row.treatmentSignals : (Array.isArray(row?.lineSignals) ? row.lineSignals : []),
+        note: row?.note || '',
       };
     }).filter(Boolean);
   }
   return Object.entries((seatRows && typeof seatRows === 'object') ? seatRows : {}).map(([taiRaw, diffRaw]) => {
     const tai = Number(taiRaw);
     if(!Number.isFinite(tai)) return null;
-    const diff = Number(diffRaw);
+    const diff = parseSeatLayoutNullableNumber(diffRaw);
     const fallbackModel = seatLayoutState.cards.find((card) => Number(card.tai) === tai)?.model || '不明';
-    return { tai, model: fallbackModel, diff: Number.isFinite(diff) ? diff : null, date: ymd || '' };
+    return { tai, model: fallbackModel, diff, date: ymd || '' };
   }).filter(Boolean);
 }
 
@@ -4001,8 +4029,8 @@ function buildSeatLayoutRecentStatsByTai(store, rows, limit = 30) {
   const statsByTai = new Map();
   getSeatLayoutRecentRowsForStore(store, limit).forEach((row) => {
     const tai = Number(row?.tai);
-    const diff = Number(row?.diff);
-    if(!Number.isFinite(tai) || !Number.isFinite(diff)) return;
+    const diff = parseSeatLayoutNullableNumber(row?.diff);
+    if(!Number.isFinite(tai) || diff === null) return;
 
     const currentModel = modelByTai.get(tai) || '';
     const rowModel = normalizeModelName(row?.model || '');
@@ -4039,12 +4067,20 @@ function attachSeatLayoutRecentStats(store, rows, limit = 30) {
 
 function getSeatLayoutLayerMetricValue(row, layer = seatLayoutState.layer) {
   const normalizedLayer = normalizeSeatLayoutLayer(layer);
+  if(normalizedLayer === 'line') {
+    return getLineTreatmentScore(row);
+  }
   const value = normalizedLayer === 'recent30' ? row?.recent30Diff : row?.diff;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
+  return parseSeatLayoutNullableNumber(value);
 }
 
 function getSeatLayoutLayerMetricText(row, layer = seatLayoutState.layer) {
+  if(normalizeSeatLayoutLayer(layer) === 'line') {
+    const label = getLineTreatmentLabel(row);
+    const score = getLineTreatmentScore(row);
+    if(label) return `${label}${score !== null ? ` ${score}` : ''}`;
+    return 'LINEグラフなし';
+  }
   const value = getSeatLayoutLayerMetricValue(row, layer);
   return Number.isFinite(value) ? formatSeatHeatmapDiff(value) : 'データなし';
 }
@@ -4063,6 +4099,15 @@ function formatSeatHeatmapCompactDiff(diff) {
 }
 
 function getSeatLayoutLegendItems(layer = seatLayoutState.layer) {
+  if(normalizeSeatLayoutLayer(layer) === 'line') {
+    return [
+      { cls: 'is-strong-plus', label: '強め推移' },
+      { cls: 'is-plus', label: '注目変化' },
+      { cls: 'is-neutral', label: '要観察/件数少' },
+      { cls: 'is-minus', label: '弱め' },
+      { cls: 'is-strong-minus', label: '未取得' },
+    ];
+  }
   if(normalizeSeatLayoutLayer(layer) === 'recent30') {
     return [
       { cls: 'is-strong-plus', label: '+10000以上' },
@@ -4085,11 +4130,18 @@ function getSeatLayoutLegendItems(layer = seatLayoutState.layer) {
 
 function renderSeatLayoutLayerText(layer = seatLayoutState.layer) {
   const normalizedLayer = normalizeSeatLayoutLayer(layer);
-  const recentLayer = normalizedLayer === 'recent30';
+  const layerTitle = {
+    diff: '当日結果',
+    recent30: '直近推移',
+    evidence: '扱い変化',
+    target: '組合せ反応',
+    smart: 'スマスロ扱い',
+    line: 'LINEグラフ',
+  }[normalizedLayer] || '当日結果';
   const summaryTitle = document.getElementById('seatHeatmapSummaryTitle');
-  if(summaryTitle) summaryTitle.textContent = recentLayer ? '直近推移' : '直近推移';
+  if(summaryTitle) summaryTitle.textContent = layerTitle;
   const legendTitle = document.getElementById('seatHeatmapLegendTitle');
-  if(legendTitle) legendTitle.textContent = recentLayer ? '凡例（直近推移）' : '凡例（当日差枚）';
+  if(legendTitle) legendTitle.textContent = `凡例（${layerTitle}）`;
   const legend = document.getElementById('seatHeatmapLegend');
   if(legend) {
     legend.innerHTML = getSeatLayoutLegendItems(normalizedLayer).map((item) => `
@@ -4106,8 +4158,19 @@ function getSeatLayoutDiffMap(store) {
   return map;
 }
 
-function getSeatHeatmapColorClass(diff, layer = 'diff') {
+function getSeatHeatmapColorClass(diff, layer = 'diff', row = null) {
   if(!Number.isFinite(diff)) return 'seat-heatmap-cell is-missing';
+  if(normalizeSeatLayoutLayer(layer) === 'line') {
+    const label = getLineTreatmentLabel(row);
+    if(label === '強め推移' || label === '扱い強め') return 'seat-heatmap-cell is-strong-plus';
+    if(label === '注目変化' || label === '注目') return 'seat-heatmap-cell is-plus';
+    if(label === '弱め') return 'seat-heatmap-cell is-minus';
+    if(label === 'データ不足' || label === '件数少' || label === '要観察') return 'seat-heatmap-cell is-neutral';
+    if(diff >= 55) return 'seat-heatmap-cell is-strong-plus';
+    if(diff >= 25) return 'seat-heatmap-cell is-plus';
+    if(diff <= 0) return 'seat-heatmap-cell is-minus';
+    return 'seat-heatmap-cell is-neutral';
+  }
   const recentScale = normalizeSeatLayoutLayer(layer) === 'recent30';
   const strongPlus = recentScale ? 10000 : 3000;
   const plus = recentScale ? 3000 : 1000;
@@ -4124,6 +4187,40 @@ function getSeatHeatmapColorClass(diff, layer = 'diff') {
 function formatSeatHeatmapDiff(diff) {
   if(!Number.isFinite(diff)) return 'データなし';
   return `${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString()}枚`;
+}
+
+function parseLineNoteValues(note) {
+  const values = {};
+  String(note || '').split(';').forEach((part) => {
+    const idx = part.indexOf('=');
+    if(idx < 0) return;
+    const key = part.slice(0, idx).trim();
+    const value = parseSeatLayoutNullableNumber(part.slice(idx + 1).trim());
+    if(key && value !== null) values[key] = value;
+  });
+  return values;
+}
+
+function getLineTreatmentScore(row) {
+  return parseSeatLayoutNullableNumber(row?.treatmentScore ?? row?.lineStrengthScore);
+}
+
+function getLineTreatmentLabel(row) {
+  const label = String(row?.treatmentLabel || row?.lineStrengthLabel || '').trim();
+  return label || 'データ不足';
+}
+
+function getLineTreatmentSignals(row) {
+  const signals = Array.isArray(row?.treatmentSignals) ? row.treatmentSignals : (Array.isArray(row?.lineSignals) ? row.lineSignals : []);
+  return signals.filter(Boolean);
+}
+
+function getLineStrengthTone(label) {
+  if(label === '強め推移' || label === '扱い強め') return 'var(--plus)';
+  if(label === '注目変化' || label === '注目') return 'var(--accent3)';
+  if(label === '弱め') return 'var(--minus)';
+  if(label === '件数少') return 'var(--warning)';
+  return 'var(--muted)';
 }
 
 function formatSeatHeatmapModelLabel(model, density = seatLayoutState.density) {
@@ -4173,6 +4270,36 @@ function renderSeatHeatmapSummary(rows, allCount, layer = seatLayoutState.layer)
     summary.innerHTML = '<div class="empty-msg">表示対象の台がありません</div>';
     return;
   }
+  if(normalizeSeatLayoutLayer(layer) === 'line') {
+    const lineRows = rows.filter((row) => row?.line);
+    const gameRows = lineRows.filter((row) => parseSeatLayoutNullableNumber(row.totalGame) !== null);
+    const totalGame = gameRows.reduce((sum, row) => sum + parseSeatLayoutNullableNumber(row.totalGame), 0);
+    const avgGame = gameRows.length ? Math.round(totalGame / gameRows.length) : 0;
+    const highGame = gameRows.filter((row) => parseSeatLayoutNullableNumber(row.totalGame) >= 6000).length;
+    const maxPayoutRows = rows.filter((row) => row?.line && parseSeatLayoutNullableNumber(row.maxPayout) !== null);
+    const topPayout = maxPayoutRows.length ? Math.max(...maxPayoutRows.map((row) => parseSeatLayoutNullableNumber(row.maxPayout))) : null;
+    const strongCount = lineRows.filter((row) => ['強め推移','扱い強め'].includes(getLineTreatmentLabel(row))).length;
+    const watchCount = lineRows.filter((row) => ['注目変化','注目'].includes(getLineTreatmentLabel(row))).length;
+    const thinCount = lineRows.filter((row) => ['データ不足','件数少','要観察'].includes(getLineTreatmentLabel(row))).length;
+    const graphCount = lineRows.filter((row) => String(row.graphTrend || '').trim() || parseSeatLayoutNullableNumber(row.graphMovement) !== null).length;
+    const stat = (label, value, color = 'var(--text)') => `
+      <div class="seat-heatmap-stat">
+        <div class="seat-heatmap-stat-label">${label}</div>
+        <div class="seat-heatmap-stat-value" style="color:${color}">${value}</div>
+      </div>`;
+    summary.innerHTML = [
+      stat('表示台数', `${rows.length}台${rows.length !== allCount ? ` / 全${allCount}台` : ''}`, 'var(--accent3)'),
+      stat('LINE取得', `${lineRows.length}台`, lineRows.length ? 'var(--plus)' : 'var(--muted)'),
+      stat('強め推移', `${strongCount}台`, strongCount ? 'var(--plus)' : 'var(--muted)'),
+      stat('注目変化', `${watchCount}台`, watchCount ? 'var(--accent3)' : 'var(--muted)'),
+      stat('要観察', `${thinCount}台`, thinCount ? 'var(--warning)' : 'var(--muted)'),
+      stat('グラフ入力', `${graphCount}台`, graphCount ? 'var(--accent3)' : 'var(--muted)'),
+      stat('平均G', gameRows.length ? `${avgGame.toLocaleString()}G` : '-', 'var(--text)'),
+      stat('高稼働', `${highGame}台`, highGame ? 'var(--plus)' : 'var(--muted)'),
+      stat('最大放出', Number.isFinite(topPayout) ? `${Math.round(topPayout).toLocaleString()}` : '-', 'var(--accent3)'),
+    ].join('');
+    return;
+  }
   const metricRows = rows
     .map((row) => ({ row, value: getSeatLayoutLayerMetricValue(row, layer) }))
     .filter((item) => Number.isFinite(item.value));
@@ -4211,6 +4338,42 @@ function renderSeatHeatmapInsight(rows, layer = seatLayoutState.layer) {
   if(!el) return;
   if(!rows.length) {
     el.innerHTML = '<div class="empty-msg">表示対象の台がありません</div>';
+    return;
+  }
+  if(normalizeSeatLayoutLayer(layer) === 'line') {
+    const lineRows = rows.filter((row) => row?.line);
+    if(!lineRows.length) {
+      el.innerHTML = '<div class="seat-insight-muted">LINE由来の稼働データがまだありません。</div>';
+      return;
+    }
+    const gameRows = lineRows.filter((row) => parseSeatLayoutNullableNumber(row.totalGame) !== null);
+    const avgGame = gameRows.length
+      ? Math.round(gameRows.reduce((sum, row) => sum + parseSeatLayoutNullableNumber(row.totalGame), 0) / gameRows.length)
+      : null;
+    const topScore = lineRows.slice().sort((a, b) => (getLineTreatmentScore(b) || 0) - (getLineTreatmentScore(a) || 0))[0];
+    const topGame = gameRows.slice().sort((a, b) => parseSeatLayoutNullableNumber(b.totalGame) - parseSeatLayoutNullableNumber(a.totalGame))[0];
+    const topPayout = lineRows.filter((row) => parseSeatLayoutNullableNumber(row.maxPayout) !== null)
+      .sort((a, b) => parseSeatLayoutNullableNumber(b.maxPayout) - parseSeatLayoutNullableNumber(a.maxPayout))[0];
+    const strongCount = lineRows.filter((row) => ['強め推移','扱い強め'].includes(getLineTreatmentLabel(row))).length;
+    const watchCount = lineRows.filter((row) => ['注目変化','注目'].includes(getLineTreatmentLabel(row))).length;
+    const graphCount = lineRows.filter((row) => String(row.graphTrend || '').trim() || parseSeatLayoutNullableNumber(row.graphMovement) !== null).length;
+    const headline = strongCount
+      ? `強め推移 ${strongCount}台`
+      : watchCount
+        ? `注目変化 ${watchCount}台`
+        : '件数少のため要観察';
+    const body = gameRows.length
+      ? `平均${avgGame.toLocaleString()}G。BONUS回数ではなく、グラフ傾向・稼働感・最大放出を参考値として重ねています。`
+      : 'グラフ未入力が多いため件数少。まずは推移グラフの形を手入力すると読みやすくなります。';
+    el.innerHTML = `
+      <div class="seat-insight-headline">${escapeHtml(headline)}</div>
+      <div class="seat-insight-body">${escapeHtml(body)}</div>
+      <div class="seat-insight-extremes">
+        <span>上位変化 ${escapeHtml(String(topScore?.tai || '-'))}: ${escapeHtml(getLineTreatmentLabel(topScore || {}))}</span>
+        <span>グラフ入力 ${escapeHtml(String(graphCount))}台</span>
+        <span>最多G ${escapeHtml(String(topGame?.tai || '-'))}: ${escapeHtml(parseSeatLayoutNullableNumber(topGame?.totalGame) !== null ? `${parseSeatLayoutNullableNumber(topGame.totalGame).toLocaleString()}G` : '-')}</span>
+        <span>最大放出 ${escapeHtml(String(topPayout?.tai || '-'))}: ${escapeHtml(parseSeatLayoutNullableNumber(topPayout?.maxPayout) !== null ? parseSeatLayoutNullableNumber(topPayout.maxPayout).toLocaleString() : '-')}</span>
+      </div>`;
     return;
   }
   const metricRows = rows
@@ -4270,6 +4433,58 @@ function renderSeatHeatmapPatternInsight(rows, layer = seatLayoutState.layer) {
     el.innerHTML = '<div class="empty-msg">表示対象の台がありません</div>';
     return;
   }
+  if(normalizeSeatLayoutLayer(layer) === 'line') {
+    const lineRows = rows.filter((row) => row?.line);
+    if(!lineRows.length) {
+      el.innerHTML = '<div class="seat-insight-muted">配置に重ねられるLINEデータがまだありません。</div>';
+      return;
+    }
+    const modelMap = new Map();
+    const bandMap = new Map();
+    lineRows.forEach((row) => {
+      const model = String(row.model || '機種未取得');
+      const score = getLineTreatmentScore(row) || 0;
+      const label = getLineTreatmentLabel(row);
+      const strong = ['強め推移','扱い強め'].includes(label) ? 1 : 0;
+      const watch = ['注目変化','注目'].includes(label) ? 1 : 0;
+      const stat = modelMap.get(model) || { label: model, count: 0, score: 0, strong: 0, watch: 0 };
+      stat.count += 1;
+      stat.score += score;
+      stat.strong += strong;
+      stat.watch += watch;
+      modelMap.set(model, stat);
+
+      const tai = Number(row.tai);
+      const band = Number.isFinite(tai) ? `${Math.floor(tai / 10) * 10}番台` : '番号帯不明';
+      const bandStat = bandMap.get(band) || { label: band, count: 0, score: 0, strong: 0, watch: 0 };
+      bandStat.count += 1;
+      bandStat.score += score;
+      bandStat.strong += strong;
+      bandStat.watch += watch;
+      bandMap.set(band, bandStat);
+    });
+    const rank = (map) => Array.from(map.values())
+      .sort((a, b) => (b.strong - a.strong) || ((b.score / b.count) - (a.score / a.count)) || (b.watch - a.watch))[0];
+    const formatTrend = (item) => item
+      ? `${item.label} / 強め推移${item.strong} / 注目変化${item.watch} / ${item.count}台${item.count < 10 ? ' / 件数少' : ''}`
+      : '対象なし';
+    const topModel = rank(modelMap);
+    const topBand = rank(bandMap);
+    el.innerHTML = `
+      <div class="seat-pattern-card">
+        <span>LINEグラフ 機種傾向</span>
+        <strong>${escapeHtml(formatTrend(topModel))}</strong>
+      </div>
+      <div class="seat-pattern-card">
+        <span>台番帯傾向</span>
+        <strong>${escapeHtml(formatTrend(topBand))}</strong>
+      </div>
+      <div class="seat-pattern-card">
+        <span>使い方</span>
+        <strong>BONUSではなく、グラフと配置の偏りを見る</strong>
+      </div>`;
+    return;
+  }
   const metricRows = rows
     .map((row) => ({ row, value: getSeatLayoutLayerMetricValue(row, layer) }))
     .filter((item) => Number.isFinite(item.value));
@@ -4321,24 +4536,25 @@ function renderSeatHeatmapPatternInsight(rows, layer = seatLayoutState.layer) {
     ? `${strongLabel} ${strongCells.length}台 / 近接 ${adjacentStrong}組`
     : `${strongLabel}の台はなし`;
   const recentRows = getSeatLayoutRecentRowsForStore(seatLayoutState.store, 30)
-    .filter((row) => Number.isFinite(row.diff));
+    .filter((row) => parseSeatLayoutNullableNumber(row.diff) !== null);
   const smartRecentRows = recentRows.filter((row) => isSmartSlotModel(row.model));
   const smartModelMap = new Map();
   const smartBandMap = new Map();
   smartRecentRows.forEach((row) => {
     const model = String(row.model || '機種未取得');
     const modelStat = smartModelMap.get(model) || { label: model, total: 0, count: 0, plus: 0 };
-    modelStat.total += row.diff;
+    const diff = parseSeatLayoutNullableNumber(row.diff);
+    modelStat.total += diff;
     modelStat.count += 1;
-    if(row.diff > 0) modelStat.plus += 1;
+    if(diff > 0) modelStat.plus += 1;
     smartModelMap.set(model, modelStat);
 
     const tai = Number(row.tai);
     const band = Number.isFinite(tai) ? `${Math.floor(tai / 10) * 10}番台` : '番号帯不明';
     const bandStat = smartBandMap.get(band) || { label: band, total: 0, count: 0, plus: 0 };
-    bandStat.total += row.diff;
+    bandStat.total += diff;
     bandStat.count += 1;
-    if(row.diff > 0) bandStat.plus += 1;
+    if(diff > 0) bandStat.plus += 1;
     smartBandMap.set(band, bandStat);
   });
   const rankTreatment = (map) => Array.from(map.values())
@@ -4417,11 +4633,11 @@ function buildSeatSmartTreatmentForRow(row) {
   const tai = Number(row.tai);
   const bandStart = Number.isFinite(tai) ? Math.floor(tai / 10) * 10 : null;
   const recentRows = getSeatLayoutRecentRowsForStore(seatLayoutState.store, 30)
-    .filter((item) => Number.isFinite(Number(item.diff)) && isSmartSlotModel(item.model));
+    .filter((item) => parseSeatLayoutNullableNumber(item.diff) !== null && isSmartSlotModel(item.model));
   const summarize = (items) => {
     if(!items.length) return null;
-    const total = items.reduce((sum, item) => sum + Number(item.diff), 0);
-    const plus = items.filter((item) => Number(item.diff) > 0).length;
+    const total = items.reduce((sum, item) => sum + parseSeatLayoutNullableNumber(item.diff), 0);
+    const plus = items.filter((item) => parseSeatLayoutNullableNumber(item.diff) > 0).length;
     return {
       count: items.length,
       avg: total / items.length,
@@ -4494,19 +4710,19 @@ function buildSeatLayoutPositionProfile(row) {
   const neighbors = neighborIndices
     .map((neighborIdx) => rowByTai.get(Number(cells[neighborIdx])))
     .filter(Boolean)
-    .filter((item) => Number.isFinite(Number(item.diff)));
-  const strongNeighbors = neighbors.filter((item) => Number(item.diff) >= 1000);
-  const weakNeighbors = neighbors.filter((item) => Number(item.diff) <= -1000);
+    .filter((item) => parseSeatLayoutNullableNumber(item.diff) !== null);
+  const strongNeighbors = neighbors.filter((item) => parseSeatLayoutNullableNumber(item.diff) >= 1000);
+  const weakNeighbors = neighbors.filter((item) => parseSeatLayoutNullableNumber(item.diff) <= -1000);
   const bandStart = Math.floor(tai / 10) * 10;
   const bandRows = Array.from(rowByTai.values())
     .filter((item) => {
       const itemTai = Number(item.tai);
       return Number.isFinite(itemTai)
         && Math.floor(itemTai / 10) * 10 === bandStart
-        && Number.isFinite(Number(item.diff));
+        && parseSeatLayoutNullableNumber(item.diff) !== null;
     });
   const bandAvg = bandRows.length
-    ? bandRows.reduce((sum, item) => sum + Number(item.diff), 0) / bandRows.length
+    ? bandRows.reduce((sum, item) => sum + parseSeatLayoutNullableNumber(item.diff), 0) / bandRows.length
     : null;
   return {
     positionLabel,
@@ -4544,7 +4760,7 @@ function renderSeatLayoutPositionSelection(row) {
       <span>隣接</span>
       <strong>${escapeHtml(neighborText)}</strong>
     </div>
-    <div class="seat-selection-position-line ${Number(profile.bandAvg) >= 300 ? 'is-good' : Number(profile.bandAvg) <= -300 ? 'is-bad' : 'is-neutral'}">
+    <div class="seat-selection-position-line ${profile.bandAvg !== null && profile.bandAvg >= 300 ? 'is-good' : profile.bandAvg !== null && profile.bandAvg <= -300 ? 'is-bad' : 'is-neutral'}">
       <span>${escapeHtml(profile.bandLabel)}</span>
       <strong>${escapeHtml(bandText)}</strong>
     </div>
@@ -4669,28 +4885,67 @@ function renderSeatHeatmapSelection(row) {
       </div>`;
     return;
   }
-  const diff = Number(row.diff);
-  const diffColor = Number.isFinite(diff)
+  const diff = parseSeatLayoutNullableNumber(row.diff);
+  const diffColor = diff !== null
     ? (diff >= 0 ? 'var(--plus)' : 'var(--minus)')
     : 'var(--muted)';
-  const fallbackRecent = Number.isFinite(Number(row.recent30Diff))
+  const fallbackRecent = parseSeatLayoutNullableNumber(row.recent30Diff) !== null
     ? null
     : buildSeatLayoutRecentStatsByTai(seatLayoutState.store, [row], 30).get(Number(row.tai));
-  const recent30Diff = Number.isFinite(Number(row.recent30Diff))
-    ? Number(row.recent30Diff)
-    : Number(fallbackRecent?.total);
+  const recent30Diff = parseSeatLayoutNullableNumber(row.recent30Diff) !== null
+    ? parseSeatLayoutNullableNumber(row.recent30Diff)
+    : parseSeatLayoutNullableNumber(fallbackRecent?.total);
   const recent30Days = Number(row.recent30Days) || Number(fallbackRecent?.days) || 0;
-  const recent30Color = Number.isFinite(recent30Diff)
+  const recent30Color = recent30Diff !== null
     ? (recent30Diff >= 0 ? 'var(--plus)' : 'var(--minus)')
     : 'var(--muted)';
   el.hidden = false;
   const model = String(row.model || '').trim();
-  const judgeLabel = Number.isFinite(diff)
+  const judgeLabel = diff !== null
     ? (diff >= 3000 ? '強いプラス' : diff >= 1000 ? 'プラス寄り' : diff <= -2000 ? '大きくマイナス' : diff <= -1000 ? 'マイナス寄り' : '中立')
     : 'データなし';
   const evidenceCandidate = getSeatLayoutEvidenceCandidateByTai(row.tai);
   const smartTreatmentHtml = renderSeatSmartTreatmentSelection(row);
   const positionHtml = renderSeatLayoutPositionSelection(row);
+  const lineNoteValues = parseLineNoteValues(row.note);
+  const lineStrengthLabel = getLineTreatmentLabel(row);
+  const lineStrengthScore = getLineTreatmentScore(row);
+  const lineSignalRows = getLineTreatmentSignals(row).length
+    ? getLineTreatmentSignals(row).slice(0, 4)
+    : ['根拠データが薄いため要観察'];
+  const graphMovementText = parseSeatLayoutNullableNumber(row.graphMovement) !== null
+    ? `${row.graphMovement >= 0 ? '+' : ''}${Math.round(row.graphMovement).toLocaleString()}`
+    : '未入力';
+  const lineHtml = row.line ? `
+    <div class="seat-selection-evidence">
+      <div class="seat-selection-evidence-title">扱い判定</div>
+      <div class="seat-selection-evidence-line">
+        <span>扱い判定</span>
+        <strong style="color:${getLineStrengthTone(lineStrengthLabel)}">${escapeHtml(lineStrengthLabel)}${lineStrengthScore !== null ? ` / ${lineStrengthScore}` : ''}</strong>
+      </div>
+      ${lineSignalRows.map((signal) => `
+        <div class="seat-selection-evidence-line">
+          <span>根拠</span>
+          <strong>${escapeHtml(signal)}</strong>
+        </div>
+      `).join('')}
+      ${[
+        ['グラフ傾向', row.graphTrend || '未入力'],
+        ['グラフ上げ下げ', graphMovementText],
+        ['グラフメモ', row.graphNote || '未入力'],
+        ['累計G', parseSeatLayoutNullableNumber(row.totalGame) !== null ? `${parseSeatLayoutNullableNumber(row.totalGame).toLocaleString()}G` : '未取得'],
+        ['最大放出', parseSeatLayoutNullableNumber(row.maxPayout) !== null ? parseSeatLayoutNullableNumber(row.maxPayout).toLocaleString() : '-'],
+        ['BIG / REG / AT', `${parseSeatLayoutNullableNumber(row.big) !== null ? row.big : '-'} / ${parseSeatLayoutNullableNumber(row.reg) !== null ? row.reg : '-'} / ${parseSeatLayoutNullableNumber(row.atArt) !== null ? row.atArt : '-'}`],
+        ['合成 / AT確率', `${row.combinedRate || '-'} / ${row.atArtRate || '-'}`],
+        ['過去数日BONUS', `${lineNoteValues.bonus_today ?? '-'} / ${lineNoteValues.bonus_1d ?? '-'} / ${lineNoteValues.bonus_2d ?? '-'}`],
+      ].map(([label, value]) => `
+        <div class="seat-selection-evidence-line">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+        </div>
+      `).join('')}
+      <div class="seat-selection-position-note">BONUS/AT回数は参考値です。扱い判定は主にグラフ傾向・稼働感・配置の継続性で見ます。</div>
+    </div>` : '';
   const evidenceHtml = evidenceCandidate ? `
     <div class="seat-selection-evidence">
       <div class="seat-selection-evidence-title">検証済み根拠</div>
@@ -4707,19 +4962,14 @@ function renderSeatHeatmapSelection(row) {
         </div>
       `).join('')}
     </div>` : '';
-  el.innerHTML = `
-    <div class="seat-selection-main">
-      <span class="seat-selection-tai">${escapeHtml(String(row.tai))}</span>
-      <span class="seat-selection-model">${escapeHtml(model && model !== '不明' ? model : '機種未取得')}</span>
-    </div>
-    <div class="seat-selection-detail-grid">
+  const rawDetailHtml = `<div class="seat-selection-detail-grid">
       <div>
         <span>差枚</span>
         <strong class="seat-selection-diff" style="color:${diffColor}">${escapeHtml(formatSeatHeatmapDiff(row.diff))}</strong>
       </div>
       <div>
         <span>直近30日</span>
-        <strong style="color:${recent30Color}">${escapeHtml(Number.isFinite(recent30Diff) ? `${formatSeatHeatmapDiff(recent30Diff)} / ${recent30Days}日` : 'データなし')}</strong>
+        <strong style="color:${recent30Color}">${escapeHtml(recent30Diff !== null ? `${formatSeatHeatmapDiff(recent30Diff)} / ${recent30Days}日` : 'データなし')}</strong>
       </div>
       <div>
         <span>判定</span>
@@ -4733,10 +4983,19 @@ function renderSeatHeatmapSelection(row) {
         <span>店舗</span>
         <strong>${escapeHtml(seatLayoutState.store || '-')}</strong>
       </div>
+    </div>`;
+  el.innerHTML = `
+    <div class="seat-selection-main">
+      <span class="seat-selection-tai">${escapeHtml(String(row.tai))}</span>
+      <span class="seat-selection-model">${escapeHtml(model && model !== '不明' ? model : '機種未取得')}</span>
     </div>
+    ${row.line ? lineHtml : ''}
     ${positionHtml}
     ${smartTreatmentHtml}
-    ${evidenceHtml}`;
+    ${evidenceHtml}
+    ${row.line ? `<div class="seat-selection-source-title">元データ</div>` : ''}
+    ${rawDetailHtml}
+    ${row.line ? '' : lineHtml}`;
 }
 
 function renderSeatHeatmap(store) {
@@ -4772,9 +5031,14 @@ function renderSeatHeatmap(store) {
   renderSeatHeatmapModelFilter(allRows);
   const layer = normalizeSeatLayoutLayer(seatLayoutState.layer);
   const smartLayer = layer === 'smart';
+  const lineLayer = layer === 'line';
   const matchingTai = new Set();
   allRows.forEach((row) => {
-    if(doesSeatLayoutCardMatchFilters(row) && (!smartLayer || isSmartSlotModel(row.model))) matchingTai.add(Number(row.tai));
+    if(doesSeatLayoutCardMatchFilters(row)
+      && (!smartLayer || isSmartSlotModel(row.model))
+      && (!lineLayer || row.line)) {
+      matchingTai.add(Number(row.tai));
+    }
   });
   const rows = allRows.filter((row) => matchingTai.has(Number(row.tai)));
   renderSeatLayoutDataNotice(rows, allRows, layer);
@@ -4827,7 +5091,7 @@ function renderSeatHeatmap(store) {
     const card = getSeatLayoutCardByTai(tai) || { tai, model: row.model || '不明' };
     const matches = matchingTai.has(tai);
     const metricValue = getSeatLayoutLayerMetricValue(row, layer);
-    const colorClass = getSeatHeatmapColorClass(metricValue, layer);
+    const colorClass = getSeatHeatmapColorClass(metricValue, layer, row);
     const selectedClass = seatLayoutState.selectedTai === tai ? ' is-selected' : '';
     const hiddenClass = matches ? '' : ' is-filtered-out';
     const evidenceCandidate = evidenceByTai.get(tai);
@@ -4838,10 +5102,14 @@ function renderSeatHeatmap(store) {
     const model = row.model || card.model || '不明';
     const smartClass = isSmartSlotModel(model) ? ' is-smart-slot' : '';
     const shortModel = formatSeatHeatmapModelLabel(model, density);
-    const recentText = layer === 'recent30' && Number.isFinite(metricValue)
+    const recentText = layer === 'line'
+      ? getLineTreatmentLabel(row).slice(0, 4)
+      : layer === 'recent30' && Number.isFinite(metricValue)
       ? formatSeatHeatmapCompactDiff(metricValue)
       : '';
-    const titleMetric = layer === 'recent30'
+    const titleMetric = layer === 'line'
+      ? `LINEグラフ ${getSeatLayoutLayerMetricText(row, layer)} / グラフ ${row.graphTrend || '-'} / 最大放出 ${parseSeatLayoutNullableNumber(row.maxPayout) !== null ? parseSeatLayoutNullableNumber(row.maxPayout).toLocaleString() : '-'}`
+      : layer === 'recent30'
       ? `当日 ${formatSeatHeatmapDiff(row.diff)} / 直近30日 ${getSeatLayoutLayerMetricText(row, layer)}${row.recent30Days ? ` / ${row.recent30Days}日` : ''}`
       : formatSeatHeatmapDiff(row.diff);
     return `<button type="button"
@@ -5171,7 +5439,7 @@ function renderSeatLayoutChromeState() {
   shell?.classList.toggle('is-edit-mode', viewMode === 'edit');
   shell?.classList.toggle('is-mobile-view', mobileMode);
   shell?.classList.toggle('is-side-collapsed', !!seatLayoutState.sidePanelCollapsed);
-  ['diff', 'recent30', 'evidence', 'target', 'smart'].forEach((name) => {
+  ['diff', 'recent30', 'evidence', 'target', 'smart', 'line'].forEach((name) => {
     shell?.classList.toggle(`is-layer-${name}`, layer === name);
   });
   restoreSeatLayoutDesktopZoomIfNeeded();
@@ -5190,7 +5458,7 @@ function renderSeatLayoutChromeState() {
     ['normal', 'compact', 'tiny'].forEach((name) => {
       grid.classList.toggle(`is-density-${name}`, density === name);
     });
-    ['diff', 'recent30', 'evidence', 'target', 'smart'].forEach((name) => {
+    ['diff', 'recent30', 'evidence', 'target', 'smart', 'line'].forEach((name) => {
       grid.classList.toggle(`is-layer-${name}`, layer === name);
     });
   }
@@ -9495,6 +9763,26 @@ function getBestCombinationItem(def) {
   return thin[0] || null;
 }
 
+function getBestModelTimingCombination() {
+  const items = [];
+  (Array.isArray(G.modelStats) ? G.modelStats : []).forEach((modelRow) => {
+    const digitAvg = modelRow?.digitAvg && typeof modelRow.digitAvg === 'object' ? modelRow.digitAvg : {};
+    Object.entries(digitAvg).forEach(([digit, stat]) => {
+      const avgValue = Number(stat?.avg);
+      const count = Number(stat?.count) || 0;
+      if(!Number.isFinite(avgValue) || count <= 0) return;
+      items.push({
+        model: modelRow.model || '機種不明',
+        digit,
+        avg: avgValue,
+        count,
+      });
+    });
+  });
+  if(!items.length) return null;
+  return items.sort((a, b) => (b.avg - a.avg) || (b.count - a.count))[0];
+}
+
 function renderCombinationEmptyState() {
   const html = `
     <div class="combination-empty">
@@ -9535,6 +9823,8 @@ function renderCombinationOverview() {
     const conf = combinationConfidence(item.count, def.minCount);
     return { def, item, label: combinationStrengthLabel(item, def.minCount), conf };
   });
+  const modelTiming = getBestModelTimingCombination();
+  const modelTimingConf = combinationConfidence(modelTiming?.count || 0, 20);
   wrap.innerHTML = `
     ${renderViewerDepthSwitch()}
     ${renderFreshnessWarningPanel(getAnalysisFreshnessMeta(), '組合せのデータ鮮度')}
@@ -9550,6 +9840,15 @@ function renderCombinationOverview() {
           <small class="combination-quality">${renderViewerQualityBadge(conf, { subtle: true })}</small>
         </button>
       `).join('')}
+      <button type="button" class="combination-insight is-${escapeHtml(modelTimingConf.tone)}" onclick="openViewerFlowTab('tab-model')">
+        <span class="combination-insight-type">機種 × 日付末尾</span>
+        <strong>${modelTiming ? `${escapeHtml(modelTiming.model)} × ${escapeHtml(String(modelTiming.digit))}の付く日` : '組合せデータなし'}</strong>
+        <span class="combination-insight-meta">
+          <b>${escapeHtml(modelTiming ? (modelTiming.avg >= 180 ? '強め' : modelTiming.avg >= 60 ? '注目' : '横ばい') : 'データなし')}</b>
+          ${modelTiming ? `${escapeHtml(formatCombinationDiff(modelTiming.avg))} / ${escapeHtml(modelTiming.count)}件` : 'データなし'}
+        </span>
+        <small class="combination-quality">${renderViewerQualityBadge(modelTimingConf, { subtle: true })}</small>
+      </button>
     </div>`;
 }
 
@@ -10968,7 +11267,7 @@ function renderViewerDepthSwitch() {
   </div>`;
 }
 
-// ====== 過去データ変遷ビューア ======
+// ====== 扱い変化ビューア ======
 function toFiniteTrendNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
@@ -11319,7 +11618,7 @@ function getDefaultExternalEventLayers() {
     {
       key: 'old_event',
       label: '旧イベ',
-      description: '日付・曜日・店舗の旧イベント傾向を、概況や変遷へ重ねる枠です。',
+      description: '日付・曜日・店舗の旧イベント傾向を、概況や推移へ重ねる枠です。',
     },
     {
       key: 'media',
@@ -11368,7 +11667,7 @@ function getExternalEventsFrame(source = {}, defaults = {}) {
 function formatExternalOverlayTarget(key) {
   const labels = {
     overview: '概況',
-    trends: '変遷',
+    trends: '推移',
     days: '日にち',
     layout: 'ホール図',
     models: '機種',
@@ -11384,7 +11683,7 @@ function renderOverviewFreshness() {
   if(!G._precomputed) {
     wrap.innerHTML = `<div class="card viewer-empty-card">
       <div class="card-title">ホール概要</div>
-      <p class="section-note">まず生成済み data.json を読み込むと、概況・変遷・ホール図を確認できます。</p>
+      <p class="section-note">まず生成済み data.json を読み込むと、概況・推移・ホール図を確認できます。</p>
       <button class="btn" onclick="loadFromJSON()">データを読み込む</button>
     </div>`;
     return;
@@ -11430,6 +11729,10 @@ function renderOverviewQuickRead() {
   const view = store ? getStoreTrendView(store) : G.trendView;
   const status = store ? getStoreOverviewStatus(store, view) : null;
   const topModel = (view?.modelTrends || []).find(m => m.tone === 'up') || (view?.modelTrends || [])[0] || null;
+  const topDay = (Array.isArray(G.dayStats) ? G.dayStats : [])
+    .map(row => ({ day: Number(row.day), avg: Number(row.avg), count: Number(row.total) || Number(row.count) || 0 }))
+    .filter(row => Number.isInteger(row.day) && Number.isFinite(row.avg))
+    .sort((a, b) => b.avg - a.avg)[0] || null;
   const freshness = getAnalysisFreshnessMeta();
   const readRows = [
     {
@@ -11445,9 +11748,15 @@ function renderOverviewQuickRead() {
       tone: status?.tone || 'flat',
     },
     {
+      label: '強いタイミング',
+      value: topDay ? `${topDay.day}日` : '日付データなし',
+      detail: topDay ? `${formatTrendDiff(topDay.avg)} / ${formatTrendNumber(topDay.count, '件')}` : '推移と組合せへ掘る',
+      tone: topDay ? (topDay.avg >= 0 ? 'up' : 'down') : 'thin',
+    },
+    {
       label: '見る切り口',
       value: topModel ? '機種変化あり' : '日にち/組合せ',
-      detail: topModel ? `${topModel.model} ${topModel.deltaMonth !== null && topModel.deltaMonth !== undefined ? formatTrendDiff(topModel.deltaMonth) : topModel.label}` : '日にち、末尾、台履歴へ掘る',
+      detail: topModel ? `${topModel.model} ${topModel.deltaMonth !== null && topModel.deltaMonth !== undefined ? formatTrendDiff(topModel.deltaMonth) : topModel.label}` : '推移、組合せ、台履歴へ掘る',
       tone: topModel?.tone || 'thin',
     },
   ];
@@ -11595,11 +11904,10 @@ function renderViewerFlowActions(targetId, { compact = false } = {}) {
   const storeLabel = hasStore ? currentStore : '店舗未選択';
   const activeTab = document.querySelector('.tab-content.active')?.id || '';
   const actions = [
-    { tab: 'tab-trends', label: '変遷', meta: '店/機種' },
-    { tab: 'tab-days', label: '日にち', meta: '日別' },
+    { tab: 'tab-layout', label: 'ホール図', meta: '場所' },
+    { tab: 'tab-trends', label: '推移', meta: '店/日付' },
+    { tab: 'tab-heat', label: '組合せ', meta: '癖' },
     { tab: 'tab-model', label: '機種', meta: '扱い' },
-    { tab: 'tab-heat', label: '組合せ', meta: '日付/末尾' },
-    { tab: 'tab-layout', label: 'ホール図', meta: '配置' },
     { tab: 'tab-tai', label: '台履歴', meta: '台番' },
   ];
   wrap.innerHTML = `<div class="viewer-flow-panel ${compact ? 'is-compact' : ''}">
@@ -11608,7 +11916,7 @@ function renderViewerFlowActions(targetId, { compact = false } = {}) {
         <strong>次に見る</strong>
         <span>選択中: ${escapeHtml(storeLabel)}</span>
       </div>
-      <small>店 → 日にち → 機種 → 組合せ → 配置</small>
+      <small>場所 → 推移 → 組合せ → 詳細</small>
     </div>
     <div class="viewer-flow-actions">
       ${actions.map(action => `
@@ -11686,6 +11994,97 @@ function renderTrendMetricCards(storeTrend) {
     <div><span>前30日比</span><strong>${formatTrendDiff(storeTrend?.delta30)}</strong><small>扱いの変化</small></div>
     <div><span>直近90日</span><strong>${formatTrendDiff(recent90.avgDiff)}</strong><small>${formatTrendNumber(recent90.count, '件')} / 勝率${formatTrendRate(recent90.winRate)}</small></div>
     <div><span>前90日比</span><strong>${formatTrendDiff(storeTrend?.delta90)}</strong><small>長めの変化</small></div>
+  </div>`;
+}
+
+function renderTrendSparkline(values, { width = 148, height = 48 } = {}) {
+  const nums = (Array.isArray(values) ? values : []).map(Number).filter(Number.isFinite);
+  if(nums.length < 2) return '<div class="trend-spark-empty">推移データなし</div>';
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  const span = Math.max(1, max - min);
+  const pad = 5;
+  const points = nums.map((value, i) => {
+    const x = pad + (width - pad * 2) * (i / Math.max(1, nums.length - 1));
+    const y = height - pad - ((value - min) / span) * (height - pad * 2);
+    return `${round1(x)},${round1(y)}`;
+  }).join(' ');
+  const zeroY = min < 0 && max > 0
+    ? height - pad - ((0 - min) / span) * (height - pad * 2)
+    : null;
+  const last = nums[nums.length - 1];
+  const first = nums[0];
+  const tone = last >= first ? 'is-up' : 'is-down';
+  return `<svg class="trend-sparkline ${tone}" viewBox="0 0 ${width} ${height}" role="img" aria-label="直近推移">
+    ${zeroY !== null ? `<line x1="${pad}" y1="${round1(zeroY)}" x2="${width - pad}" y2="${round1(zeroY)}" class="trend-spark-zero"></line>` : ''}
+    <polyline points="${points}" fill="none" class="trend-spark-line"></polyline>
+    <circle cx="${points.split(' ').pop().split(',')[0]}" cy="${points.split(' ').pop().split(',')[1]}" r="2.8" class="trend-spark-dot"></circle>
+  </svg>`;
+}
+
+function renderTrendDayPanel() {
+  const wrap = document.getElementById('trendDayPanel');
+  if(!wrap) return;
+  const dateRows = Array.isArray(G.dateSummary) ? G.dateSummary.slice() : [];
+  const dayRows = Array.isArray(G.dayStats) ? G.dayStats.slice() : [];
+  if(!dateRows.length && !dayRows.length) {
+    wrap.innerHTML = '<div class="empty-msg">日にち別データなし</div>';
+    return;
+  }
+  const recentDates = dateRows
+    .map(row => {
+      const count = Number(row?.count) || 0;
+      const total = Number(row?.total);
+      const avgDiff = count && Number.isFinite(total) ? total / count : null;
+      return { ...row, avgDiff };
+    })
+    .filter(row => Number.isFinite(row.avgDiff))
+    .slice(-24);
+  const dayItems = dayRows
+    .map(row => ({
+      day: Number(row.day),
+      avg: Number(row.avg),
+      plusRate: Number(row.plusRate),
+      count: Number(row.total) || Number(row.count) || 0,
+    }))
+    .filter(row => Number.isInteger(row.day) && Number.isFinite(row.avg));
+  const topDays = dayItems.slice().sort((a, b) => b.avg - a.avg).slice(0, 4);
+  const suffixRows = Array.from({ length: 10 }, (_, digit) => {
+    const matched = dayItems.filter(row => row.day % 10 === digit);
+    const count = matched.reduce((sum, row) => sum + (Number(row.count) || 0), 0);
+    const weighted = matched.reduce((sum, row) => sum + (Number(row.avg) || 0) * (Number(row.count) || 0), 0);
+    const plusRows = matched.map(row => row.plusRate).filter(Number.isFinite);
+    return {
+      digit,
+      count,
+      avg: count ? round1(weighted / count) : null,
+      plusRate: plusRows.length ? round1(avg(plusRows)) : null,
+    };
+  }).filter(row => row.avg !== null).sort((a, b) => b.avg - a.avg).slice(0, 4);
+  const latestText = recentDates.length
+    ? `${recentDates[0].dateStr || ''}〜${recentDates[recentDates.length - 1].dateStr || ''}`
+    : '日別推移なし';
+  wrap.innerHTML = `<div class="trend-day-board">
+    <div class="trend-spark-card">
+      <div>
+        <span>日別推移</span>
+        <strong>${escapeHtml(latestText)}</strong>
+      </div>
+      ${renderTrendSparkline(recentDates.map(row => row.avgDiff))}
+    </div>
+    <div class="trend-day-strip">
+      ${suffixRows.map(row => `<button type="button" class="trend-day-chip ${row.avg >= 0 ? 'is-up' : 'is-down'}" onclick="openViewerFlowTab('tab-days')">
+        <span>${escapeHtml(row.digit)}の付く日</span>
+        <strong>${escapeHtml(formatTrendDiff(row.avg))}</strong>
+        <small>${escapeHtml(formatTrendNumber(row.count, '件'))} / 勝率${escapeHtml(formatTrendRate(row.plusRate))}</small>
+      </button>`).join('') || '<div class="empty-msg">日付末尾データなし</div>'}
+    </div>
+    <div class="trend-day-list">
+      ${topDays.map((row, i) => `<button type="button" onclick="openViewerFlowTab('tab-days')">
+        <b>${escapeHtml(String(i + 1))}. ${escapeHtml(String(row.day))}日</b>
+        <span>${escapeHtml(formatTrendDiff(row.avg))} / ${escapeHtml(formatTrendNumber(row.count, '件'))}</span>
+      </button>`).join('') || '<div class="empty-msg">上位日データなし</div>'}
+    </div>
   </div>`;
 }
 
@@ -11791,6 +12190,7 @@ function renderTrendTaiPanel() {
 function renderTrends() {
   renderTrendStorePanel();
   renderViewerFlowActions('trendFlowActions', { compact: true });
+  renderTrendDayPanel();
   renderTrendModelPanel();
   renderTrendTaiPanel();
 }
