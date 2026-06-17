@@ -5063,7 +5063,7 @@ function renderSeatHeatmapSelection(row) {
     <button type="button" class="btn-secondary seat-line-graph-save" onclick="saveSeatLineGraphMemo('${escapeHtml(String(row.tai))}')">保存</button>
   </div>` : '';
   const lineHtml = row.line ? `
-    <div class="seat-selection-evidence">
+    <div class="seat-selection-evidence seat-selection-line-evidence">
       <div class="seat-selection-evidence-title">扱い判定</div>
       <div class="seat-selection-evidence-line">
         <span>扱い判定</span>

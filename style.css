@@ -4321,8 +4321,8 @@ body.is-seat-layout-active main{
     bottom:76px;
     z-index:75;
     display:block;
-    max-height:142px;
-    overflow:hidden;
+    max-height:min(70svh,560px);
+    overflow:auto;
     border-radius:18px;
     padding:12px 14px;
     background:linear-gradient(135deg,rgba(17,28,43,.97),rgba(8,14,24,.97));
@@ -4368,6 +4368,14 @@ body.is-seat-layout-active main{
   .seat-layout-shell.has-seat-selection .seat-selection-detail-grid div:nth-child(n+3),
   .seat-layout-shell.has-seat-selection .seat-selection-evidence{
     display:none;
+  }
+  .seat-layout-shell.has-seat-selection .seat-selection-line-evidence{
+    display:grid;
+    grid-column:1 / -1;
+    margin-top:8px;
+  }
+  .seat-layout-shell.has-seat-selection .seat-line-graph-editor{
+    display:grid;
   }
   .seat-layout-shell.has-seat-selection .seat-selection-detail-grid span{
     font-size:9px;
