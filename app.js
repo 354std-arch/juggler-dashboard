@@ -1877,8 +1877,8 @@ function getMorningStoreTrustMeta(store, targetYmd) {
   if(decision?.actionable === false) {
     return {
       className: 'is-weak',
-      label: decision.label || '検証弱め',
-      detail: decision.message || '過去検証では候補を強く出せません。',
+      label: decision.label || '検証要観察',
+      detail: decision.message || '過去検証では根拠が薄めです。',
       actionable: false,
       targets,
     };
@@ -1886,8 +1886,8 @@ function getMorningStoreTrustMeta(store, targetYmd) {
   if(targets.length) {
     return {
       className: 'is-strong',
-      label: decision?.label || '検証候補あり',
-      detail: `検証を通った候補 ${targets.length}台`,
+      label: decision?.label || '検証根拠あり',
+      detail: `検証を通った台 ${targets.length}台`,
       actionable: true,
       targets,
     };
@@ -1896,7 +1896,7 @@ function getMorningStoreTrustMeta(store, targetYmd) {
     return {
       className: 'is-normal',
       label: decision.label || '検証確認',
-      detail: decision.message || '店全体の根拠はありますが台単位候補は弱めです。',
+      detail: decision.message || '店全体の根拠はありますが台単位では要観察です。',
       actionable: decision.actionable !== false,
       targets,
     };
@@ -4225,7 +4225,7 @@ function getSeatLayoutLegendItems(layer = seatLayoutState.layer) {
       { cls: 'is-strong-plus', label: '強め推移' },
       { cls: 'is-plus', label: '注目変化' },
       { cls: 'is-neutral', label: '要観察/件数少' },
-      { cls: 'is-minus', label: '弱め' },
+      { cls: 'is-minus', label: '落ち気味' },
       { cls: 'is-strong-minus', label: '未取得' },
     ];
   }
@@ -4285,7 +4285,7 @@ function getSeatHeatmapColorClass(diff, layer = 'diff', row = null) {
     const label = getLineTreatmentLabel(row);
     if(label === '強め推移' || label === '扱い強め') return 'seat-heatmap-cell is-strong-plus';
     if(label === '注目変化' || label === '注目') return 'seat-heatmap-cell is-plus';
-    if(label === '弱め') return 'seat-heatmap-cell is-minus';
+    if(label === '弱め' || label === '落ち気味') return 'seat-heatmap-cell is-minus';
     if(label === 'データ不足' || label === '件数少' || label === '要観察') return 'seat-heatmap-cell is-neutral';
     if(diff >= 55) return 'seat-heatmap-cell is-strong-plus';
     if(diff >= 25) return 'seat-heatmap-cell is-plus';
@@ -4339,7 +4339,7 @@ function getLineTreatmentSignals(row) {
 function getLineStrengthTone(label) {
   if(label === '強め推移' || label === '扱い強め') return 'var(--plus)';
   if(label === '注目変化' || label === '注目') return 'var(--accent3)';
-  if(label === '弱め') return 'var(--minus)';
+  if(label === '弱め' || label === '落ち気味') return 'var(--minus)';
   if(label === '件数少') return 'var(--warning)';
   return 'var(--muted)';
 }
@@ -10317,7 +10317,7 @@ function renderDayBar() {
   }
   const renderDayCard = (d, i, tone) => {
     const q = getViewerDataQuality({ count: d.sample, minCount: 80, ymd: freshness.ymd, lagDays: freshness.lagDays, requiresDate: true });
-    const label = q.tone !== 'ok' ? q.label : (tone === 'up' ? '強め' : '弱め');
+    const label = q.tone !== 'ok' ? q.label : (tone === 'up' ? '強め推移' : '落ち気味');
     return `<div class="day-strength-card ${tone === 'up' ? 'is-up' : 'is-down'}">
       <div class="day-strength-rank">${escapeHtml(i + 1)}</div>
       <div>
@@ -10908,7 +10908,7 @@ function getTaiRowsForCurrentPeriod() {
 }
 
 function getModelTreatmentLabel(stat) {
-  if(stat.count < 10) return { label:'標準', note:'サンプル少なめ', color:'var(--muted)' };
+  if(stat.count < 10) return { label:'件数少', note:'サンプル少なめ', color:'var(--warning)' };
   const settingCapable = stat.supportsSettingAnalysis !== false;
   let score = 0;
   if(stat.avg >= 120) score += 2;
@@ -10924,13 +10924,13 @@ function getModelTreatmentLabel(stat) {
 
   if(score >= 2) {
     const note = settingCapable && stat.rbGoodRate >= 30 ? 'RB良好率高め' : (stat.avg >= 120 ? '平均差枚が強め' : '機種全体で安定');
-    return { label:'良扱い', note, color:'var(--plus)' };
+    return { label:'強め推移', note, color:'var(--plus)' };
   }
   if(score <= -1) {
-    const note = stat.count < 15 ? 'サンプル少なめ' : (stat.avg < 0 ? '平均差枚が弱め' : 'RB良好率が低め');
-    return { label:'弱め', note, color:'var(--minus)' };
+    const note = stat.count < 15 ? 'サンプル少なめ' : (stat.avg < 0 ? '平均差枚が落ち気味' : 'RB良好率が低め');
+    return { label:'落ち気味', note, color:'var(--minus)' };
   }
-  return { label:'標準', note:'直近は横ばい', color:'var(--accent)' };
+  return { label:'要観察', note:'直近は横ばい', color:'var(--accent)' };
 }
 
 function filterTaiFromSummary(model) {
@@ -10954,7 +10954,7 @@ function renderTaiModelSummary(sourceRows) {
       const treatment = getModelTreatmentLabel({ avg: m.allAvg, plusRate: 0, rbGoodRate, count: m.count, supportsSettingAnalysis });
       return { model:m.model, count:m.count, avg:m.allAvg, plusRate:0, rbGoodRate, supportsSettingAnalysis, ...treatment };
     }).sort((a,b) => {
-      const order = x => x.label==='良扱い' ? 2 : x.label==='標準' ? 1 : 0;
+      const order = x => x.label==='強め推移' ? 3 : x.label==='要観察' ? 2 : x.label==='件数少' ? 1 : 0;
       if(order(b) !== order(a)) return order(b) - order(a);
       return b.avg - a.avg;
     });
@@ -11020,7 +11020,7 @@ function renderTaiModelSummary(sourceRows) {
     const treatment = getModelTreatmentLabel({ avg: avgDiff, plusRate, rbGoodRate, count, supportsSettingAnalysis:m.supportsSettingAnalysis });
     return { model:m.model, count, avg: avgDiff, plusRate, rbGoodRate, supportsSettingAnalysis:m.supportsSettingAnalysis, ...treatment };
   }).sort((a,b) => {
-    const order = x => x.label==='良扱い' ? 2 : x.label==='標準' ? 1 : 0;
+    const order = x => x.label==='強め推移' ? 3 : x.label==='要観察' ? 2 : x.label==='件数少' ? 1 : 0;
     if(order(b) !== order(a)) return order(b) - order(a);
     return b.avg - a.avg;
   });
@@ -12154,6 +12154,64 @@ function renderTrendMetricCards(storeTrend) {
   </div>`;
 }
 
+function renderTrendFocusBoard(view, status) {
+  const storeTrend = view?.storeTrend || {};
+  const topModel = (Array.isArray(view?.modelTrends) ? view.modelTrends : [])
+    .slice()
+    .sort((a, b) => (Number(b.deltaMonth) || Number(b.thisMonthAvg) || -9999) - (Number(a.deltaMonth) || Number(a.thisMonthAvg) || -9999))[0] || null;
+  const topTai = (Array.isArray(view?.taiTrends) ? view.taiTrends : [])
+    .filter(row => Number(row?.count) >= 10)
+    .slice()
+    .sort((a, b) => (Number(b.avgDiff ?? b.avg) || -9999) - (Number(a.avgDiff ?? a.avg) || -9999))[0] || null;
+  const dayItems = (Array.isArray(G.dayStats) ? G.dayStats : [])
+    .map(row => ({
+      day: Number(row.day),
+      avg: Number(row.avg),
+      count: Number(row.total) || Number(row.count) || 0,
+    }))
+    .filter(row => Number.isInteger(row.day) && Number.isFinite(row.avg))
+    .sort((a, b) => b.avg - a.avg);
+  const topDay = dayItems[0] || null;
+  const cells = [
+    {
+      label: '店全体',
+      value: status?.label || '要観察',
+      metric: formatTrendDiff(storeTrend.recent30?.avgDiff),
+      sub: `前30日比 ${formatTrendDiff(storeTrend.delta30)}`,
+      tone: status?.tone || 'flat',
+    },
+    {
+      label: '日付',
+      value: topDay ? `${topDay.day}日` : 'データなし',
+      metric: topDay ? formatTrendDiff(topDay.avg) : '-',
+      sub: topDay ? formatTrendNumber(topDay.count, '件') : '推移なし',
+      tone: topDay ? (topDay.avg >= 0 ? 'up' : 'down') : 'thin',
+    },
+    {
+      label: '機種',
+      value: topModel?.model || 'データなし',
+      metric: topModel ? formatTrendDiff(topModel.deltaMonth ?? topModel.thisMonthAvg) : '-',
+      sub: topModel ? `${topModel.label || '要観察'} / ${formatTrendNumber(topModel.thisMonthCount ?? topModel.count, '件')}` : '扱い変化なし',
+      tone: topModel?.tone || 'thin',
+    },
+    {
+      label: '台番',
+      value: topTai ? `${topTai.tai || topTai.taiNum}番` : 'データなし',
+      metric: topTai ? formatTrendDiff(topTai.avgDiff ?? topTai.avg) : '-',
+      sub: topTai ? `${formatTrendNumber(topTai.count, '件')} / ${topTai.model || '機種不明'}` : '件数不足',
+      tone: topTai?.tone || 'thin',
+    },
+  ];
+  return `<div class="trend-focus-board">
+    ${cells.map(cell => `<button type="button" class="trend-focus-card ${getTrendToneClass(cell.tone)}" onclick="openViewerFlowTab('${cell.label === '機種' ? 'tab-model' : cell.label === '台番' ? 'tab-tai' : cell.label === '日付' ? 'tab-days' : 'tab-trends'}')">
+      <span>${escapeHtml(cell.label)}</span>
+      <strong>${escapeHtml(cell.value)}</strong>
+      <b>${escapeHtml(cell.metric)}</b>
+      <small>${escapeHtml(cell.sub)}</small>
+    </button>`).join('')}
+  </div>`;
+}
+
 function renderTrendSparkline(values, { width = 148, height = 48 } = {}) {
   const nums = (Array.isArray(values) ? values : []).map(Number).filter(Number.isFinite);
   if(nums.length < 2) return '<div class="trend-spark-empty">推移データなし</div>';
@@ -12267,6 +12325,7 @@ function renderTrendStorePanel() {
       </div>
     </div>
     ${renderViewerQualityLine(status.quality)}
+    ${renderTrendFocusBoard(view, status)}
     ${renderTrendMetricCards(view.storeTrend || {})}
     <div class="trend-store-note">この画面は「行く/座る」の断定ではなく、店全体の扱いが上がっているか落ちているかを確認するための入口です。</div>
   </div>`;

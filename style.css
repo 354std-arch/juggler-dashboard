@@ -695,6 +695,59 @@ main{padding:12px;max-width:980px;margin:0 auto;}
 .trend-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;}
 .trend-metric-grid small{display:block;margin-top:2px;color:var(--muted);font-size:9px;line-height:1.35;}
 .trend-store-note{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.55;}
+.trend-focus-board{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
+  margin:9px 0;
+}
+.trend-focus-card{
+  appearance:none;
+  min-width:0;
+  border:1px solid rgba(255,255,255,.085);
+  border-top:3px solid var(--accent3);
+  border-radius:8px;
+  padding:8px;
+  background:#0e141d;
+  color:var(--text);
+  text-align:left;
+  font-family:var(--font-ui);
+  cursor:pointer;
+}
+.trend-focus-card.is-up{border-top-color:var(--plus);background:linear-gradient(180deg,rgba(39,166,68,.08),#0e141d);}
+.trend-focus-card.is-down{border-top-color:var(--minus);background:linear-gradient(180deg,rgba(255,107,122,.07),#0e141d);}
+.trend-focus-card.is-thin{border-top-color:var(--warning);}
+.trend-focus-card.is-stale{border-top-color:var(--accent4);}
+.trend-focus-card span,
+.trend-focus-card small{
+  display:block;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.32;
+}
+.trend-focus-card strong{
+  display:block;
+  margin-top:3px;
+  color:var(--text);
+  font-size:12px;
+  line-height:1.28;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.trend-focus-card b{
+  display:block;
+  margin:4px 0 2px;
+  color:var(--text);
+  font-family:var(--font-mono);
+  font-size:14px;
+  line-height:1.1;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.trend-focus-card.is-up b{color:var(--plus);}
+.trend-focus-card.is-down b{color:var(--minus);}
 .trend-list{display:grid;gap:8px;}
 .trend-row{
   display:grid;
@@ -799,6 +852,11 @@ main{padding:12px;max-width:980px;margin:0 auto;}
   .overview-store-metrics div{padding:6px 5px;}
   .overview-store-metrics b{font-size:12px;}
   .trend-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .trend-focus-board{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .trend-focus-card{padding:9px 8px;}
+  .trend-focus-card strong,
+  .trend-focus-card b,
+  .trend-focus-card small{white-space:normal;}
   .trend-spark-card{grid-template-columns:1fr;}
   .trend-day-strip{grid-template-columns:1fr;}
   .trend-day-list button{display:grid;grid-template-columns:1fr;gap:3px;}

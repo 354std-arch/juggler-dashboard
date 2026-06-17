@@ -120,7 +120,7 @@ def build_line_treatment_payload(payload):
     elif score >= 25:
         label = "注目変化"
     elif score <= -10:
-        label = "弱め"
+        label = "落ち気味"
     else:
         label = "要観察"
 
