@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLOT 傾向ビュー</title>
+<link rel="stylesheet" href="./insights.css?v=1">
+</head>
+<body>
+<header class="app-header">
+  <a class="back-link" href="../index.html">扱い変化へ戻る</a>
+  <div>
+    <div class="kicker">SLOT INSIGHTS</div>
+    <h1>店の癖と変化を見る</h1>
+  </div>
+  <button class="load-btn" id="reloadBtn" type="button">再読込</button>
+</header>
+
+<main>
+  <section class="hero-panel">
+    <div>
+      <p class="hero-copy">収集済みデータから、鮮度、店の勢い、日付癖、機種変化、台番帯を先に見ます。</p>
+      <div class="status-line" id="statusLine">データ読込中...</div>
+    </div>
+    <div class="hero-stats" id="heroStats"></div>
+  </section>
+
+  <section class="control-panel">
+    <label>
+      <span>店舗</span>
+      <select id="storeSelect"></select>
+    </label>
+    <label>
+      <span>表示</span>
+      <select id="scopeSelect">
+        <option value="overview">全体を見る</option>
+        <option value="store">選択店舗を掘る</option>
+      </select>
+    </label>
+  </section>
+
+  <section class="section-block">
+    <div class="section-head">
+      <div>
+        <span>01</span>
+        <h2>データ鮮度</h2>
+      </div>
+      <p>強弱を見る前に、最新日と件数を確認します。</p>
+    </div>
+    <div id="freshnessView"></div>
+  </section>
+
+  <section class="section-block">
+    <div class="section-head">
+      <div>
+        <span>02</span>
+        <h2>店の勢い</h2>
+      </div>
+      <p>直近30日、前30日比、勝率、件数を同時に見ます。</p>
+    </div>
+    <div id="storeMomentumView"></div>
+  </section>
+
+  <section class="section-block">
+    <div class="section-head">
+      <div>
+        <span>03</span>
+        <h2>タイミングの癖</h2>
+      </div>
+      <p>日付、曜日、末尾、組合せの偏りを表示します。</p>
+    </div>
+    <div id="timingView"></div>
+  </section>
+
+  <section class="section-block">
+    <div class="section-head">
+      <div>
+        <span>04</span>
+        <h2>機種の扱い変化</h2>
+      </div>
+      <p>今月と前期間の差を、件数と一緒に読みます。</p>
+    </div>
+    <div id="modelView"></div>
+  </section>
+
+  <section class="section-block">
+    <div class="section-head">
+      <div>
+        <span>05</span>
+        <h2>台番帯・場所傾向</h2>
+      </div>
+      <p>台番を当てるのではなく、使われやすい帯を探します。</p>
+    </div>
+    <div id="bandView"></div>
+  </section>
+
+  <section class="section-block">
+    <div class="section-head">
+      <div>
+        <span>06</span>
+        <h2>LINE店舗</h2>
+      </div>
+      <p>差枚なしデータは別枠で蓄積状態だけ見ます。</p>
+    </div>
+    <div id="lineView"></div>
+  </section>
+</main>
+
+<script src="./insights.js?v=1"></script>
+</body>
+</html>
