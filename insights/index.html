@@ -8,10 +8,10 @@
 </head>
 <body>
 <header class="app-header">
-  <a class="back-link" href="../index.html">扱い変化へ戻る</a>
+  <a class="back-link" href="../index.html">戻る</a>
   <div>
     <div class="kicker">SLOT INSIGHTS</div>
-    <h1>店の癖と変化を見る</h1>
+    <h1>傾向ビュー</h1>
   </div>
   <button class="load-btn" id="reloadBtn" type="button">再読込</button>
 </header>
@@ -19,11 +19,15 @@
 <main>
   <section class="hero-panel">
     <div>
-      <p class="hero-copy">収集済みデータから、鮮度、店の勢い、日付癖、機種変化、台番帯を先に見ます。</p>
+      <p class="hero-copy">集めたデータから、店がいつ・どこ・何を強く扱っているかを読む画面です。</p>
       <div class="status-line" id="statusLine">データ読込中...</div>
     </div>
     <div class="hero-stats" id="heroStats"></div>
   </section>
+
+  <section class="snapshot-panel" id="snapshotView"></section>
+
+  <section class="focus-panel" id="focusView"></section>
 
   <section class="control-panel">
     <label>
@@ -39,18 +43,18 @@
     </label>
   </section>
 
-  <section class="section-block">
+  <section class="section-block compact">
     <div class="section-head">
       <div>
         <span>01</span>
-        <h2>データ鮮度</h2>
+        <h2>鮮度</h2>
       </div>
-      <p>強弱を見る前に、最新日と件数を確認します。</p>
+      <p>古い店は薄く見る。</p>
     </div>
     <div id="freshnessView"></div>
   </section>
 
-  <section class="section-block">
+  <section class="section-block compact">
     <div class="section-head">
       <div>
         <span>02</span>
@@ -61,7 +65,7 @@
     <div id="storeMomentumView"></div>
   </section>
 
-  <section class="section-block">
+  <section class="section-block compact">
     <div class="section-head">
       <div>
         <span>03</span>
@@ -72,7 +76,7 @@
     <div id="timingView"></div>
   </section>
 
-  <section class="section-block">
+  <section class="section-block compact">
     <div class="section-head">
       <div>
         <span>04</span>
@@ -83,7 +87,7 @@
     <div id="modelView"></div>
   </section>
 
-  <section class="section-block">
+  <section class="section-block compact">
     <div class="section-head">
       <div>
         <span>05</span>
@@ -94,7 +98,7 @@
     <div id="bandView"></div>
   </section>
 
-  <section class="section-block">
+  <section class="section-block compact">
     <div class="section-head">
       <div>
         <span>06</span>

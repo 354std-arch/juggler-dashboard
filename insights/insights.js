@@ -6,7 +6,7 @@ const state = {
   scope: 'overview',
 };
 
-const TODAY = new Date('2026-06-18T00:00:00+09:00');
+const TODAY = new Date('2026-06-19T00:00:00+09:00');
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -73,7 +73,8 @@ function qualityLabel({ ymd, count, minCount = 10 }) {
 async function fetchJson(path) {
   const res = await fetch(path, { cache: 'no-store' });
   if(!res.ok) throw new Error(`${path} HTTP ${res.status}`);
-  return res.json();
+  const text = await res.text();
+  return JSON.parse(text.replace(/^\uFEFF/, ''));
 }
 
 async function loadAll() {
@@ -117,6 +118,8 @@ function populateControls() {
 
 function renderAll() {
   renderHero();
+  renderSnapshot();
+  renderFocus();
   renderFreshness();
   renderStoreMomentum();
   renderTiming();
@@ -156,9 +159,111 @@ function renderHero() {
   ].map(([label, value]) => `<div class="hero-stat"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('');
 }
 
+function renderSnapshot() {
+  const freshness = storeFreshnessRows();
+  const momentum = storeMomentumRows()
+    .filter((row) => row.avg !== null)
+    .sort((a, b) => visibleScore(b) - visibleScore(a));
+  const topStore = momentum[0];
+  const staleRows = freshness.filter((row) => row.lag === null || row.lag >= 8);
+  const timing = topTimingItems().slice(0, 1)[0];
+  const model = topModelItems().slice(0, 1)[0];
+  const freshnessTone = staleRows.length ? 'stale' : '';
+  const freshnessLead = freshness
+    .filter((row) => row.ymd)
+    .sort((a, b) => (a.lag ?? 999) - (b.lag ?? 999))[0];
+
+  $('snapshotView').innerHTML = `
+    <div class="snapshot-title">
+      <h2>まず見るところ</h2>
+      <span>上から順に確認</span>
+    </div>
+    <div class="signal-grid">
+      <article class="signal-card ${freshnessTone}">
+        <div class="label"><span>データ状態</span><span>${escapeHtml(freshnessTone ? '注意' : 'OK')}</span></div>
+        <strong>${staleRows.length ? `${staleRows.length}店舗がデータ古い` : '鮮度は大きな問題なし'}</strong>
+        <p>最新は ${escapeHtml(freshnessLead?.store || '-')} / ${escapeHtml(freshnessLead?.ymd || '-')}。古い店は判断を薄めに見る。</p>
+      </article>
+      <article class="signal-card ${topStore ? toneClass(topStore.tone, topStore.avg, topStore.count, 100) : ''}">
+        <div class="label"><span>店の勢い</span><span>${escapeHtml(topStore?.label || '要観察')}</span></div>
+        <strong>${escapeHtml(topStore?.store || 'データなし')}</strong>
+        <div class="big ${topStore?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(topStore?.avg, '枚')}</div>
+        <div class="signal-mini">
+          <div><span>前30日比</span><b class="${topStore?.delta >= 0 ? 'plus' : 'minus'}">${fmtSigned(topStore?.delta, '枚')}</b></div>
+          <div><span>勝率</span><b>${fmtRate(topStore?.win)}</b></div>
+          <div><span>件数</span><b>${fmtNumber(topStore?.count, '件')}</b></div>
+        </div>
+      </article>
+      <article class="signal-card ${timing ? toneClass('', timing.avg, timing.count, 80) : ''}">
+        <div class="label"><span>癖の候補</span><span>${escapeHtml(timing?.type || '組合せ')}</span></div>
+        <strong>${escapeHtml(timing ? `${timing.store} / ${timing.label}` : '組合せデータなし')}</strong>
+        <div class="big ${timing?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(timing?.avg, '枚')}</div>
+        <p>${model ? `機種では ${escapeHtml(model.model)} が目立つ。` : '機種変化は下の詳細で確認。'}</p>
+      </article>
+    </div>`;
+}
+
+function renderFocus() {
+  const topStore = storeMomentumRows()
+    .filter((row) => row.avg !== null)
+    .sort((a, b) => visibleScore(b) - visibleScore(a))[0];
+  const topTiming = topTimingItems()[0];
+  const topBand = topBandItems()[0];
+  const topModels = topModelItems().slice(0, 3);
+  $('focusView').innerHTML = `
+    <div class="focus-grid">
+      <article class="focus-card primary">
+        <h3>いま一番目立つ店</h3>
+        <div class="focus-main">
+          <strong>${escapeHtml(topStore?.store || 'データなし')}</strong>
+          <div class="focus-value ${topStore?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(topStore?.avg, '枚')}</div>
+        </div>
+        <p>前30日比 ${fmtSigned(topStore?.delta, '枚')} / 勝率 ${fmtRate(topStore?.win)} / ${fmtNumber(topStore?.count, '件')}</p>
+        <div class="pill-row">${topModels.map((row) => `<span class="pill">${escapeHtml(row.model)} ${fmtSigned(row.avg, '枚')}</span>`).join('')}</div>
+      </article>
+      <article class="focus-card">
+        <h3>強いタイミング</h3>
+        <div class="focus-main">
+          <strong>${escapeHtml(topTiming ? `${topTiming.store} / ${topTiming.label}` : 'データなし')}</strong>
+          <div class="focus-value ${topTiming?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(topTiming?.avg, '枚')}</div>
+        </div>
+        <p>${escapeHtml(topTiming?.type || '組合せ')} / ${fmtNumber(topTiming?.count, '件')} / 勝率 ${fmtRate(topTiming?.win)}</p>
+      </article>
+      <article class="focus-card">
+        <h3>場所の候補</h3>
+        <div class="focus-main">
+          <strong>${escapeHtml(topBand ? `${topBand.store} / ${topBand.band}番台` : 'データなし')}</strong>
+          <div class="focus-value ${topBand?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(topBand?.avg, '枚')}</div>
+        </div>
+        <p>${fmtNumber(topBand?.tais, '台')} / ${fmtNumber(topBand?.count, '件')}。台番帯としての偏りを見る。</p>
+      </article>
+    </div>`;
+}
+
 function renderFreshness() {
   const rows = storeFreshnessRows().sort((a, b) => (a.lag ?? 999) - (b.lag ?? 999));
-  $('freshnessView').innerHTML = `<div class="grid cols-3">${rows.map((row) => {
+  const topRows = rows.slice(0, 4);
+  const allCards = rows.map(renderFreshnessCard).join('');
+  $('freshnessView').innerHTML = `
+    <div class="summary-strip">${topRows.map((row) => {
+      const q = qualityLabel({ ymd: row.ymd, count: row.rows, minCount: 100 });
+      const lagText = row.lag === null ? '日付不明' : `${row.lag}日遅れ`;
+      return `<div class="summary-row">
+        <div class="summary-main">
+          <strong>${escapeHtml(row.store)}</strong>
+          <span>${escapeHtml(row.ymd || '-')} / ${fmtNumber(row.rows, '件')} / ${escapeHtml(q.label)}</span>
+          <div class="bar"><i class="${q.tone}" style="width:${Math.max(8, Math.min(100, 100 - (row.lag || 0) * 5))}%"></i></div>
+        </div>
+        <div class="summary-score ${q.tone === 'stale' ? 'warn' : ''}">${escapeHtml(lagText)}</div>
+      </div>`;
+    }).join('')}</div>
+    <details class="compact-details">
+      <summary>全店舗の鮮度を見る</summary>
+      <div class="grid cols-3">${allCards}</div>
+    </details>`;
+}
+
+function renderFreshnessCard(row) {
     const q = qualityLabel({ ymd: row.ymd, count: row.rows, minCount: 100 });
     return `<article class="card ${q.tone}">
       <div class="card-head"><strong>${escapeHtml(row.store)}</strong><span class="badge ${q.tone}">${escapeHtml(q.label)}</span></div>
@@ -169,7 +274,6 @@ function renderFreshness() {
         <div class="metric"><span>取得</span><b>${escapeHtml(row.scrapedAt ? row.scrapedAt.slice(0, 10) : '-')}</b></div>
       </div>
     </article>`;
-  }).join('')}</div>`;
 }
 
 function storeMomentumRows() {
@@ -205,11 +309,59 @@ function renderStoreMomentum() {
   }).join('');
   const ranked = rows
     .filter((row) => row.avg !== null)
-    .sort((a, b) => (b.avg - a.avg) || ((b.delta || -999) - (a.delta || -999)))
+    .sort((a, b) => visibleScore(b) - visibleScore(a))
     .slice(0, 8);
   $('storeMomentumView').innerHTML = `
-    <div class="scatter" aria-label="店の勢い散布図">${points}</div>
-    <div class="grid cols-2">${ranked.map((row) => renderStoreCard(row)).join('')}</div>`;
+    <div class="visual-board">
+      <div class="mini-chart">${ranked.slice(0, 7).map((row) => renderChartRow(row.store, row.avg, row.count, toneClass(row.tone, row.avg, row.count, 100))).join('')}</div>
+      <div class="tile-grid">${ranked.slice(0, 4).map((row) => renderStoreTile(row)).join('')}</div>
+    </div>
+    <details class="compact-details">
+      <summary>散布図と店舗カードを見る</summary>
+      <div class="scatter" aria-label="店の勢い散布図">${points}</div>
+      <div class="grid cols-2">${ranked.map((row) => renderStoreCard(row)).join('')}</div>
+    </details>`;
+}
+
+function renderChartRow(label, value, count, cls = '') {
+  const n = Math.abs(toNumber(value) || 0);
+  const width = Math.max(7, Math.min(100, n / 8));
+  return `<div class="chart-row">
+    <span>${escapeHtml(label)}</span>
+    <div class="chart-bar"><i class="${cls}" style="width:${width}%"></i></div>
+    <b class="${toNumber(value) >= 0 ? 'plus' : 'minus'}">${fmtSigned(value, '枚')}</b>
+  </div>`;
+}
+
+function renderStoreTile(row) {
+  const cls = toneClass(row.tone, row.avg, row.count, 100);
+  return `<article class="tile">
+    <span>${escapeHtml(row.label || '要観察')}</span>
+    <strong>${escapeHtml(row.store)}</strong>
+    <b class="${row.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(row.avg, '枚')}</b>
+    <span>前30日比 ${fmtSigned(row.delta, '枚')} / ${fmtNumber(row.count, '件')}</span>
+  </article>`;
+}
+
+function visibleScore(row) {
+  const avg = toNumber(row.avg) || 0;
+  const delta = toNumber(row.delta) || 0;
+  const count = Math.min(toNumber(row.count) || 0, 500) / 500;
+  const stalePenalty = row.lag !== null && row.lag >= 8 ? 180 : 0;
+  return avg + delta * 0.35 + count * 80 - stalePenalty;
+}
+
+function renderStoreSummaryRow(row) {
+  const cls = toneClass(row.tone, row.avg, row.count, 100);
+  const width = Math.max(8, Math.min(100, Math.abs(row.avg || 0) / 8));
+  return `<div class="summary-row">
+    <div class="summary-main">
+      <strong>${escapeHtml(row.store)}</strong>
+      <span>直近30日 ${fmtSigned(row.avg, '枚')} / 前30日比 ${fmtSigned(row.delta, '枚')} / ${fmtNumber(row.count, '件')}</span>
+      <div class="bar"><i class="${cls}" style="width:${width}%"></i></div>
+    </div>
+    <div class="summary-score ${row.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(row.avg, '枚')}</div>
+  </div>`;
 }
 
 function shortStore(store) {
@@ -235,6 +387,39 @@ function selectedStoresForScope() {
 }
 
 function renderTiming() {
+  const { dayItems, comboItems } = timingItems();
+  const dayRank = dayItems.sort((a, b) => b.avg - a.avg).slice(0, 8);
+  const comboRank = comboItems.sort((a, b) => b.avg - a.avg).slice(0, 12);
+  $('timingView').innerHTML = `
+    <div class="visual-board">
+      <div>
+        <div class="snapshot-title"><h2>日付</h2><span>平均差枚</span></div>
+        <div class="mini-chart">${dayRank.slice(0, 7).map((row) => renderChartRow(`${row.store} / ${row.label}`, row.avg, row.count, toneClass('', row.avg, row.count, 80))).join('') || '<div class="empty">日付データなし</div>'}</div>
+      </div>
+      <div>
+        <div class="snapshot-title"><h2>組合せ</h2><span>末尾・曜日</span></div>
+        <div class="tile-grid">${comboRank.slice(0, 6).map(renderPatternTile).join('') || '<div class="empty">組合せデータなし</div>'}</div>
+      </div>
+    </div>
+    <details class="compact-details">
+      <summary>ランキング形式で見る</summary>
+      <div class="grid cols-2">
+        <div>${renderRankList('強い日付', dayRank)}</div>
+        <div>${renderRankList('強い組合せ', comboRank)}</div>
+      </div>
+    </details>`;
+}
+
+function renderPatternTile(row) {
+  return `<article class="tile">
+    <span>${escapeHtml(row.type)}</span>
+    <strong>${escapeHtml(row.label)}</strong>
+    <b class="${row.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(row.avg, '枚')}</b>
+    <span>${escapeHtml(row.store)} / ${fmtNumber(row.count, '件')}</span>
+  </article>`;
+}
+
+function timingItems() {
   const stores = selectedStoresForScope();
   const dayItems = [];
   const comboItems = [];
@@ -250,14 +435,12 @@ function renderTiming() {
     collectCombo(bs.weekMatrix, '第○週 x 曜日', store, 80, comboItems);
     collectCombo(bs.dayWdayMatrix, '日付末尾 x 曜日', store, 80, comboItems);
   }
-  const dayRank = dayItems.sort((a, b) => b.avg - a.avg).slice(0, 8);
-  const comboRank = comboItems.sort((a, b) => b.avg - a.avg).slice(0, 12);
-  $('timingView').innerHTML = `
-    <div class="grid cols-2">
-      <div>${renderRankList('強い日付', dayRank)}</div>
-      <div>${renderRankList('強い組合せ', comboRank)}</div>
-    </div>
-    <div class="heat-strip">${comboRank.slice(0, 5).map(renderHeatCell).join('') || '<div class="empty">組合せデータなし</div>'}</div>`;
+  return { dayItems, comboItems };
+}
+
+function topTimingItems() {
+  const { dayItems, comboItems } = timingItems();
+  return [...dayItems, ...comboItems].sort((a, b) => b.avg - a.avg);
 }
 
 function collectCombo(map, type, store, minCount, out) {
@@ -297,6 +480,39 @@ function renderHeatCell(row) {
 }
 
 function renderModels() {
+  const rows = topModelItems(false);
+  const strong = rows.sort((a, b) => b.avg - a.avg).slice(0, 12);
+  const drops = rows.slice().sort((a, b) => a.avg - b.avg).slice(0, 6);
+  $('modelView').innerHTML = `
+    <div class="visual-board">
+      <div>
+        <div class="snapshot-title"><h2>強め推移</h2><span>今月平均</span></div>
+        <div class="mini-chart">${strong.slice(0, 8).map((row) => renderChartRow(row.model, row.avg, row.count, toneClass(row.label, row.avg, row.count, 10))).join('')}</div>
+      </div>
+      <div>
+        <div class="snapshot-title"><h2>落ち気味</h2><span>確認用</span></div>
+        <div class="tile-grid">${drops.slice(0, 6).map(renderModelTile).join('')}</div>
+      </div>
+    </div>
+    <details class="compact-details">
+      <summary>機種カードを全部見る</summary>
+      <div class="grid cols-2">
+        <div>${renderModelCards('扱い上向き', strong)}</div>
+        <div>${renderModelCards('落ち気味', drops)}</div>
+      </div>
+    </details>`;
+}
+
+function renderModelTile(row) {
+  return `<article class="tile">
+    <span>${escapeHtml(row.category)}</span>
+    <strong>${escapeHtml(row.model)}</strong>
+    <b class="${row.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(row.avg, '枚')}</b>
+    <span>${escapeHtml(row.store)} / ${fmtNumber(row.count, '件')}</span>
+  </article>`;
+}
+
+function topModelItems(sort = true) {
   const stores = selectedStoresForScope();
   const rows = [];
   stores.forEach((store) => {
@@ -315,12 +531,7 @@ function renderModels() {
       });
     });
   });
-  const strong = rows.sort((a, b) => b.avg - a.avg).slice(0, 12);
-  const drops = rows.slice().sort((a, b) => a.avg - b.avg).slice(0, 6);
-  $('modelView').innerHTML = `<div class="grid cols-2">
-    <div>${renderModelCards('扱い上向き', strong)}</div>
-    <div>${renderModelCards('落ち気味', drops)}</div>
-  </div>`;
+  return sort ? rows.sort((a, b) => b.avg - a.avg) : rows;
 }
 
 function renderModelCards(title, rows) {
@@ -343,6 +554,30 @@ function renderModelCards(title, rows) {
 }
 
 function renderBands() {
+  const ranked = topBandItems().slice(0, 16);
+  $('bandView').innerHTML = ranked.length ? `
+    <div class="visual-board">
+      <div class="mini-chart">${ranked.slice(0, 8).map((row) => renderChartRow(`${row.store} / ${row.band}番台`, row.avg, row.count, toneClass('', row.avg, row.count, 60))).join('')}</div>
+      <div class="tile-grid">${ranked.slice(0, 6).map(renderBandTile).join('')}</div>
+    </div>
+    <details class="compact-details">
+      <summary>台番帯カードを見る</summary>
+      <div class="grid cols-4">${ranked.map((row) => {
+    const cls = toneClass('', row.avg, row.count, 60);
+    return `<article class="card ${cls}">
+      <div class="card-head"><strong>${escapeHtml(row.band)}番台</strong><span class="badge ${cls}">${row.avg >= 80 ? '注目変化' : '要観察'}</span></div>
+      <div class="metrics">
+        <div class="metric"><span>平均</span><b class="${row.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(row.avg, '枚')}</b></div>
+        <div class="metric"><span>台数</span><b>${fmtNumber(row.tais, '台')}</b></div>
+        <div class="metric"><span>件数</span><b>${fmtNumber(row.count, '件')}</b></div>
+        <div class="metric"><span>店舗</span><b>${escapeHtml(shortStore(row.store))}</b></div>
+      </div>
+    </article>`;
+  }).join('')}</div>
+    </details>` : '<div class="empty">台番帯データなし</div>';
+}
+
+function topBandItems() {
   const rows = [];
   selectedStoresForScope().forEach((store) => {
     const bands = new Map();
@@ -363,19 +598,16 @@ function renderBands() {
       rows.push({ ...stat, avg: stat.weighted / stat.count });
     });
   });
-  const ranked = rows.sort((a, b) => b.avg - a.avg).slice(0, 16);
-  $('bandView').innerHTML = ranked.length ? `<div class="grid cols-4">${ranked.map((row) => {
-    const cls = toneClass('', row.avg, row.count, 60);
-    return `<article class="card ${cls}">
-      <div class="card-head"><strong>${escapeHtml(row.band)}番台</strong><span class="badge ${cls}">${row.avg >= 80 ? '注目変化' : '要観察'}</span></div>
-      <div class="metrics">
-        <div class="metric"><span>平均</span><b class="${row.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(row.avg, '枚')}</b></div>
-        <div class="metric"><span>台数</span><b>${fmtNumber(row.tais, '台')}</b></div>
-        <div class="metric"><span>件数</span><b>${fmtNumber(row.count, '件')}</b></div>
-        <div class="metric"><span>店舗</span><b>${escapeHtml(shortStore(row.store))}</b></div>
-      </div>
-    </article>`;
-  }).join('')}</div>` : '<div class="empty">台番帯データなし</div>';
+  return rows.sort((a, b) => b.avg - a.avg);
+}
+
+function renderBandTile(row) {
+  return `<article class="tile">
+    <span>${escapeHtml(row.store)}</span>
+    <strong>${escapeHtml(row.band)}番台</strong>
+    <b class="${row.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(row.avg, '枚')}</b>
+    <span>${fmtNumber(row.tais, '台')} / ${fmtNumber(row.count, '件')}</span>
+  </article>`;
 }
 
 function getLineRows() {
