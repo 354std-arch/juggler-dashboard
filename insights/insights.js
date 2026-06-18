@@ -206,7 +206,60 @@ function renderSnapshot() {
           <p>${model ? `機種: ${escapeHtml(model.model)}` : `${fmtNumber(band?.count, '件')}`}</p>
         </article>
       </div>
+    </div>
+    <div class="dashboard-grid">
+      ${renderMomentumMap(momentum.slice(0, 12))}
+      ${renderPatternHeat(topTimingItems().slice(0, 10))}
+      ${renderFreshnessStrip(freshness)}
     </div>`;
+}
+
+function renderMomentumMap(rows) {
+  const valid = rows.filter((row) => row.avg !== null || row.delta !== null);
+  if(!valid.length) return '<div class="viz-card"><div class="viz-head"><strong>勢いマップ</strong><span>データなし</span></div></div>';
+  const maxAbsAvg = Math.max(1, ...valid.map((row) => Math.abs(row.avg || 0)));
+  const maxAbsDelta = Math.max(1, ...valid.map((row) => Math.abs(row.delta || 0)));
+  const points = valid.map((row) => {
+    const x = 50 + ((row.delta || 0) / maxAbsDelta) * 42;
+    const y = 50 - ((row.avg || 0) / maxAbsAvg) * 42;
+    const cls = toneClass(row.tone, row.avg, row.count, 100);
+    return `<span class="map-dot ${cls}" style="left:${Math.max(7, Math.min(93, x))}%;top:${Math.max(10, Math.min(90, y))}%" title="${escapeHtml(row.store)}"><b>${escapeHtml(shortStore(row.store))}</b></span>`;
+  }).join('');
+  return `<article class="viz-card">
+    <div class="viz-head"><strong>勢いマップ</strong><span>上=強い / 右=上向き</span></div>
+    <div class="momentum-map">${points}</div>
+  </article>`;
+}
+
+function renderPatternHeat(rows) {
+  const cells = rows.map((row) => {
+    const avg = toNumber(row.avg) || 0;
+    const intensity = Math.max(0.08, Math.min(0.36, Math.abs(avg) / 7000));
+    const cls = avg >= 0 ? 'up' : 'down';
+    return `<div class="heat-tile ${cls}" style="--heat-alpha:${intensity.toFixed(2)}">
+      <span>${escapeHtml(row.label)}</span>
+      <b>${fmtSigned(row.avg, '枚')}</b>
+      <small>${escapeHtml(shortStore(row.store))}</small>
+    </div>`;
+  }).join('');
+  return `<article class="viz-card">
+    <div class="viz-head"><strong>癖ヒート</strong><span>日付・末尾・曜日</span></div>
+    <div class="heat-matrix">${cells || '<div class="empty">組合せデータなし</div>'}</div>
+  </article>`;
+}
+
+function renderFreshnessStrip(rows) {
+  const sorted = rows.slice().sort((a, b) => (a.lag ?? 999) - (b.lag ?? 999));
+  const cells = sorted.map((row) => {
+    const lag = row.lag ?? 99;
+    const cls = lag >= 8 ? 'stale' : 'fresh';
+    const height = Math.max(16, Math.min(72, 76 - lag * 2));
+    return `<span class="fresh-cell ${cls}" style="height:${height}px" title="${escapeHtml(`${row.store} ${row.ymd || '-'}`)}"><i>${escapeHtml(shortStore(row.store))}</i></span>`;
+  }).join('');
+  return `<article class="viz-card">
+    <div class="viz-head"><strong>鮮度ストリップ</strong><span>低いほど古い</span></div>
+    <div class="fresh-strip">${cells}</div>
+  </article>`;
 }
 
 function renderFreshness() {
