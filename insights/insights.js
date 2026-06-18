@@ -119,7 +119,6 @@ function populateControls() {
 function renderAll() {
   renderHero();
   renderSnapshot();
-  renderFocus();
   renderFreshness();
   renderStoreMomentum();
   renderTiming();
@@ -168,75 +167,45 @@ function renderSnapshot() {
   const staleRows = freshness.filter((row) => row.lag === null || row.lag >= 8);
   const timing = topTimingItems().slice(0, 1)[0];
   const model = topModelItems().slice(0, 1)[0];
-  const freshnessTone = staleRows.length ? 'stale' : '';
   const freshnessLead = freshness
     .filter((row) => row.ymd)
     .sort((a, b) => (a.lag ?? 999) - (b.lag ?? 999))[0];
+  const band = topBandItems()[0];
+  const topModels = topModelItems().slice(0, 3);
 
   $('snapshotView').innerHTML = `
     <div class="snapshot-title">
-      <h2>まず見るところ</h2>
-      <span>上から順に確認</span>
+      <h2>今日まず見るところ</h2>
+      <span>鮮度込みで読む</span>
     </div>
-    <div class="signal-grid">
-      <article class="signal-card ${freshnessTone}">
-        <div class="label"><span>データ状態</span><span>${escapeHtml(freshnessTone ? '注意' : 'OK')}</span></div>
-        <strong>${staleRows.length ? `${staleRows.length}店舗がデータ古い` : '鮮度は大きな問題なし'}</strong>
-        <p>最新は ${escapeHtml(freshnessLead?.store || '-')} / ${escapeHtml(freshnessLead?.ymd || '-')}。古い店は判断を薄めに見る。</p>
-      </article>
-      <article class="signal-card ${topStore ? toneClass(topStore.tone, topStore.avg, topStore.count, 100) : ''}">
-        <div class="label"><span>店の勢い</span><span>${escapeHtml(topStore?.label || '要観察')}</span></div>
+    <div class="command-board">
+      <article class="command-main">
+        <div class="overline"><span>いま一番目立つ店</span><span>${escapeHtml(topStore?.label || '要観察')}</span></div>
         <strong>${escapeHtml(topStore?.store || 'データなし')}</strong>
-        <div class="big ${topStore?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(topStore?.avg, '枚')}</div>
-        <div class="signal-mini">
-          <div><span>前30日比</span><b class="${topStore?.delta >= 0 ? 'plus' : 'minus'}">${fmtSigned(topStore?.delta, '枚')}</b></div>
-          <div><span>勝率</span><b>${fmtRate(topStore?.win)}</b></div>
-          <div><span>件数</span><b>${fmtNumber(topStore?.count, '件')}</b></div>
-        </div>
-      </article>
-      <article class="signal-card ${timing ? toneClass('', timing.avg, timing.count, 80) : ''}">
-        <div class="label"><span>癖の候補</span><span>${escapeHtml(timing?.type || '組合せ')}</span></div>
-        <strong>${escapeHtml(timing ? `${timing.store} / ${timing.label}` : '組合せデータなし')}</strong>
-        <div class="big ${timing?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(timing?.avg, '枚')}</div>
-        <p>${model ? `機種では ${escapeHtml(model.model)} が目立つ。` : '機種変化は下の詳細で確認。'}</p>
-      </article>
-    </div>`;
-}
-
-function renderFocus() {
-  const topStore = storeMomentumRows()
-    .filter((row) => row.avg !== null)
-    .sort((a, b) => visibleScore(b) - visibleScore(a))[0];
-  const topTiming = topTimingItems()[0];
-  const topBand = topBandItems()[0];
-  const topModels = topModelItems().slice(0, 3);
-  $('focusView').innerHTML = `
-    <div class="focus-grid">
-      <article class="focus-card primary">
-        <h3>いま一番目立つ店</h3>
-        <div class="focus-main">
-          <strong>${escapeHtml(topStore?.store || 'データなし')}</strong>
-          <div class="focus-value ${topStore?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(topStore?.avg, '枚')}</div>
-        </div>
+        <div class="command-value ${topStore?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(topStore?.avg, '枚')}</div>
         <p>前30日比 ${fmtSigned(topStore?.delta, '枚')} / 勝率 ${fmtRate(topStore?.win)} / ${fmtNumber(topStore?.count, '件')}</p>
-        <div class="pill-row">${topModels.map((row) => `<span class="pill">${escapeHtml(row.model)} ${fmtSigned(row.avg, '枚')}</span>`).join('')}</div>
+        <div class="command-chips">${topModels.map((row) => `<span class="pill">${escapeHtml(row.model)} ${fmtSigned(row.avg, '枚')}</span>`).join('')}</div>
       </article>
-      <article class="focus-card">
-        <h3>強いタイミング</h3>
-        <div class="focus-main">
-          <strong>${escapeHtml(topTiming ? `${topTiming.store} / ${topTiming.label}` : 'データなし')}</strong>
-          <div class="focus-value ${topTiming?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(topTiming?.avg, '枚')}</div>
-        </div>
-        <p>${escapeHtml(topTiming?.type || '組合せ')} / ${fmtNumber(topTiming?.count, '件')} / 勝率 ${fmtRate(topTiming?.win)}</p>
-      </article>
-      <article class="focus-card">
-        <h3>場所の候補</h3>
-        <div class="focus-main">
-          <strong>${escapeHtml(topBand ? `${topBand.store} / ${topBand.band}番台` : 'データなし')}</strong>
-          <div class="focus-value ${topBand?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(topBand?.avg, '枚')}</div>
-        </div>
-        <p>${fmtNumber(topBand?.tais, '台')} / ${fmtNumber(topBand?.count, '件')}。台番帯としての偏りを見る。</p>
-      </article>
+      <div class="command-tiles">
+        <article class="command-tile ${staleRows.length ? 'warn' : ''}">
+          <div class="overline"><span>鮮度</span><span>${escapeHtml(staleRows.length ? '注意' : 'OK')}</span></div>
+          <strong>${staleRows.length ? `${staleRows.length}店舗古い` : '鮮度OK'}</strong>
+          <b class="${staleRows.length ? 'warn' : 'plus'}">${escapeHtml(freshnessLead?.ymd || '-')}</b>
+          <p>最新: ${escapeHtml(freshnessLead?.store || '-')}</p>
+        </article>
+        <article class="command-tile up">
+          <div class="overline"><span>タイミング</span><span>${escapeHtml(timing?.type || '-')}</span></div>
+          <strong>${escapeHtml(timing ? `${timing.store} / ${timing.label}` : 'データなし')}</strong>
+          <b class="${timing?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(timing?.avg, '枚')}</b>
+          <p>${fmtNumber(timing?.count, '件')} / 勝率 ${fmtRate(timing?.win)}</p>
+        </article>
+        <article class="command-tile up">
+          <div class="overline"><span>場所</span><span>台番帯</span></div>
+          <strong>${escapeHtml(band ? `${band.store} / ${band.band}番台` : 'データなし')}</strong>
+          <b class="${band?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(band?.avg, '枚')}</b>
+          <p>${model ? `機種: ${escapeHtml(model.model)}` : `${fmtNumber(band?.count, '件')}`}</p>
+        </article>
+      </div>
     </div>`;
 }
 
