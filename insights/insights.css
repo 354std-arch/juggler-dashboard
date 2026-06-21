@@ -67,6 +67,50 @@ main{width:min(1120px,100%);margin:0 auto;padding:10px clamp(10px,2.6vw,22px) 28
 .snapshot-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
 .snapshot-title h2{font-size:15px}
 .snapshot-title span{color:var(--muted);font-size:11px;font-weight:800}
+.store-switch-panel{margin-bottom:8px}
+.store-switcher{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.store-switcher button{
+  min-width:0;border:1px solid var(--line);border-radius:var(--radius);background:#101620;color:var(--text);
+  padding:10px;text-align:left;cursor:pointer;
+}
+.store-switcher button.active{border-color:rgba(49,208,255,.45);background:linear-gradient(180deg,rgba(49,208,255,.12),#101620)}
+.store-switcher span{display:block;font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.store-switcher b{display:block;margin-top:4px;font:900 17px/1 var(--mono)}
+.store-plan-grid{display:grid;grid-template-columns:1fr;gap:8px}
+.plan-card{
+  border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg,#111925,#0e141d);padding:11px;
+}
+.plan-card.up{border-color:rgba(54,223,135,.28);background:linear-gradient(180deg,rgba(54,223,135,.08),#101620)}
+.plan-card.stale,.plan-card.thin{border-color:rgba(244,200,79,.28)}
+.plan-head{display:flex;justify-content:space-between;gap:10px;align-items:start}
+.plan-head span{display:block;color:var(--muted);font:900 9px/1 var(--mono)}
+.plan-head strong{display:block;margin-top:5px;font-size:18px;line-height:1.25}
+.plan-head b{border:1px solid var(--line2);border-radius:999px;padding:4px 8px;font-size:11px;white-space:nowrap}
+.plan-main{margin-top:8px}
+.plan-score{font:900 34px/1 var(--mono)}
+.plan-main p{margin:5px 0 0;color:#cbd4e4;font-size:11px}
+.plan-route{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
+.signal-box{border:1px solid rgba(255,255,255,.08);border-radius:7px;background:rgba(0,0,0,.18);padding:8px;min-width:0}
+.signal-box span,.signal-box small{display:block;color:var(--muted);font-size:9px;line-height:1.25}
+.signal-box strong{display:block;margin-top:4px;font-size:11px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.signal-box b{display:block;margin-top:5px;font:900 15px/1 var(--mono)}
+.plan-foot{margin-top:8px;color:var(--muted);font-size:10px}
+.route-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:8px}
+.route-step{
+  border:1px solid var(--line);border-radius:7px;background:#101620;padding:8px;min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px;
+}
+.route-step>span{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:rgba(49,208,255,.12);color:var(--accent2);font:900 11px/1 var(--mono)}
+.route-step b{display:block;color:var(--muted);font-size:9px}
+.route-step strong{display:block;margin-top:3px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.route-step small{display:block;margin-top:3px;color:var(--muted);font-size:9px;line-height:1.2}
+.route-step em{grid-column:1 / -1;font:900 14px/1 var(--mono);font-style:normal}
+.focus-meter{display:grid;gap:8px}
+.focus-meter-row{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:7px;align-items:center}
+.focus-meter-row span{font-size:11px;color:#dfe6f2;font-weight:900}
+.focus-meter-row small{grid-column:2 / -1;color:var(--muted);font-size:9px;margin-top:-4px}
+.compare-bar{height:9px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.compare-bar i{display:block;height:100%;border-radius:inherit;background:var(--plus)}
+.compare-bar i.down{background:var(--minus)}
 .command-board{display:grid;grid-template-columns:1.35fr 1fr;gap:8px}
 .command-main{
   min-width:0;border:1px solid rgba(54,223,135,.24);border-radius:var(--radius);
@@ -257,6 +301,11 @@ h2{margin:0;font-size:16px;line-height:1.3}
   .hero-stats{min-width:0;grid-template-columns:repeat(3,minmax(0,1fr))}
   .hero-stat{padding:7px}
   .hero-stat strong{font-size:14px}
+  .store-switcher button{padding:9px}
+  .plan-head strong{font-size:17px}
+  .plan-score{font-size:32px}
+  .plan-route{grid-template-columns:1fr}
+  .route-board{grid-template-columns:repeat(2,minmax(0,1fr))}
   .command-board{grid-template-columns:1fr}
   .command-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
   .command-main .command-value{font-size:32px}

@@ -3,10 +3,11 @@ const state = {
   seatData: null,
   automation: null,
   selectedStore: '',
-  scope: 'overview',
+  scope: 'store',
 };
 
-const TODAY = new Date('2026-06-19T00:00:00+09:00');
+const FOCUS_STORES = ['鶴見UNO', 'エスパス日拓新宿歌舞伎町'];
+const TODAY = new Date('2026-06-22T00:00:00+09:00');
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -93,12 +94,18 @@ async function loadAll() {
 }
 
 function firstStore() {
-  return (state.data?.stores || Object.keys(state.data?.byStore || {})).find((store) => store !== 'all') || '';
+  return storeNames()[0] || '';
+}
+
+function allStoreNames() {
+  const names = state.data?.stores?.length ? state.data.stores : Object.keys(state.data?.byStore || {});
+  return names.filter(Boolean);
 }
 
 function storeNames() {
-  const names = state.data?.stores?.length ? state.data.stores : Object.keys(state.data?.byStore || {});
-  return names.filter(Boolean);
+  const all = allStoreNames();
+  const focus = FOCUS_STORES.filter((store) => all.includes(store));
+  return focus.length ? focus : all;
 }
 
 function byStore(store = state.selectedStore) {
@@ -110,21 +117,32 @@ function trendView(store = state.selectedStore) {
 }
 
 function populateControls() {
-  const stores = storeNames();
-  $('storeSelect').innerHTML = stores.map((store) => `<option value="${escapeHtml(store)}">${escapeHtml(store)}</option>`).join('');
-  $('storeSelect').value = state.selectedStore;
-  $('scopeSelect').value = state.scope;
+  if(!state.selectedStore) state.selectedStore = firstStore();
 }
 
 function renderAll() {
   renderHero();
+  renderStoreSwitch();
   renderSnapshot();
   renderFreshness();
   renderStoreMomentum();
   renderTiming();
   renderModels();
   renderBands();
-  renderLine();
+}
+
+function renderStoreSwitch() {
+  const active = state.selectedStore || firstStore();
+  $('storeSwitch').innerHTML = `<div class="store-switcher">
+    ${storeNames().map((store) => {
+      const row = storeMomentumRows().find((item) => item.store === store) || {};
+      const selected = store === active ? 'active' : '';
+      return `<button type="button" class="${selected}" data-store="${escapeHtml(store)}">
+        <span>${escapeHtml(store)}</span>
+        <b class="${row.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(row.avg, '枚')}</b>
+      </button>`;
+    }).join('')}
+  </div>`;
 }
 
 function storeFreshnessRows() {
@@ -149,69 +167,115 @@ function renderHero() {
   const stores = storeNames();
   const freshness = storeFreshnessRows();
   const stale = freshness.filter((row) => row.lag === null || row.lag >= 8).length;
-  const lineRows = getLineRows();
-  $('statusLine').textContent = `data.json ${state.data?.data_date || '-'} / updated ${state.data?.updated_at || '-'} / source ${state.automation?.source || '-'}`;
+  const latest = freshness.slice().sort((a, b) => (a.lag ?? 999) - (b.lag ?? 999))[0];
+  $('statusLine').textContent = `対象: 鶴見UNO / エスパス / data ${state.data?.data_date || '-'} / source ${state.automation?.source || '-'}`;
   $('heroStats').innerHTML = [
-    ['店舗', stores.length],
-    ['データ古い', stale],
-    ['LINE行', lineRows.length],
+    ['対象', `${stores.length}店`],
+    ['最新', latest?.ymd || '-'],
+    ['古い', `${stale}店`],
   ].map(([label, value]) => `<div class="hero-stat"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('');
 }
 
 function renderSnapshot() {
   const freshness = storeFreshnessRows();
-  const momentum = storeMomentumRows()
-    .filter((row) => row.avg !== null)
-    .sort((a, b) => visibleScore(b) - visibleScore(a));
-  const topStore = momentum[0];
-  const staleRows = freshness.filter((row) => row.lag === null || row.lag >= 8);
-  const timing = topTimingItems().slice(0, 1)[0];
-  const model = topModelItems().slice(0, 1)[0];
-  const freshnessLead = freshness
-    .filter((row) => row.ymd)
-    .sort((a, b) => (a.lag ?? 999) - (b.lag ?? 999))[0];
-  const band = topBandItems()[0];
-  const topModels = topModelItems().slice(0, 3);
+  const plan = buildStorePlan(state.selectedStore || firstStore());
 
   $('snapshotView').innerHTML = `
     <div class="snapshot-title">
-      <h2>今日まず見るところ</h2>
-      <span>鮮度込みで読む</span>
+      <h2>${escapeHtml(plan.store)} の狙い筋</h2>
+      <span>店 → 機種 → 癖 → 場所</span>
     </div>
-    <div class="command-board">
-      <article class="command-main">
-        <div class="overline"><span>いま一番目立つ店</span><span>${escapeHtml(topStore?.label || '要観察')}</span></div>
-        <strong>${escapeHtml(topStore?.store || 'データなし')}</strong>
-        <div class="command-value ${topStore?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(topStore?.avg, '枚')}</div>
-        <p>前30日比 ${fmtSigned(topStore?.delta, '枚')} / 勝率 ${fmtRate(topStore?.win)} / ${fmtNumber(topStore?.count, '件')}</p>
-        <div class="command-chips">${topModels.map((row) => `<span class="pill">${escapeHtml(row.model)} ${fmtSigned(row.avg, '枚')}</span>`).join('')}</div>
-      </article>
-      <div class="command-tiles">
-        <article class="command-tile ${staleRows.length ? 'warn' : ''}">
-          <div class="overline"><span>鮮度</span><span>${escapeHtml(staleRows.length ? '注意' : 'OK')}</span></div>
-          <strong>${staleRows.length ? `${staleRows.length}店舗古い` : '鮮度OK'}</strong>
-          <b class="${staleRows.length ? 'warn' : 'plus'}">${escapeHtml(freshnessLead?.ymd || '-')}</b>
-          <p>最新: ${escapeHtml(freshnessLead?.store || '-')}</p>
-        </article>
-        <article class="command-tile up">
-          <div class="overline"><span>タイミング</span><span>${escapeHtml(timing?.type || '-')}</span></div>
-          <strong>${escapeHtml(timing ? `${timing.store} / ${timing.label}` : 'データなし')}</strong>
-          <b class="${timing?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(timing?.avg, '枚')}</b>
-          <p>${fmtNumber(timing?.count, '件')} / 勝率 ${fmtRate(timing?.win)}</p>
-        </article>
-        <article class="command-tile up">
-          <div class="overline"><span>場所</span><span>台番帯</span></div>
-          <strong>${escapeHtml(band ? `${band.store} / ${band.band}番台` : 'データなし')}</strong>
-          <b class="${band?.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(band?.avg, '枚')}</b>
-          <p>${model ? `機種: ${escapeHtml(model.model)}` : `${fmtNumber(band?.count, '件')}`}</p>
-        </article>
-      </div>
+    <div class="store-plan-grid">
+      ${renderStorePlanCard(plan)}
     </div>
-    <div class="dashboard-grid">
-      ${renderMomentumMap(momentum.slice(0, 12))}
-      ${renderPatternHeat(topTimingItems().slice(0, 10))}
-      ${renderFreshnessStrip(freshness)}
+    <div class="route-board">
+      ${renderRouteStep('1', '店', plan.store, plan.momentum.avg, 'まず店の状態を見る')}
+      ${renderRouteStep('2', '機種', plan.model?.model || '-', plan.model?.avg, '店内で扱いが上向き')}
+      ${renderRouteStep('3', '癖', plan.timing?.label || '-', plan.timing?.avg, '日付・末尾・曜日の偏り')}
+      ${renderRouteStep('4', '場所', plan.band ? `${plan.band.band}番台` : '-', plan.band?.avg, '台番帯で最後に絞る')}
+    </div>
+    <div class="dashboard-grid store-focus">
+      ${renderStoreFocus(plan)}
+      ${renderPatternHeat(topTimingItemsForStores([plan.store]).slice(0, 8))}
+      ${renderFreshnessStrip([plan.fresh])}
     </div>`;
+}
+
+function buildStorePlan(store) {
+  const momentum = storeMomentumRows().find((row) => row.store === store) || { store };
+  const fresh = storeFreshnessRows().find((row) => row.store === store) || {};
+  const models = modelItemsForStores([store]).sort((a, b) => b.avg - a.avg);
+  const timing = topTimingItemsForStores([store])[0];
+  const band = bandItemsForStores([store])[0];
+  const model = models[0];
+  const stalePenalty = fresh.lag !== null && fresh.lag >= 8 ? 120 : 0;
+  const score = (toNumber(momentum.avg) || 0) + (toNumber(momentum.delta) || 0) * 0.4 + (toNumber(model?.avg) || 0) * 0.08 + (toNumber(timing?.avg) || 0) * 0.04 + (toNumber(band?.avg) || 0) * 0.05 - stalePenalty;
+  const label = fresh.lag !== null && fresh.lag >= 8 ? 'データ古い' : score >= 140 ? '根拠厚め' : score >= 40 ? '狙い筋あり' : '要観察';
+  return { store, momentum, fresh, model, timing, band, score, label };
+}
+
+function renderStorePlanCard(plan) {
+  const cls = toneClass(plan.label, plan.momentum.avg, plan.momentum.count, 100);
+  return `<article class="plan-card ${cls}">
+    <div class="plan-head">
+      <div><span>STORE</span><strong>${escapeHtml(plan.store)}</strong></div>
+      <b class="${cls}">${escapeHtml(plan.label)}</b>
+    </div>
+    <div class="plan-main">
+      <div class="plan-score ${plan.momentum.avg >= 0 ? 'plus' : 'minus'}">${fmtSigned(plan.momentum.avg, '枚')}</div>
+      <p>直近30日 / 前30日比 ${fmtSigned(plan.momentum.delta, '枚')} / 勝率 ${fmtRate(plan.momentum.win)}</p>
+    </div>
+    <div class="plan-route">
+      ${renderSignalBox('機種', plan.model?.model, plan.model?.avg, `${fmtNumber(plan.model?.count, '件')} / ${escapeHtml(plan.model?.category || '-')}`)}
+      ${renderSignalBox('癖', plan.timing?.label, plan.timing?.avg, `${escapeHtml(plan.timing?.type || '-')} / ${fmtNumber(plan.timing?.count, '件')}`)}
+      ${renderSignalBox('場所', plan.band ? `${plan.band.band}番台` : '-', plan.band?.avg, `${fmtNumber(plan.band?.tais, '台')} / ${fmtNumber(plan.band?.count, '件')}`)}
+    </div>
+    <div class="plan-foot">最新 ${escapeHtml(plan.fresh.ymd || '-')} / 遅延 ${plan.fresh.lag === null ? '-' : `${plan.fresh.lag}日`}</div>
+  </article>`;
+}
+
+function renderSignalBox(label, title, value, meta) {
+  return `<div class="signal-box">
+    <span>${escapeHtml(label)}</span>
+    <strong>${escapeHtml(title || '-')}</strong>
+    <b class="${toNumber(value) >= 0 ? 'plus' : 'minus'}">${fmtSigned(value, '枚')}</b>
+    <small>${meta || '-'}</small>
+  </div>`;
+}
+
+function renderRouteStep(step, label, title, value, note) {
+  return `<article class="route-step">
+    <span>${escapeHtml(step)}</span>
+    <div>
+      <b>${escapeHtml(label)}</b>
+      <strong>${escapeHtml(title)}</strong>
+      <small>${escapeHtml(note)}</small>
+    </div>
+    <em class="${toNumber(value) >= 0 ? 'plus' : 'minus'}">${fmtSigned(value, '枚')}</em>
+  </article>`;
+}
+
+function renderStoreFocus(plan) {
+  return `<article class="viz-card">
+    <div class="viz-head"><strong>店内シグナル</strong><span>重なりを見る</span></div>
+    <div class="focus-meter">
+      ${renderFocusMeter('店', plan.momentum.avg, plan.momentum.count)}
+      ${renderFocusMeter('機種', plan.model?.avg, plan.model?.count)}
+      ${renderFocusMeter('癖', plan.timing?.avg, plan.timing?.count)}
+      ${renderFocusMeter('場所', plan.band?.avg, plan.band?.count)}
+    </div>
+  </article>`;
+}
+
+function renderFocusMeter(label, value, count) {
+  const n = Math.abs(toNumber(value) || 0);
+  const width = Math.max(8, Math.min(100, n / 12));
+  return `<div class="focus-meter-row">
+    <span>${escapeHtml(label)}</span>
+    <div class="compare-bar"><i class="${toNumber(value) >= 0 ? 'up' : 'down'}" style="width:${width}%"></i></div>
+    <b class="${toNumber(value) >= 0 ? 'plus' : 'minus'}">${fmtSigned(value, '枚')}</b>
+    <small>${fmtNumber(count, '件')}</small>
+  </div>`;
 }
 
 function renderMomentumMap(rows) {
@@ -263,7 +327,8 @@ function renderFreshnessStrip(rows) {
 }
 
 function renderFreshness() {
-  const rows = storeFreshnessRows().sort((a, b) => (a.lag ?? 999) - (b.lag ?? 999));
+  const selected = selectedStoresForScope();
+  const rows = storeFreshnessRows().filter((row) => selected.includes(row.store)).sort((a, b) => (a.lag ?? 999) - (b.lag ?? 999));
   const topRows = rows.slice(0, 4);
   const allCards = rows.map(renderFreshnessCard).join('');
   $('freshnessView').innerHTML = `
@@ -320,7 +385,8 @@ function storeMomentumRows() {
 }
 
 function renderStoreMomentum() {
-  const rows = storeMomentumRows();
+  const selected = selectedStoresForScope();
+  const rows = storeMomentumRows().filter((row) => selected.includes(row.store));
   const valid = rows.filter((row) => row.avg !== null || row.delta !== null);
   const maxAbsAvg = Math.max(1, ...valid.map((row) => Math.abs(row.avg || 0)));
   const maxAbsDelta = Math.max(1, ...valid.map((row) => Math.abs(row.delta || 0)));
@@ -405,7 +471,7 @@ function renderStoreCard(row) {
 }
 
 function selectedStoresForScope() {
-  return state.scope === 'store' ? [state.selectedStore] : storeNames();
+  return [state.selectedStore || firstStore()].filter(Boolean);
 }
 
 function renderTiming() {
@@ -442,7 +508,10 @@ function renderPatternTile(row) {
 }
 
 function timingItems() {
-  const stores = selectedStoresForScope();
+  return timingItemsForStores(selectedStoresForScope());
+}
+
+function timingItemsForStores(stores) {
   const dayItems = [];
   const comboItems = [];
   for(const store of stores) {
@@ -462,6 +531,11 @@ function timingItems() {
 
 function topTimingItems() {
   const { dayItems, comboItems } = timingItems();
+  return [...dayItems, ...comboItems].sort((a, b) => b.avg - a.avg);
+}
+
+function topTimingItemsForStores(stores) {
+  const { dayItems, comboItems } = timingItemsForStores(stores);
   return [...dayItems, ...comboItems].sort((a, b) => b.avg - a.avg);
 }
 
@@ -535,7 +609,10 @@ function renderModelTile(row) {
 }
 
 function topModelItems(sort = true) {
-  const stores = selectedStoresForScope();
+  return modelItemsForStores(selectedStoresForScope(), sort);
+}
+
+function modelItemsForStores(stores, sort = true) {
   const rows = [];
   stores.forEach((store) => {
     (trendView(store).modelTrends || []).forEach((row) => {
@@ -600,8 +677,12 @@ function renderBands() {
 }
 
 function topBandItems() {
+  return bandItemsForStores(selectedStoresForScope());
+}
+
+function bandItemsForStores(stores) {
   const rows = [];
-  selectedStoresForScope().forEach((store) => {
+  stores.forEach((store) => {
     const bands = new Map();
     (trendView(store).taiTrends || []).forEach((row) => {
       const count = toNumber(row.count);
@@ -677,12 +758,11 @@ function renderLine() {
 }
 
 $('reloadBtn').addEventListener('click', () => loadAll().catch(showError));
-$('storeSelect').addEventListener('change', (event) => {
-  state.selectedStore = event.target.value;
-  renderAll();
-});
-$('scopeSelect').addEventListener('change', (event) => {
-  state.scope = event.target.value;
+$('storeSwitch').addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-store]');
+  if(!button) return;
+  state.selectedStore = button.dataset.store;
+  state.scope = 'store';
   renderAll();
 });
 

@@ -19,57 +19,45 @@
 <main>
   <section class="hero-panel">
     <div>
-      <p class="hero-copy">集めたデータから、店がいつ・どこ・何を強く扱っているかを読む画面です。</p>
+      <p class="hero-copy">まずは鶴見UNOとエスパスだけ。過去データから、店ごとの狙い筋を順番に絞ります。</p>
       <div class="status-line" id="statusLine">データ読込中...</div>
     </div>
     <div class="hero-stats" id="heroStats"></div>
   </section>
 
+  <section class="store-switch-panel" id="storeSwitch"></section>
+
   <section class="snapshot-panel" id="snapshotView"></section>
 
   <nav class="section-nav" aria-label="分析ビュー">
-    <a href="#freshnessSection">鮮度</a>
-    <a href="#momentumSection">勢い</a>
-    <a href="#timingSection">癖</a>
+    <a href="#snapshotView">狙い筋</a>
+    <a href="#momentumSection">店状態</a>
     <a href="#modelSection">機種</a>
+    <a href="#timingSection">癖</a>
     <a href="#bandSection">場所</a>
-    <a href="#lineSection">LINE</a>
+    <a href="#freshnessSection">鮮度</a>
   </nav>
-
-  <section class="control-panel">
-    <label>
-      <span>店舗</span>
-      <select id="storeSelect"></select>
-    </label>
-    <label>
-      <span>表示</span>
-      <select id="scopeSelect">
-        <option value="overview">全体を見る</option>
-        <option value="store">選択店舗を掘る</option>
-      </select>
-    </label>
-  </section>
-
-  <section class="section-block compact" id="freshnessSection">
-    <div class="section-head">
-      <div>
-        <span>01</span>
-        <h2>鮮度</h2>
-      </div>
-      <p>古い店は薄く見る。</p>
-    </div>
-    <div id="freshnessView"></div>
-  </section>
 
   <section class="section-block compact" id="momentumSection">
     <div class="section-head">
       <div>
-        <span>02</span>
-        <h2>店の勢い</h2>
+        <span>01</span>
+        <h2>店の状態</h2>
       </div>
-      <p>直近30日、前30日比、勝率、件数を同時に見ます。</p>
+      <p>選択中の店を深掘りする。</p>
     </div>
     <div id="storeMomentumView"></div>
+  </section>
+
+  <section class="section-block compact" id="modelSection">
+    <div class="section-head">
+      <div>
+        <span>02</span>
+        <h2>機種</h2>
+      </div>
+      <p>店ごとの扱い変化を見る。</p>
+    </div>
+    <div id="modelView"></div>
   </section>
 
   <section class="section-block compact" id="timingSection">
@@ -83,37 +71,26 @@
     <div id="timingView"></div>
   </section>
 
-  <section class="section-block compact" id="modelSection">
-    <div class="section-head">
-      <div>
-        <span>04</span>
-        <h2>機種の扱い変化</h2>
-      </div>
-      <p>今月と前期間の差を、件数と一緒に読みます。</p>
-    </div>
-    <div id="modelView"></div>
-  </section>
-
   <section class="section-block compact" id="bandSection">
     <div class="section-head">
       <div>
-        <span>05</span>
-        <h2>台番帯・場所傾向</h2>
+        <span>04</span>
+        <h2>場所</h2>
       </div>
-      <p>台番を当てるのではなく、使われやすい帯を探します。</p>
+      <p>台番帯と場所の偏りを見る。</p>
     </div>
     <div id="bandView"></div>
   </section>
 
-  <section class="section-block compact" id="lineSection">
+  <section class="section-block compact" id="freshnessSection">
     <div class="section-head">
       <div>
-        <span>06</span>
-        <h2>LINE店舗</h2>
+        <span>05</span>
+        <h2>鮮度</h2>
       </div>
-      <p>差枚なしデータは別枠で蓄積状態だけ見ます。</p>
+      <p>古い店は薄く見る。</p>
     </div>
-    <div id="lineView"></div>
+    <div id="freshnessView"></div>
   </section>
 </main>
 
